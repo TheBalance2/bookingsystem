@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Book a facility or equipment at San Isidro College. Choose between Internal and External user forms.">
+  <title>Make a Reservation — San Isidro College</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       NAVIGATION
+       ============================================================ -->
+  <nav class="navbar scrolled" id="navbar">
+    <div class="nav-content">
+      <a href="index.html" class="nav-brand">
+        <img src="images/logo.jpg" alt="SIC Logo" class="nav-logo" style="background: transparent; object-fit: contain;">
+        <div class="nav-brand-text">
+          <span class="nav-brand-name">San Isidro College</span>
+          <span class="nav-brand-sub">Reservation System</span>
+        </div>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="index.html">Home</a>
+        <a href="index.html#calendar-section">Calendar</a>
+        <a href="booking.html" class="active">Book</a>
+        <a href="booking.html" class="nav-cta">Book Now</a>
+      </div>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       PAGE HEADER
+       ============================================================ -->
+  <div class="page-header">
+    <div class="container">
+      <h1>Make a Reservation</h1>
+      <p>Select your user type and fill out the form below to request a facility or equipment.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       USER TYPE TOGGLE
+       ============================================================ -->
+  <div class="container">
+    <div class="user-type-toggle" id="userTypeToggle">
+      <button class="toggle-btn active" data-type="internal" id="toggleInternal">
+        Internal User
+      </button>
+      <button class="toggle-btn" data-type="external" id="toggleExternal">
+        External User
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       INTERNAL USER FORM
+       ============================================================ -->
+  <div class="container">
+    <div class="form-card" id="internalForm">
+      <h2>Internal User Reservation</h2>
+      <p class="form-subtitle">For Faculty, Staff, and Department Heads of San Isidro College</p>
+
+      <form id="internalBookingForm" novalidate>
+        <div class="form-grid">
+          <!-- Name -->
+          <div class="form-group">
+            <label for="intName">Full Name <span class="required">*</span></label>
+            <input type="text" id="intName" name="name" placeholder="e.g. Juan Dela Cruz" required>
+            <span class="error-message" id="intNameError">Please enter your full name</span>
+          </div>
+
+          <!-- Department -->
+          <div class="form-group">
+            <label for="intDepartment">Department <span class="required">*</span></label>
+            <select id="intDepartment" name="department" required>
+              <option value="">Select Department</option>
+              <option value="College of Education">College of Education</option>
+              <option value="College of Business">College of Business</option>
+              <option value="College of Engineering">College of Engineering</option>
+              <option value="College of Arts & Sciences">College of Arts & Sciences</option>
+              <option value="College of Information Technology">College of Information Technology</option>
+              <option value="Senior High School">Senior High School</option>
+              <option value="Junior High School">Junior High School</option>
+              <option value="Elementary">Elementary</option>
+              <option value="Administration">Administration</option>
+              <option value="Student Affairs">Student Affairs</option>
+              <option value="Other">Other</option>
+            </select>
+            <span class="error-message" id="intDepartmentError">Please select your department</span>
+          </div>
+
+          <!-- Employee ID -->
+          <div class="form-group">
+            <label for="intEmployeeId">Employee ID <span class="required">*</span></label>
+            <input type="text" id="intEmployeeId" name="employeeId" placeholder="e.g. SIC-2024-001" required>
+            <span class="error-message" id="intEmployeeIdError">Please enter your Employee ID</span>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label for="intEmail">Email Address <span class="required">*</span></label>
+            <input type="email" id="intEmail" name="email" placeholder="e.g. jdelacruz@sic.edu.ph" required>
+            <span class="error-message" id="intEmailError">Please enter a valid email address</span>
+          </div>
+
+          <!-- Facility -->
+          <div class="form-group">
+            <label for="intFacility">Facility</label>
+            <select id="intFacility" name="facility">
+              <option value="">Select Facility (or leave blank if Vehicle only)</option>
+            </select>
+            <span class="error-message" id="intFacilityError">Please select a facility or a vehicle</span>
+          </div>
+
+          <!-- Date -->
+          <div class="form-group">
+            <label for="intDate">Preferred Date <span class="required">*</span></label>
+            <input type="date" id="intDate" name="date" required>
+            <span class="error-message" id="intDateError">Please select a future date</span>
+          </div>
+
+          <!-- Start Time -->
+          <div class="form-group">
+            <label for="intStartTime">Start Time <span class="required">*</span></label>
+            <input type="time" id="intStartTime" name="startTime" required>
+            <span class="error-message" id="intStartTimeError">Please select a start time</span>
+          </div>
+
+          <!-- End Time -->
+          <div class="form-group">
+            <label for="intEndTime">End Time <span class="required">*</span></label>
+            <input type="time" id="intEndTime" name="endTime" required>
+            <span class="error-message" id="intEndTimeError">Please select an end time after start time</span>
+          </div>
+
+          <!-- Number of Persons -->
+          <div class="form-group">
+            <label for="intNumPersons">Number of Persons <span class="required">*</span></label>
+            <input type="number" id="intNumPersons" name="numPersons" min="1" placeholder="e.g. 50" required>
+            <span class="error-message" id="intNumPersonsError">Please enter the number of persons</span>
+          </div>
+
+          <!-- Vehicle -->
+          <div class="form-group full-width">
+            <label>Vehicle Needed</label>
+            <p class="form-subtitle" style="margin-bottom:var(--space-sm);">Select one or more vehicles if needed.</p>
+            <div class="equipment-grid" id="vehicleOptions">
+              <!-- Vehicles are loaded dynamically from Firestore -->
+            </div>
+          </div>
+          
+          <!-- Vehicle Destination -->
+          <div class="form-group">
+            <label for="intDestination">Destination (For Vehicle Only)</label>
+            <input type="text" id="intDestination" name="destination" placeholder="e.g. Cagayan de Oro City">
+            <span class="error-message" id="intDestinationError">Please enter the destination</span>
+          </div>
+          
+
+          <!-- Equipment -->
+          <div class="form-group full-width">
+            <label>Equipment Needed (optional)</label>
+            <div class="equipment-grid">
+              <label class="equipment-item">
+                <input type="checkbox" name="equipment" value="Tables"> Tables
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="equipment" value="Chairs"> Chairs
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="equipment" value="Tools"> Tools
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="equipment" value="Computer/Laptop"> Computer/Laptop
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="equipment" value="Projector"> Projector
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="equipment" value="Sound System"> Sound System
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="equipment" value="Microphone"> Microphone
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="equipment" value="Whiteboard"> Whiteboard
+              </label>
+            </div>
+          </div>
+
+          <!-- Purpose -->
+          <div class="form-group full-width">
+            <label for="intPurpose">Purpose / Activity <span class="required">*</span></label>
+            <textarea id="intPurpose" name="purpose" placeholder="Describe the purpose / activity..." required></textarea>
+            <span class="error-message" id="intPurposeError">Please describe the purpose / activity</span>
+          </div>
+
+          <!-- Other Considerations -->
+          <div class="form-group full-width">
+            <label for="intConsiderations">Other Considerations</label>
+            <textarea id="intConsiderations" name="considerations" placeholder="Any other details or requests..."></textarea>
+          </div>
+        </div>
+
+        <!-- Conflict Warning -->
+        <div class="conflict-warning" id="intConflictWarning">
+          <span id="intConflictText">This facility may have a scheduling conflict for the selected date and time.</span>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button type="reset" class="btn btn-outline">Clear Form</button>
+          <button type="submit" class="btn btn-primary" id="intSubmitBtn">
+            Submit Reservation
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ============================================================
+         EXTERNAL USER FORM
+         ============================================================ -->
+    <div class="form-card" id="externalForm" style="display:none;">
+      <h2>External User Reservation</h2>
+      <p class="form-subtitle">For organizations, visitors, and external clients outside of San Isidro College</p>
+
+      <form id="externalBookingForm" novalidate>
+        <div class="form-grid">
+          <!-- Contact Person -->
+          <div class="form-group">
+            <label for="extContactPerson">Name of Contact Person <span class="required">*</span></label>
+            <input type="text" id="extContactPerson" name="contactPerson" placeholder="e.g. Juan Dela Cruz" required>
+            <span class="error-message" id="extContactPersonError">Please enter the contact person's name</span>
+          </div>
+
+          <!-- Agency/Organization -->
+          <div class="form-group">
+            <label for="extAgency">Name of Agency/Organization <span class="required">*</span></label>
+            <input type="text" id="extAgency" name="agency" placeholder="e.g. City Government" required>
+            <span class="error-message" id="extAgencyError">Please enter the agency or organization name</span>
+          </div>
+
+          <!-- Contact Number -->
+          <div class="form-group">
+            <label for="extContact">Contact Number <span class="required">*</span></label>
+            <input type="tel" id="extContact" name="contactNumber" placeholder="e.g. 09171234567" inputmode="numeric" pattern="\d*" required>
+            <span class="error-message" id="extContactError">Please enter a valid contact number (numbers only)</span>
+          </div>
+
+          <!-- Address -->
+          <div class="form-group full-width">
+            <label for="extAddress">Address <span class="required">*</span></label>
+            <input type="text" id="extAddress" name="address" placeholder="e.g. 123 Main St, City" required>
+            <span class="error-message" id="extAddressError">Please enter your address</span>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label for="extEmail">Email Address <span class="required">*</span></label>
+            <input type="email" id="extEmail" name="email" placeholder="e.g. contact@org.com" required>
+            <span class="error-message" id="extEmailError">Please enter a valid email address</span>
+          </div>
+
+          <!-- Facility -->
+          <div class="form-group">
+            <label for="extFacility">Facility <span class="required">*</span></label>
+            <select id="extFacility" name="facility" required>
+              <option value="">Select Facility</option>
+            </select>
+            <span class="error-message" id="extFacilityError">Please select a facility</span>
+          </div>
+
+          <!-- Date -->
+          <div class="form-group">
+            <label for="extDate">Preferred Date <span class="required">*</span></label>
+            <input type="date" id="extDate" name="date" required>
+            <span class="error-message" id="extDateError">Please select a future date</span>
+          </div>
+
+          <!-- Start Time -->
+          <div class="form-group">
+            <label for="extStartTime">Start Time <span class="required">*</span></label>
+            <input type="time" id="extStartTime" name="startTime" required>
+            <span class="error-message" id="extStartTimeError">Please select a start time</span>
+          </div>
+
+          <!-- End Time -->
+          <div class="form-group">
+            <label for="extEndTime">End Time <span class="required">*</span></label>
+            <input type="time" id="extEndTime" name="endTime" required>
+            <span class="error-message" id="extEndTimeError">Please select an end time after start time</span>
+          </div>
+
+          <!-- Number of Persons -->
+          <div class="form-group">
+            <label for="extNumPersons">Number of Persons <span class="required">*</span></label>
+            <input type="number" id="extNumPersons" name="numPersons" min="1" placeholder="e.g. 50" required>
+            <span class="error-message" id="extNumPersonsError">Please enter the number of persons</span>
+          </div>
+
+          <!-- Equipment -->
+          <div class="form-group full-width">
+            <label>Equipment Needed (optional)</label>
+            <div class="equipment-grid">
+              <label class="equipment-item">
+                <input type="checkbox" name="extEquipment" value="Projector"> Projector
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="extEquipment" value="Sound System"> Sound System
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="extEquipment" value="Microphone"> Microphone
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="extEquipment" value="Whiteboard"> Whiteboard
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="extEquipment" value="Chairs (Extra)"> Chairs (Extra)
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="extEquipment" value="Tables (Extra)"> Tables (Extra)
+              </label>
+            </div>
+          </div>
+
+          <!-- Other Equipment/Resources -->
+          <div class="form-group full-width">
+            <label for="extOtherEquipment">Other Equipment / Resources Needed</label>
+            <textarea id="extOtherEquipment" name="otherEquipment" placeholder="List any other equipment or resources needed..."></textarea>
+          </div>
+
+          <!-- Purpose -->
+          <div class="form-group full-width">
+            <label for="extPurpose">Purpose / Activity <span class="required">*</span></label>
+            <textarea id="extPurpose" name="purpose" placeholder="Describe the purpose / activity..." required></textarea>
+            <span class="error-message" id="extPurposeError">Please describe the purpose / activity</span>
+          </div>
+
+          <!-- Other Considerations -->
+          <div class="form-group full-width">
+            <label for="extConsiderations">Other Considerations</label>
+            <textarea id="extConsiderations" name="considerations" placeholder="Any other details or requests..."></textarea>
+          </div>
+        </div>
+
+        <!-- Conflict Warning -->
+        <div class="conflict-warning" id="extConflictWarning">
+          <span id="extConflictText">This facility may have a scheduling conflict for the selected date and time.</span>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button type="reset" class="btn btn-outline">Clear Form</button>
+          <button type="submit" class="btn btn-primary" id="extSubmitBtn">
+            Submit Reservation
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SUCCESS MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="successModal">
+    <div class="modal">
+      <h2>Reservation Submitted!</h2>
+      <p>Your reservation request has been received. The admin will review and update the status shortly. You will receive an email notification.</p>
+      <div class="reference-id" id="bookingRefId">—</div>
+      <p style="font-size:0.82rem;color:var(--gray-300);margin-bottom:var(--space-md);">Save this reference ID for your records.</p>
+      <a href="index.html" class="btn btn-primary">Back to Home</a>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <div class="brand-name">San Isidro College</div>
+          <p>Digital Reservation System for campus facilities and equipment management.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <a href="index.html">Home</a>
+          <a href="booking.html">Make a Reservation</a>
+          <a href="admin.html">Admin Portal</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 San Isidro College. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       SCRIPTS
+       ============================================================ -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/booking.js"></script>
+
+  <script>
+    // --- Mobile nav toggle ---
+    document.getElementById('navToggle').addEventListener('click', () => {
+      document.getElementById('navLinks').classList.toggle('open');
+    });
+  </script>
+</body>
+</html>

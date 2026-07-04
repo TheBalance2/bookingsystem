@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="San Isidro College Digital Reservation System — Book school facilities and equipment online. View real-time availability on our interactive calendar.">
+  <title>Digital Reservation System — San Isidro College</title>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css?v=2">
+
+  <!-- FullCalendar CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       NAVIGATION
+       ============================================================ -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-content">
+      <a href="index.html" class="nav-brand">
+        <img src="images/logo.jpg" alt="SIC Logo" class="nav-logo" style="background: transparent; object-fit: contain;">
+        <div class="nav-brand-text">
+          <span class="nav-brand-name">San Isidro College</span>
+          <span class="nav-brand-sub">Reservation System</span>
+        </div>
+      </a>
+
+      <div class="nav-links" id="navLinks">
+        <a href="index.html" class="active">Home</a>
+        <a href="#calendar-section">Calendar</a>
+        <a href="#facilities-section">Facilities</a>
+        <a href="booking.html" class="nav-cta">Book Now</a>
+      </div>
+
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       HERO SECTION
+       ============================================================ -->
+  <section class="hero" id="hero">
+    <!-- Background image -->
+    <div class="hero-bg">
+      <img src="images/campus-bg.jpg" alt="San Isidro College Campus" loading="eager">
+    </div>
+
+    <!-- Cinematic overlay -->
+    <div class="hero-overlay"></div>
+
+    <!-- Animated gradient mesh -->
+    <div class="hero-mesh"></div>
+
+    <!-- Floating decorations -->
+    <div class="hero-decor">
+      <div class="decor-ring"></div>
+      <div class="decor-ring"></div>
+      <div class="decor-ring"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        Online Booking Available
+      </div>
+      <h1>Reserve School <span class="highlight">Facilities &amp; Equipment</span> with Ease</h1>
+      <p>Browse availability in real-time, submit your reservation request, and receive instant confirmation — all without creating an account.</p>
+      <div class="hero-actions">
+        <a href="booking.html" class="btn btn-primary">
+          Make a Reservation
+        </a>
+        <a href="#calendar-section" class="btn btn-secondary">
+          View Calendar
+        </a>
+      </div>
+    </div>
+
+    <!-- Curved Shape Divider -->
+    <div class="hero-divider">
+      <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+        <path d="M0,0V120H1200V0C1023.2,79.23,799.3,121.73,600,120,381.1,118.11,180.4,70.92,0,0Z" class="shape-fill"></path>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FACILITIES SECTION
+       ============================================================ -->
+  <section class="section" id="facilities-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Available Facilities &amp; Equipment</h2>
+        <p>Explore our campus resources available for reservation by students, faculty, and external organizations.</p>
+        <span class="accent-line"></span>
+      </div>
+
+      <div class="facilities-grid" id="facilitiesGrid">
+        <!-- Cards are populated dynamically from Firestore -->
+        <!-- Fallback static cards shown until JS loads -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FACILITY DETAIL MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="facilityDetailModal">
+    <div class="modal facility-detail-modal">
+      <!-- Gallery -->
+      <div class="fac-detail-gallery" id="facDetailGallery">
+        <button class="fac-detail-close" onclick="closeFacilityDetailModal()">✕</button>
+        <span class="fac-gallery-counter" id="facGalleryCounter"></span>
+      </div>
+      <!-- Thumbnails -->
+      <div class="fac-detail-thumbs" id="facDetailThumbs"></div>
+      <!-- Body -->
+      <div class="fac-detail-body">
+        <h2 class="fac-detail-title" id="facDetailTitle">—</h2>
+        <div class="fac-detail-status"><span class="dot"></span> Available</div>
+        <p class="fac-detail-desc" id="facDetailDesc">—</p>
+
+        <!-- Specs -->
+        <div class="fac-detail-specs" id="facDetailSpecs"></div>
+
+        <!-- Amenities -->
+        <div id="facDetailAmenitiesSection" style="display:none;">
+          <div class="fac-detail-amenities-title">Amenities & Features</div>
+          <div class="fac-detail-amenities-grid" id="facDetailAmenities"></div>
+        </div>
+
+        <!-- Actions -->
+        <div class="fac-detail-actions">
+          <a href="booking.html" class="btn btn-primary" id="facDetailBookBtn">Book This Facility</a>
+          <button class="btn btn-outline" onclick="closeFacilityDetailModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       CALENDAR SECTION
+       ============================================================ -->
+  <section class="section calendar-section" id="calendar-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Availability Calendar</h2>
+        <p>View current reservations across all facilities. Click on any event for details.</p>
+        <span class="accent-line"></span>
+      </div>
+
+      <div class="calendar-wrapper">
+        <div id="calendar"></div>
+
+        <div class="calendar-legend">
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#3498db"></span>
+            Gymnasium
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#9b59b6"></span>
+            Chapel
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#27ae60"></span>
+            Guest House/College H.E
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#e67e22"></span>
+            Field/Oval
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background:#e74c3c"></span>
+            Conference Room
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       EVENT DETAILS MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="eventModal">
+    <div class="modal">
+      <h2 id="modalTitle">Booking Details</h2>
+      <div class="modal-details" id="modalDetails">
+        <!-- Filled dynamically -->
+      </div>
+      <div style="margin-top:var(--space-lg);">
+        <button class="btn btn-primary" onclick="closeEventModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       DATE AVAILABILITY MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="dateAvailModal">
+    <div class="modal date-avail-modal">
+      <div class="date-avail-header">
+        <div>
+          <div class="date-avail-badge">Facility Availability</div>
+          <h2 id="dateAvailTitle">—</h2>
+        </div>
+        <button class="date-avail-close" onclick="closeDateAvailModal()">✕</button>
+      </div>
+      <p class="date-avail-subtitle">Select an available facility to book it for this date.</p>
+      <div id="dateAvailContent">
+        <!-- Facility cards inserted dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <div class="brand-name">San Isidro College</div>
+          <p>Digital Reservation System for campus facilities and equipment management.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <a href="index.html">Home</a>
+          <a href="booking.html">Make a Reservation</a>
+          <a href="admin.html">Admin Portal</a>
+        </div>
+        <div class="footer-links">
+          <h4>Contact</h4>
+          <a href="#">info@sanisidrocollege.edu.ph</a>
+          <a href="#">(02) 8123 4567</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 San Isidro College. All rights reserved. Digital Reservation System.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       SCRIPTS
+       ============================================================ -->
+  <!-- Firebase SDKs (v9 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <!-- FullCalendar -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+
+  <!-- App Scripts -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/calendar.js?v=2"></script>
+
+  <script>
+    // --- Navbar scroll effect ---
+    window.addEventListener('scroll', () => {
+      document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50);
+    });
+
+    // --- Mobile nav toggle ---
+    document.getElementById('navToggle').addEventListener('click', () => {
+      document.getElementById('navLinks').classList.toggle('open');
+    });
+
+    // --- Event modal helpers ---
+    function closeEventModal() {
+      document.getElementById('eventModal').classList.remove('visible');
+    }
+
+    document.getElementById('eventModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeEventModal();
+    });
+
+    // --- Date availability modal helpers ---
+    function closeDateAvailModal() {
+      document.getElementById('dateAvailModal').classList.remove('visible');
+    }
+    // Make it globally accessible for the onclick attribute
+    window.closeDateAvailModal = closeDateAvailModal;
+
+    document.getElementById('dateAvailModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeDateAvailModal();
+    });
+
+    // --- Dynamically load facilities from Firestore ---
+    let landingFacilities = []; // Store for detail modal use
+
+    (function loadLandingFacilities() {
+      // Simple sanitizer to prevent XSS when inserting Firestore data
+      function escapeHtml(str) {
+        if (str === undefined || str === null) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function sanitizeUrl(url) {
+        if (!url) return '';
+        const s = String(url).trim();
+        if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('data:image/')) return s;
+        return '';
+      }
+
+      const facilitiesGrid = document.getElementById('facilitiesGrid');
+      const calendarLegend = document.querySelector('.calendar-legend');
+      const legendColors = ['#3498db', '#9b59b6', '#27ae60', '#e67e22', '#e74c3c', '#1abc9c', '#f39c12', '#2c3e50'];
+
+      db.collection('facilities')
+        .orderBy('order', 'asc')
+        .get()
+        .then(snapshot => {
+          if (snapshot.empty) return;
+
+          if (facilitiesGrid) facilitiesGrid.innerHTML = '';
+          if (calendarLegend) calendarLegend.innerHTML = '';
+
+          let index = 0;
+          snapshot.forEach(doc => {
+            const f = { id: doc.id, ...doc.data() };
+            if (f.status !== 'Active') return;
+
+            landingFacilities.push(f);
+
+            // Build image-based facility card
+            if (facilitiesGrid) {
+              const images = f.images || [];
+              const amenities = f.amenities || [];
+              const firstImg = images.length > 0 ? sanitizeUrl(images[0]) : null;
+
+              // Image or fallback
+              const imgHTML = firstImg
+                ? `<img src="${firstImg}" alt="${escapeHtml(f.name)}" loading="lazy">`
+                : `<div class="fac-img-fallback">No image available</div>`;
+
+              // Amenity chips (show max 3)
+              let amenityChips = '';
+              if (amenities.length > 0) {
+                const shown = amenities.slice(0, 3);
+                amenityChips = shown.map(a => `<span class="amenity-chip">${escapeHtml(a)}</span>`).join('');
+                if (amenities.length > 3) {
+                  amenityChips += `<span class="amenity-chip-more">+${escapeHtml(amenities.length - 3)}</span>`;
+                }
+              }
+
+              facilitiesGrid.innerHTML += `
+                <div class="facility-card" onclick="openFacilityDetail('${f.id}')">
+                  <div class="facility-card-img">
+                    ${imgHTML}
+                    <div class="facility-card-name">
+                      <h3>${escapeHtml(f.name)}</h3>
+                      ${f.capacity ? `<span class="facility-card-capacity">${escapeHtml(f.capacity)}</span>` : ''}
+                    </div>
+                  </div>
+                  <div class="facility-card-body">
+                    <p>${escapeHtml(f.description || '')}</p>
+                    ${amenityChips ? `<div class="facility-card-amenities">${amenityChips}</div>` : ''}
+                  </div>
+                  <div class="facility-card-footer">
+                    <span class="facility-card-view">View Details</span>
+                  </div>
+                </div>
+              `;
+            }
+
+            // Calendar legend
+            if (calendarLegend) {
+              const color = legendColors[index % legendColors.length];
+              calendarLegend.innerHTML += `
+                <div class="legend-item">
+                  <span class="legend-dot" style="background:${color}"></span>
+                  ${escapeHtml(f.name)}
+                </div>
+              `;
+            }
+            index++;
+          });
+        })
+        .catch(err => {
+          console.warn('Could not load facilities for landing page:', err);
+        });
+    })();
+
+    // --- Facility Detail Modal ---
+    let currentGalleryIndex = 0;
+    let currentGalleryImages = [];
+
+    window.openFacilityDetail = function (facId) {
+      const fac = landingFacilities.find(f => f.id === facId);
+      if (!fac) return;
+
+      const gallery = document.getElementById('facDetailGallery');
+      const thumbs = document.getElementById('facDetailThumbs');
+      const counter = document.getElementById('facGalleryCounter');
+      const images = fac.images || [];
+      // sanitize image URLs
+      currentGalleryImages = images.map(sanitizeUrl);
+      currentGalleryIndex = 0;
+
+      // Gallery image
+      const existingImg = gallery.querySelector('.fac-detail-main-img, .fac-gallery-fallback');
+      if (existingImg) existingImg.remove();
+
+      if (currentGalleryImages.length > 0) {
+        const img = document.createElement('img');
+        img.className = 'fac-detail-main-img';
+        img.src = currentGalleryImages[0];
+        img.alt = escapeHtml(fac.name);
+        gallery.prepend(img);
+        counter.textContent = `Photo 1 of ${currentGalleryImages.length}`;
+        counter.style.display = '';
+      } else {
+        const fallback = document.createElement('div');
+        fallback.className = 'fac-gallery-fallback';
+        fallback.textContent = 'No image available';
+        gallery.prepend(fallback);
+        counter.style.display = 'none';
+      }
+
+      // Thumbnails
+      thumbs.innerHTML = '';
+      if (currentGalleryImages.length > 1) {
+        currentGalleryImages.forEach((s, i) => {
+          const thumb = document.createElement('div');
+          thumb.className = `fac-thumb${i === 0 ? ' active' : ''}`;
+          const tImg = document.createElement('img');
+          tImg.src = s;
+          tImg.alt = `Photo ${i + 1}`;
+          thumb.appendChild(tImg);
+          thumb.onclick = () => switchGalleryImage(i, fac.name);
+          thumbs.appendChild(thumb);
+        });
+      }
+
+      // Title & description
+      document.getElementById('facDetailTitle').textContent = fac.name;
+      document.getElementById('facDetailDesc').textContent = fac.description || 'No description available.';
+
+      // Specs
+      const specsEl = document.getElementById('facDetailSpecs');
+      let specsHTML = '';
+      if (fac.capacity) specsHTML += `<div class="fac-spec-item"><span class="spec-label">Capacity</span><span class="spec-value">${fac.capacity}</span></div>`;
+      specsHTML += `<div class="fac-spec-item"><span class="spec-label">Status</span><span class="spec-value">${fac.status}</span></div>`;
+      if (images.length > 0) specsHTML += `<div class="fac-spec-item"><span class="spec-label">Photos</span><span class="spec-value">${images.length}</span></div>`;
+      if (fac.amenities && fac.amenities.length > 0) specsHTML += `<div class="fac-spec-item"><span class="spec-label">Amenities</span><span class="spec-value">${fac.amenities.length}</span></div>`;
+      specsEl.innerHTML = specsHTML;
+
+      // Amenities
+      const amenSection = document.getElementById('facDetailAmenitiesSection');
+      const amenGrid = document.getElementById('facDetailAmenities');
+      if (fac.amenities && fac.amenities.length > 0) {
+        amenSection.style.display = 'block';
+        amenGrid.innerHTML = fac.amenities.map(a => `<div class="fac-amenity-tag">${a}</div>`).join('');
+      } else {
+        amenSection.style.display = 'none';
+      }
+
+      // Book button link with pre-filled facility
+      document.getElementById('facDetailBookBtn').href = `booking.html?facility=${encodeURIComponent(fac.name)}`;
+
+      // Show modal
+      document.getElementById('facilityDetailModal').classList.add('visible');
+    };
+
+    function switchGalleryImage(index, altText) {
+      if (index < 0 || index >= currentGalleryImages.length) return;
+      currentGalleryIndex = index;
+
+      const gallery = document.getElementById('facDetailGallery');
+      const img = gallery.querySelector('.fac-detail-main-img');
+      if (img) {
+        img.style.opacity = '0';
+        setTimeout(() => {
+          img.src = currentGalleryImages[index];
+          img.alt = altText || '';
+          img.style.opacity = '1';
+        }, 200);
+      }
+
+      // Update counter
+      document.getElementById('facGalleryCounter').textContent = `Photo ${index + 1} of ${currentGalleryImages.length}`;
+
+      // Update active thumbnail
+      document.querySelectorAll('.fac-thumb').forEach((t, i) => {
+        t.classList.toggle('active', i === index);
+      });
+    }
+
+    window.closeFacilityDetailModal = function () {
+      document.getElementById('facilityDetailModal').classList.remove('visible');
+    };
+
+    document.getElementById('facilityDetailModal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeFacilityDetailModal();
+    });
+  </script>
+</body>
+</html>
