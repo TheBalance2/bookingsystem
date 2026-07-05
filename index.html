@@ -292,24 +292,25 @@
     // --- Dynamically load facilities from Firestore ---
     let landingFacilities = []; // Store for detail modal use
 
-    (function loadLandingFacilities() {
-      // Simple sanitizer to prevent XSS when inserting Firestore data
-      function escapeHtml(str) {
-        if (str === undefined || str === null) return '';
-        return String(str)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/\"/g, '&quot;')
-          .replace(/'/g, '&#39;');
-      }
+    // Simple sanitizer to prevent XSS when inserting Firestore data
+    function escapeHtml(str) {
+      if (str === undefined || str === null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
-      function sanitizeUrl(url) {
-        if (!url) return '';
-        const s = String(url).trim();
-        if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('data:image/')) return s;
-        return '';
-      }
+    function sanitizeUrl(url) {
+      if (!url) return '';
+      const s = String(url).trim();
+      if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('data:image/')) return s;
+      return '';
+    }
+
+    (function loadLandingFacilities() {
 
       const facilitiesGrid = document.getElementById('facilitiesGrid');
       const calendarLegend = document.querySelector('.calendar-legend');
