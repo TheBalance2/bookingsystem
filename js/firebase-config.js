@@ -18,13 +18,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 // Export references
-const db   = firebase.firestore();
-const auth = firebase.auth();
+const db      = firebase.firestore();
+const auth    = typeof firebase.auth === 'function' ? firebase.auth() : null;
 
-// ============================================================
-// EmailJS Configuration
-// Sign up at https://www.emailjs.com/ and fill in these values
-// ============================================================
+/* ============================================================
+   EmailJS Configuration
+   ============================================================
+*/
 const EMAILJS_SERVICE_ID  = 'service_pmf8j3d';
 const EMAILJS_TEMPLATE_APPROVE = 'template_ic20gzn';
 const EMAILJS_TEMPLATE_REJECT  = 'template_yvtx6w1';

@@ -95,6 +95,7 @@
         snapshot.forEach(doc => {
           allBookings.push({ id: doc.id, ...doc.data() });
         });
+        window._allBookings = allBookings; // Expose for reports module
         updateStats();
         renderTable();
       }, err => {
@@ -106,20 +107,22 @@
   // STATS
   // ============================================================
   function updateStats() {
-    const pending  = allBookings.filter(b => b.status === 'Pending').length;
+    const pending  = allBookings.filter(b => b.status === 'Pending' || b.status === 'Pending Payment').length;
+    const review   = allBookings.filter(b => b.status === 'Payment Under Review').length;
     const approved = allBookings.filter(b => b.status === 'Approved').length;
     const rejected = allBookings.filter(b => b.status === 'Rejected').length;
     const total    = allBookings.length;
 
-    document.getElementById('statPending').textContent  = pending;
-    document.getElementById('statApproved').textContent = approved;
-    document.getElementById('statRejected').textContent = rejected;
-    document.getElementById('statTotal').textContent    = total;
+    if (document.getElementById('statPending')) document.getElementById('statPending').textContent  = pending + review;
+    if (document.getElementById('statApproved')) document.getElementById('statApproved').textContent = approved;
+    if (document.getElementById('statRejected')) document.getElementById('statRejected').textContent = rejected;
+    if (document.getElementById('statTotal')) document.getElementById('statTotal').textContent    = total;
 
-    document.getElementById('countAll').textContent     = total;
-    document.getElementById('countPending').textContent  = pending;
-    document.getElementById('countApproved').textContent = approved;
-    document.getElementById('countRejected').textContent = rejected;
+    if (document.getElementById('countAll')) document.getElementById('countAll').textContent     = total;
+    if (document.getElementById('countPending')) document.getElementById('countPending').textContent  = pending;
+    if (document.getElementById('countReview')) document.getElementById('countReview').textContent  = review;
+    if (document.getElementById('countApproved')) document.getElementById('countApproved').textContent = approved;
+    if (document.getElementById('countRejected')) document.getElementById('countRejected').textContent = rejected;
   }
 
   function formatVehicleList(vehicleValue) {
@@ -139,7 +142,9 @@
   function renderTable() {
     const filtered = activeFilter === 'all'
       ? allBookings
-      : allBookings.filter(b => b.status === activeFilter);
+      : activeFilter === 'Pending' 
+        ? allBookings.filter(b => b.status === 'Pending' || b.status === 'Pending Payment')
+        : allBookings.filter(b => b.status === activeFilter);
 
     if (filtered.length === 0) {
       tableBody.innerHTML = '';
@@ -150,9 +155,9 @@
     emptyState.style.display = 'none';
 
     tableBody.innerHTML = filtered.map(b => {
-      const statusClass = (b.status || '').toLowerCase();
+      const statusClass = (b.status || '').toLowerCase().replace(/\s+/g, '-');
       const typeClass = (b.userType || 'Internal').toLowerCase();
-      const showActions = b.status === 'Pending';
+      const showActions = b.status === 'Pending' || b.status === 'Payment Under Review';
       const locationText = escapeHtml(getBookingLocation(b));
 
       const dateText = escapeHtml(b.date || '—');
@@ -269,15 +274,19 @@
   // EMAIL NOTIFICATION (EmailJS)
   // ============================================================
   function sendStatusEmail(bookingData, status) {
-    const templateId = status === 'Approved'
-      ? EMAILJS_TEMPLATE_APPROVE
-      : EMAILJS_TEMPLATE_REJECT;
+    // We are now using a consolidated template. 
+    // In this example, we assume EMAILJS_TEMPLATE_APPROVE was modified to be generic.
+    const templateId = EMAILJS_TEMPLATE_APPROVE;
 
     // Only send if EmailJS is configured
     if (!EMAILJS_SERVICE_ID || EMAILJS_SERVICE_ID.startsWith('YOUR_')) {
       console.log('EmailJS not configured — skipping email send. Booking data:', bookingData);
       return;
     }
+
+    const messageText = status === 'Approved' 
+      ? 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been APPROVED by the administrator.'
+      : 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been REJECTED by the administrator.';
 
     try {
       emailjs.send(EMAILJS_SERVICE_ID, templateId, {
@@ -291,6 +300,7 @@
         purpose:      bookingData.purpose,
         status:       status,
         reference_id: bookingData.referenceId || '—',
+        message:      messageText
       }).then(() => {
         console.log('Email sent successfully to', bookingData.email);
       }).catch(err => {
@@ -310,48 +320,62 @@
 
     currentModalDocId = docId;
 
-    const rows = [
+    let rows = [
       ['Reference',    booking.referenceId || '—'],
       ['Requester',    booking.name || '—'],
-      ['Type',         booking.userType || '—'],
-      ['Email',        booking.email || '—'],
-      ['Facility',     booking.facility || '—'],
-      ['Vehicle',      formatVehicleList(booking.vehicle) || '—'],
-      ['Date',         booking.date || '—'],
-      ['Time',         `${booking.startTime || '—'} – ${booking.endTime || '—'}`],
-      ['Purpose',      booking.purpose || '—'],
-      ['Equipment',    (booking.equipment && booking.equipment.length) ? booking.equipment.join(', ') : 'None'],
-      ['Status',       booking.status || '—'],
+      ['Type',         booking.userType || '—']
     ];
 
     // Internal-specific fields
     if (booking.userType === 'Internal') {
-      rows.splice(3, 0, ['Department', booking.department || '—']);
-      rows.splice(4, 0, ['Employee ID', booking.employeeId || '—']);
+      rows.push(['Department', booking.department || '—']);
+      rows.push(['Employee ID', booking.employeeId || '—']);
     }
 
     // External-specific fields
     if (booking.userType === 'External') {
-      rows.splice(3, 0, ['Contact', booking.contactNumber || '—']);
-      rows.splice(4, 0, ['Address', booking.address || '—']);
+      rows.push(['Organization', booking.organization || booking.agency || '—']);
+      rows.push(['Contact', booking.contactNumber || '—']);
+      rows.push(['Address', booking.address || '—']);
     }
+
+    rows.push(
+      ['Email',        booking.email || '—'],
+      ['Facility',     booking.facility || '—'],
+      ['Vehicle',      formatVehicleList(booking.vehicle) || '—']
+    );
+
+    if (booking.destination) rows.push(['Destination', booking.destination]);
+
+    rows.push(
+      ['Date',         booking.date || '—'],
+      ['Time',         `${booking.startTime || '—'} – ${booking.endTime || '—'}`],
+      ['Num. of Persons', booking.numPersons || '—'],
+      ['Purpose',      booking.purpose || '—'],
+      ['Equipment',    (booking.equipment && booking.equipment.length) ? booking.equipment.join(', ') : 'None']
+    );
+
+    if (booking.otherEquipment) rows.push(['Other Equip.', booking.otherEquipment]);
+    if (booking.considerations) rows.push(['Considerations', booking.considerations]);
+
+    rows.push(['Status', booking.status || '—']);
 
     let html = rows.map(([label, value]) =>
       `<div class="detail-row"><span class="detail-label">${escapeHtml(label)}</span><span class="detail-value">${escapeHtml(value)}</span></div>`
     ).join('');
 
-    // Show GCash receipt for external bookings
+    // Show uploaded receipt for external bookings (if they have one)
     if (booking.userType === 'External') {
-      const receiptUrl = sanitizeUrl(booking.gcashReceipt);
+      const receiptUrl = sanitizeUrl(booking.receiptUrl || booking.gcashReceipt);
       if (receiptUrl) {
         html += `
           <div class="gcash-receipt-section">
             <div class="gcash-receipt-header">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#007DFE"/><text x="12" y="16" text-anchor="middle" font-size="9" font-weight="bold" fill="white">G</text></svg>
-              <span>GCash Payment Receipt</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#007DFE"/><path d="M7 12l3 3 7-7" stroke="white" stroke-width="2" fill="none"/></svg>
+              <span>Business Office Payment Receipt</span>
             </div>
             <div class="gcash-receipt-img-wrapper">
-              <img src="${receiptUrl}" alt="GCash Receipt" class="gcash-receipt-img" onclick="window.open(this.src, '_blank')">
+              <img src="${receiptUrl}" alt="Payment Receipt" class="gcash-receipt-img" onclick="window.open(this.src, '_blank')">
             </div>
             <a href="${receiptUrl}" target="_blank" class="gcash-view-full-btn">View Full Receipt</a>
           </div>`;
@@ -359,8 +383,8 @@
         html += `
           <div class="gcash-receipt-section no-receipt">
             <div class="gcash-receipt-header">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#007DFE"/><text x="12" y="16" text-anchor="middle" font-size="9" font-weight="bold" fill="white">G</text></svg>
-              <span>GCash Payment Receipt</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#007DFE"/><path d="M7 12l3 3 7-7" stroke="white" stroke-width="2" fill="none"/></svg>
+              <span>Business Office Payment Receipt</span>
             </div>
             <p class="gcash-no-receipt-text">No receipt was uploaded for this booking.</p>
           </div>`;
@@ -373,7 +397,7 @@
     const approveBtn = document.getElementById('modalApproveBtn');
     const rejectBtn  = document.getElementById('modalRejectBtn');
 
-    if (booking.status === 'Pending') {
+    if (booking.status === 'Pending' || booking.status === 'Payment Under Review') {
       approveBtn.style.display = 'inline-flex';
       rejectBtn.style.display  = 'inline-flex';
       approveBtn.onclick = () => { closeDetailsModal(); approveBooking(docId); };
@@ -486,9 +510,11 @@
   const bookingsView     = document.querySelector('.dashboard-topbar')?.parentElement ? null : null;
   const facilitiesSection = document.getElementById('facilitiesSection');
   const vehiclesSection   = document.getElementById('vehiclesSection');
+  const reportsSection    = document.getElementById('reportsSection');
   const sidebarFacilities = document.getElementById('sidebarFacilities');
   const sidebarVehicles   = document.getElementById('sidebarVehicles');
-  let currentView = 'bookings'; // 'bookings', 'facilities', or 'vehicles'
+  const sidebarReports    = document.getElementById('sidebarReports');
+  let currentView = 'bookings'; // 'bookings', 'facilities', 'vehicles', or 'reports'
 
   // Elements that belong to bookings view
   const bookingsViewElements = [
@@ -505,11 +531,13 @@
     bookingsViewElements.forEach(el => el.style.display = 'none');
     if (facilitiesSection) facilitiesSection.style.display = 'none';
     if (vehiclesSection) vehiclesSection.style.display = 'none';
+    if (reportsSection) reportsSection.style.display = 'none';
     
     // Remove active state from sidebar links
     sidebarLinks.forEach(l => l.classList.remove('active'));
     if (sidebarFacilities) sidebarFacilities.classList.remove('active');
     if (sidebarVehicles) sidebarVehicles.classList.remove('active');
+    if (sidebarReports) sidebarReports.classList.remove('active');
 
     if (view === 'facilities') {
       if (facilitiesSection) facilitiesSection.style.display = 'block';
@@ -517,6 +545,11 @@
     } else if (view === 'vehicles') {
       if (vehiclesSection) vehiclesSection.style.display = 'block';
       if (sidebarVehicles) sidebarVehicles.classList.add('active');
+    } else if (view === 'reports') {
+      if (reportsSection) reportsSection.style.display = 'block';
+      if (sidebarReports) sidebarReports.classList.add('active');
+      // Initialize reports module if available
+      if (typeof window.initReportsView === 'function') window.initReportsView();
     } else {
       // Show booking elements
       bookingsViewElements.forEach(el => {
@@ -544,10 +577,18 @@
     });
   }
 
+  // Sidebar "Reports" click
+  if (sidebarReports) {
+    sidebarReports.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchView('reports');
+    });
+  }
+
   // When booking filter sidebar links are clicked, switch back to bookings view
   sidebarLinks.forEach(link => {
     link.addEventListener('click', () => {
-      if (currentView === 'facilities' || currentView === 'vehicles') {
+      if (currentView !== 'bookings') {
         switchView('bookings');
       }
     });
@@ -608,6 +649,7 @@
         snapshot.forEach(doc => {
           allFacilities.push({ id: doc.id, ...doc.data() });
         });
+        window._allFacilities = allFacilities; // Expose for reports module
         renderFacilitiesTable();
       }, err => {
         console.error('Facilities listener error:', err);

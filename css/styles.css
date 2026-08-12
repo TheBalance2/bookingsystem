@@ -2504,6 +2504,16 @@ ul, ol {
   color: #c0392b;
 }
 
+.status-badge.pending-payment {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-badge.payment-under-review {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
 .status-badge .status-dot {
   width: 6px;
   height: 6px;
@@ -2513,6 +2523,8 @@ ul, ol {
 .status-badge.pending .status-dot  { background: var(--warning); }
 .status-badge.approved .status-dot { background: var(--success); }
 .status-badge.rejected .status-dot { background: var(--danger);  }
+.status-badge.pending-payment .status-dot { background: #e65100; }
+.status-badge.payment-under-review .status-dot { background: #2e7d32; }
 
 /* User type badge */
 .user-badge {
@@ -3084,5 +3096,286 @@ ul, ol {
 
   .login-card {
     padding: var(--space-xl);
+  }
+}
+
+/* ============================================================
+   UPLOAD RECEIPT SECTION (Booking Page)
+   ============================================================ */
+.receipt-upload-section {
+  max-width: 800px;
+  margin: 0 auto var(--space-2xl);
+}
+
+.receipt-upload-section .section-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.receipt-upload-section .section-divider::before,
+.receipt-upload-section .section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gray-200);
+}
+
+.receipt-upload-section .section-divider span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.receipt-upload-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-2xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--gray-100);
+  position: relative;
+  overflow: hidden;
+}
+
+.receipt-upload-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #e65100, #ff9800);
+}
+
+.receipt-upload-card h2 {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  color: var(--navy);
+  margin-bottom: var(--space-xs);
+}
+
+.receipt-upload-card .form-subtitle {
+  color: var(--gray-400);
+  font-size: 0.88rem;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.receipt-steps {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+  flex-wrap: wrap;
+}
+
+.receipt-step {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gray-100);
+}
+
+.receipt-step .step-number {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.receipt-step .step-text {
+  font-size: 0.82rem;
+  color: var(--gray-500);
+  line-height: 1.4;
+}
+
+.receipt-step .step-text strong {
+  display: block;
+  color: var(--navy);
+  font-size: 0.85rem;
+  margin-bottom: 2px;
+}
+
+.receipt-file-upload {
+  border: 2px dashed var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--gray-50);
+}
+
+.receipt-file-upload:hover {
+  border-color: var(--navy);
+  background: rgba(10, 36, 99, 0.02);
+}
+
+.receipt-file-upload.has-file {
+  border-color: var(--success);
+  background: var(--success-light);
+}
+
+.receipt-file-upload .upload-icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-sm);
+}
+
+.receipt-file-upload .upload-text {
+  font-size: 0.9rem;
+  color: var(--gray-400);
+}
+
+.receipt-file-upload .upload-text strong {
+  color: var(--navy);
+}
+
+.receipt-file-name {
+  margin-top: var(--space-sm);
+  font-size: 0.82rem;
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* External Success Modal extras */
+.ext-success-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-top: var(--space-md);
+}
+
+.btn-download-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #e65100, #ff9800);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-download-pdf:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 81, 0, 0.3);
+}
+
+/* ============================================================
+   REPORTS VIEW
+   ============================================================ */
+.report-filters-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-lg);
+}
+
+.report-filters-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: var(--space-lg);
+  align-items: end;
+}
+
+.report-filter-group label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gray-500);
+  margin-bottom: var(--space-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.report-filter-group select {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--navy);
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.report-filter-group select:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212, 168, 67, 0.15);
+}
+
+.report-filter-action {
+  display: flex;
+  align-items: flex-end;
+}
+
+.report-filter-action .btn {
+  white-space: nowrap;
+  padding: 0.6rem 1.2rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.report-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.report-preview-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.report-record-count {
+  display: inline-block;
+  background: var(--success-light);
+  color: var(--success);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+}
+
+@media (max-width: 768px) {
+  .report-filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-filter-action {
+    justify-content: stretch;
+  }
+
+  .report-filter-action .btn {
+    width: 100%;
+    justify-content: center;
   }
 }

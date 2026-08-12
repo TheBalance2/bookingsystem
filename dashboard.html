@@ -31,6 +31,9 @@
         <a href="#" class="sidebar-link" data-filter="Pending">
           Pending Requests
         </a>
+        <a href="#" class="sidebar-link" data-filter="Payment Under Review">
+          Payment Review
+        </a>
         <a href="#" class="sidebar-link" data-filter="Approved">
           Approved
         </a>
@@ -44,6 +47,9 @@
           </a>
           <a href="#" class="sidebar-link" id="sidebarVehicles" data-view="vehicles">
             Manage Vehicles
+          </a>
+          <a href="#" class="sidebar-link" id="sidebarReports" data-view="reports">
+            Reports
           </a>
         </div>
       </nav>
@@ -112,6 +118,9 @@
         </button>
         <button class="filter-tab" data-filter="Pending">
           Pending <span class="count" id="countPending">0</span>
+        </button>
+        <button class="filter-tab" data-filter="Payment Under Review">
+          Payment Review <span class="count" id="countReview">0</span>
         </button>
         <button class="filter-tab" data-filter="Approved">
           Approved <span class="count" id="countApproved">0</span>
@@ -228,6 +237,97 @@
           </div>
         </div>
       </div>
+
+      <!-- ============================================================
+           REPORTS SECTION (hidden by default)
+           ============================================================ -->
+      <div id="reportsSection" style="display:none;">
+        <div class="facility-mgmt-header">
+          <div>
+            <h2 class="facility-mgmt-title">Generate Reports</h2>
+            <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Export approved booking records as an Excel report</p>
+          </div>
+        </div>
+
+        <!-- Report Filters -->
+        <div class="report-filters-card">
+          <div class="report-filters-grid">
+            <div class="report-filter-group">
+              <label for="reportFacility">Facility</label>
+              <select id="reportFacility">
+                <option value="all">All Facilities</option>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="report-filter-group">
+              <label for="reportMonth">Month</label>
+              <select id="reportMonth">
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+              </select>
+            </div>
+            <div class="report-filter-group">
+              <label for="reportYear">Year</label>
+              <select id="reportYear">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="report-filter-group report-filter-action">
+              <button class="btn btn-primary btn-sm" id="generateReportBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Download Excel Report
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Preview -->
+        <div class="table-card" id="reportPreviewCard" style="display:none;">
+          <div class="report-preview-header">
+            <h3 id="reportPreviewTitle">Report Preview</h3>
+            <span class="report-record-count" id="reportRecordCount">0 records</span>
+          </div>
+          <div class="table-responsive">
+            <table class="bookings-table" id="reportPreviewTable">
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Date</th>
+                  <th>Facility</th>
+                  <th>Requester</th>
+                  <th>Type</th>
+                  <th>Dept / Org</th>
+                  <th>Purpose</th>
+                  <th>Persons</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="reportPreviewBody">
+                <!-- Rows inserted dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="reportEmptyState" style="display:none;">
+            <h3>No approved bookings found</h3>
+            <p>There are no approved bookings matching the selected filters.</p>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -403,7 +503,11 @@
   <!-- EmailJS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
   <script src="js/firebase-config.js"></script>
-  <script src="js/admin.js?v=2"></script>
+  <script src="js/admin.js?v=3"></script>
+  <script src="js/reports.js?v=2"></script>
 </body>
 </html>

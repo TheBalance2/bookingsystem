@@ -362,10 +362,77 @@
         </div>
       </form>
     </div>
+
+    <!-- ============================================================
+         UPLOAD PAYMENT RECEIPT (External Users)
+         ============================================================ -->
+    <div class="receipt-upload-section" id="receiptUploadSection" style="display:none;">
+      <div class="section-divider"><span>Already submitted a booking?</span></div>
+      <div class="receipt-upload-card">
+        <h2>Upload Payment Receipt</h2>
+        <p class="form-subtitle">If you've already submitted a booking and paid at the Business Office, upload your receipt here to confirm your payment.</p>
+
+        <div class="receipt-steps">
+          <div class="receipt-step">
+            <div class="step-number">1</div>
+            <div class="step-text">
+              <strong>Submit Booking</strong>
+              Fill out the external booking form above.
+            </div>
+          </div>
+          <div class="receipt-step">
+            <div class="step-number">2</div>
+            <div class="step-text">
+              <strong>Pay at Business Office</strong>
+              Print the PDF and present it to the Business Office.
+            </div>
+          </div>
+          <div class="receipt-step">
+            <div class="step-number">3</div>
+            <div class="step-text">
+              <strong>Upload Receipt</strong>
+              Upload the receipt you received from the Business Office.
+            </div>
+          </div>
+        </div>
+
+        <form id="receiptUploadForm" novalidate>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="receiptRefId">Reference ID <span class="required">*</span></label>
+              <input type="text" id="receiptRefId" name="referenceId" placeholder="e.g. SIC-A1B2C3D4" required>
+              <span class="error-message" id="receiptRefIdError">Please enter your booking Reference ID</span>
+            </div>
+            <div class="form-group">
+              <label for="receiptEmail">Email Address <span class="required">*</span></label>
+              <input type="email" id="receiptEmail" name="email" placeholder="e.g. contact@org.com" required>
+              <span class="error-message" id="receiptEmailError">Please enter the email used during booking</span>
+            </div>
+            <div class="form-group full-width">
+              <label>Payment Receipt <span class="required">*</span></label>
+              <div class="receipt-file-upload" id="receiptDropZone" onclick="document.getElementById('receiptFileInput').click()">
+                <div class="upload-icon">📄</div>
+                <p class="upload-text"><strong>Click to upload</strong> or drag & drop your receipt</p>
+                <p style="font-size:0.78rem; color:var(--gray-300); margin-top:4px;">Supports: JPG, PNG (Max 5MB)</p>
+                <div class="receipt-file-name" id="receiptFileName" style="display:none;"></div>
+              </div>
+              <input type="file" id="receiptFileInput" accept="image/*" style="display:none;">
+              <span class="error-message" id="receiptFileError">Please upload your payment receipt</span>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="reset" class="btn btn-outline">Clear</button>
+            <button type="submit" class="btn btn-primary" id="receiptSubmitBtn">
+              Submit Receipt
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 
   <!-- ============================================================
-       SUCCESS MODAL
+       SUCCESS MODAL (Internal)
        ============================================================ -->
   <div class="modal-overlay" id="successModal">
     <div class="modal">
@@ -373,6 +440,35 @@
       <p>Your reservation request has been received. The admin will review and update the status shortly. You will receive an email notification.</p>
       <div class="reference-id" id="bookingRefId">—</div>
       <p style="font-size:0.82rem;color:var(--gray-300);margin-bottom:var(--space-md);">Save this reference ID for your records.</p>
+      <a href="index.html" class="btn btn-primary">Back to Home</a>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SUCCESS MODAL (External — with PDF download)
+       ============================================================ -->
+  <div class="modal-overlay" id="extSuccessModal">
+    <div class="modal">
+      <h2>Booking Submitted Successfully!</h2>
+      <p>Your booking request has been received. A PDF summary has been generated for you.</p>
+      <div class="reference-id" id="extBookingRefId">—</div>
+      <p style="font-size:0.82rem;color:var(--gray-300);margin-bottom:var(--space-sm);">Save this reference ID for your records.</p>
+      <div class="ext-success-actions">
+        <button class="btn-download-pdf" id="downloadPdfBtn">📥 Download Booking PDF</button>
+        <p style="font-size:0.8rem; color:var(--gray-400); max-width:340px; text-align:center; line-height:1.5;">Print this PDF and present it to the <strong>Business Office</strong> for payment assessment. After paying, return here to upload your receipt.</p>
+        <a href="index.html" class="btn btn-primary" style="margin-top:var(--space-sm);">Back to Home</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       RECEIPT UPLOAD SUCCESS MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="receiptSuccessModal">
+    <div class="modal">
+      <h2>Receipt Uploaded!</h2>
+      <p>Your payment receipt has been submitted for review. The admin will verify your payment and approve your booking shortly.</p>
+      <p style="font-size:0.82rem;color:var(--gray-300);margin-bottom:var(--space-md);">You will receive an email notification once your booking is approved.</p>
       <a href="index.html" class="btn btn-primary">Back to Home</a>
     </div>
   </div>
@@ -406,6 +502,13 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js"></script>
+
+  <!-- jsPDF for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
   <script src="js/booking.js"></script>
 
   <script>

@@ -15,6 +15,24 @@
   const successModal   = document.getElementById('successModal');
   const bookingRefId   = document.getElementById('bookingRefId');
 
+  // External-specific modals & receipt upload
+  const extSuccessModal    = document.getElementById('extSuccessModal');
+  const extBookingRefId    = document.getElementById('extBookingRefId');
+  const downloadPdfBtn     = document.getElementById('downloadPdfBtn');
+  const receiptUploadSection = document.getElementById('receiptUploadSection');
+  const receiptForm        = document.getElementById('receiptUploadForm');
+  const receiptSuccessModal = document.getElementById('receiptSuccessModal');
+
+  // Initialize EmailJS
+  try {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+  } catch (e) {
+    console.warn('EmailJS not loaded or not configured:', e);
+  }
+
+  // Store last generated PDF for download button
+  let lastGeneratedPdf = null;
+
   // ============================================================
   // USER TYPE TOGGLE
   // ============================================================
@@ -26,9 +44,11 @@
       if (btn.dataset.type === 'internal') {
         internalForm.style.display = 'block';
         externalForm.style.display = 'none';
+        if (receiptUploadSection) receiptUploadSection.style.display = 'none';
       } else {
         internalForm.style.display = 'none';
         externalForm.style.display = 'block';
+        if (receiptUploadSection) receiptUploadSection.style.display = 'block';
       }
     });
   });
@@ -499,13 +519,26 @@
           equipment:     equipment,
           otherEquipment:otherEquipment,
           considerations:considerations,
-          status:        'Pending',
+          status:        'Pending Payment',
           referenceId:   refId,
           createdAt:     firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        bookingRefId.textContent = refId;
-        successModal.classList.add('visible');
+        // Generate PDF
+        const bookingData = {
+          referenceId: refId,
+          contactPerson, agency, contact, address, email,
+          facility, date, startTime, endTime, numPersons,
+          purpose, equipment, otherEquipment, considerations
+        };
+        generateBookingPDF(bookingData);
+
+        // Send confirmation email via consolidated template
+        sendConfirmationEmail(bookingData);
+
+        // Show external success modal
+        if (extBookingRefId) extBookingRefId.textContent = refId;
+        if (extSuccessModal) extSuccessModal.classList.add('visible');
         extForm.reset();
       } catch (err) {
         console.error('Submission error:', err);
@@ -517,10 +550,350 @@
     });
   }
 
-  // ---- Close modal on overlay click ----
-  if (successModal) {
-    successModal.addEventListener('click', (e) => {
-      if (e.target === successModal) successModal.classList.remove('visible');
+  // ============================================================
+  // PDF GENERATION (jsPDF)
+  // ============================================================
+  function generateBookingPDF(data) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Try to load logo
+    try {
+      const logoImg = new Image();
+      logoImg.crossOrigin = 'anonymous';
+      logoImg.src = 'images/logo.jpg';
+
+      // We'll build the PDF with or without the logo
+      buildPdfContent(doc, data, logoImg);
+    } catch (e) {
+      console.warn('Could not load logo for PDF:', e);
+      buildPdfContent(doc, data, null);
+    }
+  }
+
+  function buildPdfContent(doc, data, logoImg) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
+
+    // Try to add logo
+    try {
+      if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+        doc.addImage(logoImg, 'JPEG', 15, y, 25, 25);
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('San Isidro College', 45, y + 10);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Facility Reservation — Booking Summary', 45, y + 18);
+        y += 35;
+      } else {
+        addHeaderWithoutLogo(doc, y);
+        y += 25;
+      }
+    } catch (e) {
+      addHeaderWithoutLogo(doc, y);
+      y += 25;
+    }
+
+    // Divider line
+    doc.setDrawColor(10, 36, 99);
+    doc.setLineWidth(0.8);
+    doc.line(15, y, pageWidth - 15, y);
+    y += 10;
+
+    // Reference ID (prominent)
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(10, 36, 99);
+    doc.text('Reference ID: ' + data.referenceId, 15, y);
+    y += 10;
+
+    // Booking details
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+
+    const details = [
+      ['Contact Person', data.contactPerson],
+      ['Organization', data.agency],
+      ['Contact Number', data.contact],
+      ['Address', data.address],
+      ['Email', data.email],
+      ['Facility', data.facility],
+      ['Date', data.date],
+      ['Time', data.startTime + ' – ' + data.endTime],
+      ['Number of Persons', data.numPersons],
+      ['Purpose', data.purpose],
+      ['Equipment', data.equipment && data.equipment.length > 0 ? data.equipment.join(', ') : 'None'],
+      ['Other Equipment', data.otherEquipment || 'None'],
+      ['Considerations', data.considerations || 'None'],
+    ];
+
+    details.forEach(([label, value]) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(label + ':', 15, y);
+      doc.setFont('helvetica', 'normal');
+
+      // Wrap long text
+      const maxWidth = pageWidth - 80;
+      const splitText = doc.splitTextToSize(String(value || '—'), maxWidth);
+      doc.text(splitText, 65, y);
+      y += splitText.length * 5 + 3;
+
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+    });
+
+    y += 5;
+
+    // Footer note box
+    doc.setDrawColor(230, 81, 0);
+    doc.setFillColor(255, 243, 224);
+    doc.roundedRect(15, y, pageWidth - 30, 30, 3, 3, 'FD');
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(230, 81, 0);
+    doc.text('IMPORTANT:', 20, y + 8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(9);
+    const noteText = 'Please print this document and present it to the Business Office of San Isidro College for payment assessment. The price will be determined by the Business Office. After payment, upload your receipt on the booking page to confirm your reservation.';
+    const noteLines = doc.splitTextToSize(noteText, pageWidth - 40);
+    doc.text(noteLines, 20, y + 14);
+
+    // Store the doc for download button
+    lastGeneratedPdf = doc;
+
+    // Auto-download
+    doc.save('SIC_Booking_' + data.referenceId + '.pdf');
+  }
+
+  function addHeaderWithoutLogo(doc, y) {
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('San Isidro College', 15, y + 5);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Facility Reservation — Booking Summary', 15, y + 13);
+  }
+
+  // Download PDF button handler
+  if (downloadPdfBtn) {
+    downloadPdfBtn.addEventListener('click', () => {
+      if (lastGeneratedPdf) {
+        const refId = extBookingRefId ? extBookingRefId.textContent : 'booking';
+        lastGeneratedPdf.save('SIC_Booking_' + refId + '.pdf');
+      }
     });
   }
+
+  // ============================================================
+  // SEND CONFIRMATION EMAIL (Consolidated EmailJS Template)
+  // ============================================================
+  function sendConfirmationEmail(data) {
+    if (!EMAILJS_SERVICE_ID || EMAILJS_SERVICE_ID.startsWith('YOUR_')) {
+      console.log('EmailJS not configured — skipping confirmation email.');
+      return;
+    }
+
+    try {
+      // Use the approve template (consolidated as a generic notification template)
+      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_APPROVE, {
+        to_email:     data.email,
+        to_name:      data.contactPerson,
+        facility:     data.facility,
+        date:         data.date,
+        start_time:   data.startTime,
+        end_time:     data.endTime,
+        purpose:      data.purpose,
+        status:       'Booking Submitted',
+        reference_id: data.referenceId,
+        message:      'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Please print the downloaded PDF booking summary and present it to the Business Office of San Isidro College for payment assessment. After paying, return to the booking page and upload your receipt to confirm your reservation.'
+      }).then(() => {
+        console.log('Confirmation email sent to', data.email);
+      }).catch(err => {
+        console.warn('EmailJS send failed:', err);
+      });
+    } catch (e) {
+      console.warn('EmailJS error:', e);
+    }
+  }
+
+  // ============================================================
+  // RECEIPT UPLOAD LOGIC
+  // ============================================================
+  const receiptFileInput = document.getElementById('receiptFileInput');
+  const receiptDropZone  = document.getElementById('receiptDropZone');
+  const receiptFileName  = document.getElementById('receiptFileName');
+
+  // File selection handler
+  if (receiptFileInput) {
+    receiptFileInput.addEventListener('change', () => {
+      const file = receiptFileInput.files[0];
+      if (file) {
+        if (receiptFileName) {
+          receiptFileName.textContent = '✓ ' + file.name;
+          receiptFileName.style.display = 'block';
+        }
+        if (receiptDropZone) receiptDropZone.classList.add('has-file');
+      }
+    });
+  }
+
+  // Drag & drop
+  if (receiptDropZone) {
+    receiptDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      receiptDropZone.style.borderColor = 'var(--navy)';
+    });
+    receiptDropZone.addEventListener('dragleave', () => {
+      receiptDropZone.style.borderColor = '';
+    });
+    receiptDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      receiptDropZone.style.borderColor = '';
+      if (e.dataTransfer.files.length > 0) {
+        receiptFileInput.files = e.dataTransfer.files;
+        const event = new Event('change');
+        receiptFileInput.dispatchEvent(event);
+      }
+    });
+  }
+
+  // Receipt form submission
+  if (receiptForm) {
+    receiptForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Clear previous errors
+      ['receiptRefIdError', 'receiptEmailError', 'receiptFileError'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('visible');
+      });
+
+      const refId = document.getElementById('receiptRefId').value.trim();
+      const email = document.getElementById('receiptEmail').value.trim();
+      const file  = receiptFileInput ? receiptFileInput.files[0] : null;
+
+      let valid = true;
+      if (!refId) { showError('receiptRefIdError'); valid = false; }
+      if (!email || !isValidEmail(email)) { showError('receiptEmailError'); valid = false; }
+      if (!file) { showError('receiptFileError'); valid = false; }
+
+      // Check file size (5MB max)
+      if (file && file.size > 5 * 1024 * 1024) {
+        const errEl = document.getElementById('receiptFileError');
+        if (errEl) {
+          errEl.textContent = 'File size must be under 5MB';
+          showError('receiptFileError');
+        }
+        valid = false;
+      }
+
+      if (!valid) return;
+
+      const btn = document.getElementById('receiptSubmitBtn');
+      btn.innerHTML = '<span class="spinner"></span> Verifying...';
+      btn.classList.add('loading');
+
+      try {
+        // Query Firestore for matching booking
+        const snapshot = await db.collection('bookings')
+          .where('referenceId', '==', refId)
+          .where('email', '==', email)
+          .get();
+
+        if (snapshot.empty) {
+          alert('No booking found with that Reference ID and Email. Please check your details and try again.');
+          return;
+        }
+
+        const bookingDoc = snapshot.docs[0];
+        const bookingData = bookingDoc.data();
+
+        if (bookingData.status !== 'Pending Payment') {
+          if (bookingData.status === 'Payment Under Review') {
+            alert('A receipt has already been uploaded for this booking. Please wait for admin approval.');
+          } else if (bookingData.status === 'Approved') {
+            alert('This booking has already been approved.');
+          } else {
+            alert('This booking cannot accept a receipt upload at this time. Current status: ' + bookingData.status);
+          }
+          return;
+        }
+
+        // Compress image and convert to Base64 (to fit under Firestore 1MB document limit)
+        btn.innerHTML = '<span class="spinner"></span> Processing...';
+        
+        const base64DataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 800;
+              const MAX_HEIGHT = 800;
+              let width = img.width;
+              let height = img.height;
+
+              if (width > height) {
+                if (width > MAX_WIDTH) {
+                  height *= MAX_WIDTH / width;
+                  width = MAX_WIDTH;
+                }
+              } else {
+                if (height > MAX_HEIGHT) {
+                  width *= MAX_HEIGHT / height;
+                  height = MAX_HEIGHT;
+                }
+              }
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+              
+              // Compress to 0.7 quality JPEG
+              const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+              resolve(dataUrl);
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        // Update Firestore document directly with the Base64 string
+        await db.collection('bookings').doc(bookingDoc.id).update({
+          receiptUrl: base64DataUrl,
+          status: 'Payment Under Review',
+          receiptUploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Show success modal
+        if (receiptSuccessModal) receiptSuccessModal.classList.add('visible');
+        receiptForm.reset();
+        if (receiptFileName) { receiptFileName.style.display = 'none'; }
+        if (receiptDropZone) receiptDropZone.classList.remove('has-file');
+
+      } catch (err) {
+        console.error('Receipt upload error:', err);
+        alert('Failed to upload receipt. Please try again. Error: ' + err.message);
+      } finally {
+        btn.innerHTML = 'Submit Receipt';
+        btn.classList.remove('loading');
+      }
+    });
+  }
+
+  // ---- Close modals on overlay click ----
+  [successModal, extSuccessModal, receiptSuccessModal].forEach(modal => {
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('visible');
+      });
+    }
+  });
 })();
