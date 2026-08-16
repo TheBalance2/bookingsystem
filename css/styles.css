@@ -1688,6 +1688,7 @@ ul, ol {
   border: 1px solid var(--gray-100);
   max-width: 800px;
   margin: 0 auto var(--space-2xl);
+  overflow: hidden;
 }
 
 .form-card h2 {
