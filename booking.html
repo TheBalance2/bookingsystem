@@ -121,7 +121,7 @@
           <div class="form-group">
             <label for="intDate">Preferred Date <span class="required">*</span></label>
             <input type="date" id="intDate" name="date" required>
-            <span class="error-message" id="intDateError">Please select a future date</span>
+            <span class="error-message" id="intDateError">Please select a date at least 3 days in the future</span>
           </div>
 
           <!-- Start Time -->
@@ -152,6 +152,7 @@
             <div class="equipment-grid" id="vehicleOptions">
               <!-- Vehicles are loaded dynamically from Firestore -->
             </div>
+            <span class="error-message" id="intFacilityVehicleError">You cannot select both a facility and a vehicle. Please choose only one.</span>
           </div>
           
           <!-- Vehicle Destination -->
@@ -279,7 +280,7 @@
           <div class="form-group">
             <label for="extDate">Preferred Date <span class="required">*</span></label>
             <input type="date" id="extDate" name="date" required>
-            <span class="error-message" id="extDateError">Please select a future date</span>
+            <span class="error-message" id="extDateError">Please select a date at least 3 days in the future</span>
           </div>
 
           <!-- Start Time -->

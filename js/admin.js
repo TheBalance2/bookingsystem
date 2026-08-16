@@ -767,7 +767,8 @@
       btn.type = 'button';
       btn.className = 'remove-img';
       btn.dataset.index = String(i);
-      btn.textContent = 'Remove';
+      btn.innerHTML = '&times;'; // X icon instead of 'Remove'
+      
       item.appendChild(img);
       item.appendChild(btn);
       facImagesPreview.appendChild(item);

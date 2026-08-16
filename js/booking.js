@@ -251,10 +251,11 @@
     });
   }
 
-  function isFutureDate(dateStr) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return new Date(dateStr) >= today;
+  function isAllowedDate(dateStr) {
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 3);
+    minDate.setHours(0, 0, 0, 0);
+    return new Date(dateStr) >= minDate;
   }
 
   function showError(id) {
@@ -365,12 +366,14 @@
   if (extContactEl) stripNonDigitsInput(extContactEl);
 
   // ============================================================
-  // SET MIN DATE (today) on date inputs
+  // SET MIN DATE (today + 3 days) on date inputs
   // ============================================================
-  const today = new Date().toISOString().split('T')[0];
+  const minDateObj = new Date();
+  minDateObj.setDate(minDateObj.getDate() + 3);
+  const minDateStr = minDateObj.toISOString().split('T')[0];
   ['intDate', 'extDate'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.setAttribute('min', today);
+    if (el) el.setAttribute('min', minDateStr);
   });
 
   // ============================================================
@@ -379,6 +382,14 @@
   if (intForm) {
     intForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      // Form submission time restriction (8 AM - 5 PM)
+      const currentHour = new Date().getHours();
+      if (currentHour < 8 || currentHour >= 17) {
+        alert('Bookings can only be submitted during working hours (8:00 AM - 5:00 PM).');
+        return;
+      }
+
       clearErrors('int');
 
       // Gather values
@@ -404,7 +415,8 @@
       if (!employeeId)                   { showError('intEmployeeIdError'); valid = false; }
       if (!email || !isValidEmail(email)) { showError('intEmailError');     valid = false; }
       if (!facility && vehicle.length === 0) { showError('intFacilityError');   valid = false; }
-      if (!date || !isFutureDate(date))  { showError('intDateError');      valid = false; }
+      if (facility && vehicle.length > 0)    { showError('intFacilityVehicleError'); valid = false; }
+      if (!date || !isAllowedDate(date))  { showError('intDateError');      valid = false; }
       if (!startTime)                    { showError('intStartTimeError'); valid = false; }
       if (!endTime || endTime <= startTime) { showError('intEndTimeError'); valid = false; }
       if (!numPersons || numPersons < 1) { showError('intNumPersonsError'); valid = false; }
@@ -461,6 +473,14 @@
   if (extForm) {
     extForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      // Form submission time restriction (8 AM - 5 PM)
+      const currentHour = new Date().getHours();
+      if (currentHour < 8 || currentHour >= 17) {
+        alert('Bookings can only be submitted during working hours (8:00 AM - 5:00 PM).');
+        return;
+      }
+
       clearErrors('ext');
 
       const contactPerson = document.getElementById('extContactPerson').value.trim();
@@ -486,7 +506,7 @@
       if (!address)                      { showError('extAddressError');   valid = false; }
       if (!email || !isValidEmail(email)) { showError('extEmailError');    valid = false; }
       if (!facility)                     { showError('extFacilityError');  valid = false; }
-      if (!date || !isFutureDate(date))  { showError('extDateError');     valid = false; }
+      if (!date || !isAllowedDate(date))  { showError('extDateError');     valid = false; }
       if (!startTime)                    { showError('extStartTimeError'); valid = false; }
       if (!endTime || endTime <= startTime) { showError('extEndTimeError'); valid = false; }
       if (!numPersons || numPersons < 1) { showError('extNumPersonsError'); valid = false; }

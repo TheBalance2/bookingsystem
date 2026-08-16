@@ -219,10 +219,15 @@
     const formattedDate = dateObj.toLocaleDateString('en-US', options);
     title.textContent = formattedDate;
 
-    // Check if date is in the past
+    // Check if date is in the past or within the 3-day notice period
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const isPast = dateObj < today;
+
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 3);
+    minDate.setHours(0, 0, 0, 0);
+    const isTooClose = dateObj >= today && dateObj < minDate;
 
     // Find bookings on this date
     const dayBookings = allApprovedBookings.filter(b => b.date === dateStr);
@@ -245,6 +250,10 @@
       let statusLabel, statusClass, isClickable;
       if (isPast) {
         statusLabel = 'Past Date';
+        statusClass = 'avail-past';
+        isClickable = false;
+      } else if (isTooClose) {
+        statusLabel = 'Unavailable (3-day notice required)';
         statusClass = 'avail-past';
         isClickable = false;
       } else if (bookingCount === 0) {
@@ -296,6 +305,8 @@
 
     if (isPast) {
       html += '<p class="avail-past-notice">This date is in the past. You cannot make reservations for past dates.</p>';
+    } else if (isTooClose) {
+      html += '<p class="avail-past-notice">You must book at least 3 days in advance.</p>';
     }
 
     content.innerHTML = html;
