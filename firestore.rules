@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // HELPER FUNCTIONS
+    // ============================================================
+
+    // Any authenticated user is an admin.
+    // Since there is no public signup (only manually-added Firebase Auth
+    // accounts exist), request.auth != null guarantees admin access.
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // Check if the request time falls within working hours
+    // (8:00 AM – 5:00 PM Philippine Time, UTC+8).
+    //   8 AM PHT  →  0:00 UTC  (hour 0)
+    //   5 PM PHT  →  9:00 UTC  (hour 9)
+    function isWorkingHours() {
+      let utcHour = (request.time.toMillis() % 86400000) / 3600000;
+      return utcHour >= 0 && utcHour < 9;
+    }
+
+    // ============================================================
+    // FACILITIES
+    // ============================================================
+    match /facilities/{facilityId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
+    // Facility images — separated from facility docs to avoid
+    // hitting the 1 MB Firestore document size limit.
+    match /facility_images/{facilityId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================================
+    // VEHICLES
+    // ============================================================
+    match /vehicles/{vehicleId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================================
+    // BOOKINGS
+    // ============================================================
+    match /bookings/{bookingId} {
+      allow read: if true;
+
+      // Public can create bookings during working hours with a
+      // valid initial status only.
+      allow create: if isWorkingHours()
+                    && request.resource.data.status in ['Pending', 'Pending Payment'];
+
+      // Update rules:
+      //  • Admin can update anything.
+      //  • Public can ONLY mark a "Pending Payment" booking as
+      //    "Payment Under Review" (receipt uploaded), and may only
+      //    touch the three whitelisted fields.
+      allow update: if isAdmin()
+                    || (
+                      resource.data.status == 'Pending Payment'
+                      && request.resource.data.status == 'Payment Under Review'
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['status', 'hasReceipt', 'receiptUploadedAt'])
+                    );
+
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================
+    // RECEIPTS — separated from booking docs to avoid 1 MB limit
+    // ============================================================
+    match /receipts/{bookingId} {
+      allow read:   if isAdmin();
+      allow create: if request.resource.data.keys().hasAll(['imageData'])
+                    && request.resource.data.imageData is string;
+      allow update, delete: if isAdmin();
+    }
+  }
+}

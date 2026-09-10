@@ -336,7 +336,8 @@
             if (facilitiesGrid) {
               const images = f.images || [];
               const amenities = f.amenities || [];
-              const firstImg = images.length > 0 ? sanitizeUrl(images[0]) : null;
+              const firstImg = f.thumbnail ? sanitizeUrl(f.thumbnail) :
+                             (images.length > 0 ? sanitizeUrl(images[0]) : null);
 
               // Image or fallback
               const imgHTML = firstImg
@@ -395,14 +396,29 @@
     let currentGalleryIndex = 0;
     let currentGalleryImages = [];
 
-    window.openFacilityDetail = function (facId) {
+    window.openFacilityDetail = async function (facId) {
       const fac = landingFacilities.find(f => f.id === facId);
       if (!fac) return;
 
       const gallery = document.getElementById('facDetailGallery');
       const thumbs = document.getElementById('facDetailThumbs');
       const counter = document.getElementById('facGalleryCounter');
-      const images = fac.images || [];
+
+      // Fetch full images from separate facility_images collection
+      let images = [];
+      try {
+        const imgDoc = await db.collection('facility_images').doc(facId).get();
+        if (imgDoc.exists) {
+          images = imgDoc.data().images || [];
+        } else {
+          // Fallback to inline images (for facilities created before migration)
+          images = fac.images || [];
+        }
+      } catch (e) {
+        console.warn('Could not load facility images:', e);
+        images = fac.images || [];
+      }
+
       // sanitize image URLs
       currentGalleryImages = images.map(sanitizeUrl);
       currentGalleryIndex = 0;

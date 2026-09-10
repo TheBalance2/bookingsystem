@@ -250,6 +250,7 @@
   async function updateBookingStatus(docId, newStatus) {
     try {
       const docRef = db.collection('bookings').doc(docId);
+      
       await docRef.update({ status: newStatus });
 
       // Fetch updated doc for email
@@ -274,9 +275,8 @@
   // EMAIL NOTIFICATION (EmailJS)
   // ============================================================
   function sendStatusEmail(bookingData, status) {
-    // We are now using a consolidated template. 
-    // In this example, we assume EMAILJS_TEMPLATE_APPROVE was modified to be generic.
-    const templateId = EMAILJS_TEMPLATE_APPROVE;
+    // Choose correct template based on status
+    const templateId = status === 'Approved' ? EMAILJS_TEMPLATE_APPROVE : EMAILJS_TEMPLATE_REJECT;
 
     // Only send if EmailJS is configured
     if (!EMAILJS_SERVICE_ID || EMAILJS_SERVICE_ID.startsWith('YOUR_')) {
@@ -290,17 +290,17 @@
 
     try {
       emailjs.send(EMAILJS_SERVICE_ID, templateId, {
-        to_email:     bookingData.email,
-        to_name:      bookingData.name,
-        facility:     getBookingLocation(bookingData),
-        vehicle:      formatVehicleList(bookingData.vehicle),
-        date:         bookingData.date,
-        start_time:   bookingData.startTime,
-        end_time:     bookingData.endTime,
-        purpose:      bookingData.purpose,
-        status:       status,
-        reference_id: bookingData.referenceId || '—',
-        message:      messageText
+        to_email:         bookingData.email,
+        to_name:          bookingData.name,
+        facility:         getBookingLocation(bookingData),
+        vehicle:          formatVehicleList(bookingData.vehicle),
+        date:             bookingData.date,
+        start_time:       bookingData.startTime,
+        end_time:         bookingData.endTime,
+        purpose:          bookingData.purpose,
+        reference_id:     bookingData.referenceId || '—',
+        status:           status,
+        message:          messageText
       }).then(() => {
         console.log('Email sent successfully to', bookingData.email);
       }).catch(err => {
@@ -314,7 +314,7 @@
   // ============================================================
   // VIEW BOOKING DETAILS
   // ============================================================
-  window.viewBookingDetails = function (docId) {
+  window.viewBookingDetails = async function (docId) {
     const booking = allBookings.find(b => b.id === docId);
     if (!booking) return;
 
@@ -366,7 +366,23 @@
 
     // Show uploaded receipt for external bookings (if they have one)
     if (booking.userType === 'External') {
-      const receiptUrl = sanitizeUrl(booking.receiptUrl || booking.gcashReceipt);
+      // Fetch receipt from separate receipts collection
+      let receiptUrl = '';
+      if (booking.hasReceipt) {
+        try {
+          const receiptDoc = await db.collection('receipts').doc(docId).get();
+          if (receiptDoc.exists) {
+            receiptUrl = sanitizeUrl(receiptDoc.data().imageData);
+          }
+        } catch (e) {
+          console.warn('Could not load receipt from receipts collection:', e);
+        }
+      }
+      // Fallback to legacy inline receipt (for bookings created before migration)
+      if (!receiptUrl) {
+        receiptUrl = sanitizeUrl(booking.receiptUrl || booking.gcashReceipt);
+      }
+
       if (receiptUrl) {
         html += `
           <div class="gcash-receipt-section">
@@ -877,7 +893,7 @@
   }
 
   // ---- Edit facility ----
-  window.editFacility = function (docId) {
+  window.editFacility = async function (docId) {
     const facility = allFacilities.find(f => f.id === docId);
     if (!facility) return;
 
@@ -889,10 +905,24 @@
     document.getElementById('facCapacity').value    = facility.capacity || '';
     document.getElementById('facStatus').value      = facility.status || 'Active';
 
-    // Populate amenities and images
+    // Populate amenities
     currentAmenities = [...(facility.amenities || [])];
-    currentImages    = [...(facility.images || [])];
     renderAmenityTags();
+
+    // Load images from separate facility_images collection
+    currentImages = [];
+    try {
+      const imgDoc = await db.collection('facility_images').doc(docId).get();
+      if (imgDoc.exists) {
+        currentImages = [...(imgDoc.data().images || [])];
+      } else {
+        // Fallback to inline images (for facilities created before migration)
+        currentImages = [...(facility.images || [])];
+      }
+    } catch (e) {
+      console.warn('Could not load facility images:', e);
+      currentImages = [...(facility.images || [])];
+    }
     renderImagePreviews();
 
     if (facilityModal) facilityModal.classList.add('visible');
@@ -940,19 +970,27 @@
           capacity,
           status,
           amenities: [...currentAmenities],
-          images: [...currentImages],
+          thumbnail: currentImages.length > 0 ? currentImages[0] : null,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         if (editingFacilityId) {
-          // Update existing
+          // Update existing facility doc (no large images in this doc)
           await db.collection('facilities').doc(editingFacilityId).update(data);
+          // Save images to separate collection
+          await db.collection('facility_images').doc(editingFacilityId).set({
+            images: [...currentImages]
+          });
           showToast('success', 'Facility Updated', `"${name}" has been updated successfully.`);
         } else {
           // Add new — set order to last
           data.order = allFacilities.length;
           data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-          await db.collection('facilities').add(data);
+          const docRef = await db.collection('facilities').add(data);
+          // Save images to separate collection
+          await db.collection('facility_images').doc(docRef.id).set({
+            images: [...currentImages]
+          });
           showToast('success', 'Facility Added', `"${name}" has been added successfully.`);
         }
 

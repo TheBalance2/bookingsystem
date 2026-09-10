@@ -403,10 +403,16 @@
       const endTime    = document.getElementById('intEndTime').value;
       const numPersons = document.getElementById('intNumPersons').value;
       const vehicle    = getCheckedEquipment('vehicle');
-      const destination= document.getElementById('intDestination').value.trim();
+      let   destination= document.getElementById('intDestination').value.trim();
       const purpose    = document.getElementById('intPurpose').value.trim();
       const equipment  = getCheckedEquipment('equipment');
       const considerations = document.getElementById('intConsiderations').value.trim();
+
+      // Clear destination if no vehicle is selected (destination is only for vehicles)
+      if (vehicle.length === 0) {
+        destination = '';
+        document.getElementById('intDestination').value = '';
+      }
 
       // Validate
       let valid = true;
@@ -885,9 +891,15 @@
           reader.readAsDataURL(file);
         });
 
-        // Update Firestore document directly with the Base64 string
+        // Save receipt image to separate collection (avoids 1MB doc limit)
+        await db.collection('receipts').doc(bookingDoc.id).set({
+          imageData: base64DataUrl,
+          uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Update booking with just status fields (no large base64 in booking doc)
         await db.collection('bookings').doc(bookingDoc.id).update({
-          receiptUrl: base64DataUrl,
+          hasReceipt: true,
           status: 'Payment Under Review',
           receiptUploadedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
