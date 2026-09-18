@@ -1,24 +1,45 @@
 @media (max-width: 768px) {
   .nav-links {
-    display: none;
-    position: fixed;
-    top: 73px;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    /* Base setup for animation */
+    display: flex;
     flex-direction: column;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: var(--space-md);
+    left: auto;
+    width: 220px;
     background: rgba(10,22,40,0.98);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    padding: var(--space-2xl) var(--space-lg);
-    gap: var(--space-xl);
-    align-items: center;
-    border-bottom: 1px solid rgba(212,168,67,0.15);
-    overflow-y: auto;
+    padding: var(--space-lg);
+    gap: var(--space-md);
+    border: 1px solid rgba(212,168,67,0.15);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xl);
+    align-items: flex-start;
+    
+    /* Animation setup */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .nav-links.open {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  /* Make links take full width for easier tapping */
+  .nav-links a {
+    width: 100%;
+    padding: var(--space-sm) 0;
+  }
+  
+  .nav-links .nav-cta {
+    text-align: center;
+    margin-top: var(--space-sm);
   }
 
   .nav-toggle {
