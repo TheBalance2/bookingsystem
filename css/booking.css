@@ -1,0 +1,533 @@
+/* ============================================================
+   BOOKING PAGE
+   ============================================================ */
+.page-header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+  padding: 120px 0 60px;
+  text-align: center;
+}
+
+.page-header h1 {
+  font-family: var(--font-heading);
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  color: var(--white);
+  margin-bottom: var(--space-sm);
+}
+
+.page-header p {
+  color: rgba(255,255,255,0.6);
+  font-size: 1.05rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* User type toggle */
+.user-type-toggle {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin: calc(-24px) auto var(--space-2xl);
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xs);
+  box-shadow: var(--shadow-lg);
+  max-width: 420px;
+  position: relative;
+  z-index: 10;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--gray-400);
+  background: transparent;
+  transition: var(--transition);
+  text-align: center;
+}
+
+.toggle-btn.active {
+  background: linear-gradient(135deg, var(--navy), var(--navy-light));
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+
+.toggle-btn:hover:not(.active) {
+  color: var(--navy);
+  background: var(--gray-100);
+}
+
+/* Equipment checkboxes */
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-sm);
+}
+
+.equipment-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid var(--gray-100);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.9rem;
+  color: var(--gray-500);
+}
+
+.equipment-item:hover {
+  border-color: var(--gold);
+  background: rgba(212,168,67,0.04);
+}
+
+.equipment-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+}
+
+/* Conflict warning */
+.conflict-warning {
+  background: var(--warning-light);
+  border: 1px solid rgba(243,156,18,0.3);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  margin-top: var(--space-md);
+  display: none;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.9rem;
+  color: #7d6608;
+  animation: fadeInUp 0.3s ease;
+}
+
+.conflict-warning.visible {
+  display: flex;
+}
+
+.conflict-warning .icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.form-actions {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--gray-100);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-md);
+}
+
+
+/* ============================================================
+   GCASH PAYMENT SECTION
+   ============================================================ */
+.gcash-payment-section {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f1fd 100%);
+  border: 2px solid rgba(0, 125, 254, 0.15);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.gcash-payment-section:hover {
+  border-color: rgba(0, 125, 254, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 125, 254, 0.08);
+}
+
+.gcash-header {
+  background: linear-gradient(135deg, #007DFE 0%, #0060c7 100%);
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gcash-logo-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--white);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.3px;
+}
+
+.gcash-required-badge {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 2px 10px;
+  border-radius: var(--radius-xl);
+}
+
+.gcash-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+}
+
+.gcash-instruction {
+  font-size: 0.85rem;
+  color: var(--gray-500);
+  margin-bottom: var(--space-md);
+  line-height: 1.5;
+}
+
+/* QR Code Side */
+.gcash-qr-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.gcash-qr-wrapper {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(0, 125, 254, 0.1);
+  margin-bottom: var(--space-sm);
+  transition: var(--transition);
+  max-width: 240px;
+  width: 100%;
+}
+
+.gcash-qr-wrapper:hover {
+  box-shadow: var(--shadow-md);
+  transform: scale(1.02);
+}
+
+.gcash-qr-image {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.gcash-account-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #007DFE;
+  margin-top: var(--space-xs);
+}
+
+/* Receipt Upload Side */
+.gcash-upload-side {
+  display: flex;
+  flex-direction: column;
+}
+
+.gcash-dropzone {
+  position: relative;
+  border: 2px dashed rgba(0, 125, 254, 0.3);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.7);
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  overflow: hidden;
+}
+
+.gcash-dropzone:hover,
+.gcash-dropzone.dragover {
+  border-color: #007DFE;
+  background: rgba(0, 125, 254, 0.04);
+  box-shadow: 0 0 0 4px rgba(0, 125, 254, 0.08);
+}
+
+.gcash-file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.gcash-dropzone-content {
+  text-align: center;
+  padding: var(--space-lg);
+  pointer-events: none;
+}
+
+.gcash-upload-icon {
+  color: #007DFE;
+  margin-bottom: var(--space-sm);
+  opacity: 0.6;
+}
+
+.gcash-dropzone-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: var(--space-xs);
+}
+
+.gcash-dropzone-hint {
+  font-size: 0.85rem;
+  color: var(--gray-400);
+}
+
+.gcash-browse-link {
+  color: #007DFE;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.gcash-dropzone-formats {
+  font-size: 0.75rem;
+  color: var(--gray-300);
+  margin-top: var(--space-sm);
+}
+
+/* Receipt Preview */
+.gcash-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-sm);
+}
+
+.gcash-preview img {
+  max-width: 100%;
+  max-height: 260px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  box-shadow: var(--shadow-sm);
+}
+
+.gcash-remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  color: var(--white);
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+  z-index: 5;
+  border: 2px solid var(--white);
+}
+
+.gcash-remove-btn:hover {
+  background: #c0392b;
+  transform: scale(1.1);
+}
+
+/* GCash section error state */
+.gcash-dropzone.error {
+  border-color: var(--danger);
+  background: rgba(231, 76, 60, 0.03);
+}
+
+@media (max-width: 640px) {
+  .gcash-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ============================================================
+   UPLOAD RECEIPT SECTION (Booking Page)
+   ============================================================ */
+.receipt-upload-section {
+  max-width: 800px;
+  margin: 0 auto var(--space-2xl);
+}
+
+.receipt-upload-section .section-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.receipt-upload-section .section-divider::before,
+.receipt-upload-section .section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gray-200);
+}
+
+.receipt-upload-section .section-divider span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.receipt-upload-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-2xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--gray-100);
+  position: relative;
+  overflow: hidden;
+}
+
+.receipt-upload-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #e65100, #ff9800);
+}
+
+.receipt-upload-card h2 {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  color: var(--navy);
+  margin-bottom: var(--space-xs);
+}
+
+.receipt-upload-card .form-subtitle {
+  color: var(--gray-400);
+  font-size: 0.88rem;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.receipt-steps {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+  flex-wrap: wrap;
+}
+
+.receipt-step {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gray-100);
+}
+
+.receipt-step .step-number {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.receipt-step .step-text {
+  font-size: 0.82rem;
+  color: var(--gray-500);
+  line-height: 1.4;
+}
+
+.receipt-step .step-text strong {
+  display: block;
+  color: var(--navy);
+  font-size: 0.85rem;
+  margin-bottom: 2px;
+}
+
+.receipt-file-upload {
+  border: 2px dashed var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--gray-50);
+}
+
+.receipt-file-upload:hover {
+  border-color: var(--navy);
+  background: rgba(10, 36, 99, 0.02);
+}
+
+.receipt-file-upload.has-file {
+  border-color: var(--success);
+  background: var(--success-light);
+}
+
+.receipt-file-upload .upload-icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-sm);
+}
+
+.receipt-file-upload .upload-text {
+  font-size: 0.9rem;
+  color: var(--gray-400);
+}
+
+.receipt-file-upload .upload-text strong {
+  color: var(--navy);
+}
+
+.receipt-file-name {
+  margin-top: var(--space-sm);
+  font-size: 0.82rem;
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* External Success Modal extras */
+.ext-success-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-top: var(--space-md);
+}
+
+.btn-download-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #e65100, #ff9800);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-download-pdf:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 81, 0, 0.3);
+}
+

@@ -1,0 +1,399 @@
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10,22,40,0.65);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-overlay.visible {
+  display: flex;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow-xl);
+  animation: modalSlideIn 0.4s ease;
+  text-align: center;
+}
+
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal .modal-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin: 0 auto var(--space-lg);
+}
+
+.modal .modal-icon.success {
+  background: var(--success-light);
+}
+
+.modal h2 {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  color: var(--navy);
+  margin-bottom: var(--space-sm);
+}
+
+.modal p {
+  color: var(--gray-400);
+  font-size: 0.95rem;
+  margin-bottom: var(--space-lg);
+  line-height: 1.6;
+}
+
+.modal .reference-id {
+  background: var(--off-white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: var(--space-lg);
+  letter-spacing: 1px;
+}
+
+/* Booking details modal */
+.modal-details {
+  text-align: left;
+}
+
+.modal-details .detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--gray-100);
+  font-size: 0.9rem;
+}
+
+.modal-details .detail-row:last-child {
+  border-bottom: none;
+}
+
+.modal-details .detail-label {
+  color: var(--gray-400);
+  font-weight: 500;
+}
+
+.modal-details .detail-value {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+/* GCash Receipt in Details Modal */
+.gcash-receipt-section {
+  margin-top: var(--space-lg);
+  border: 2px solid rgba(0, 125, 254, 0.15);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f1fd 100%);
+}
+
+.gcash-receipt-section.no-receipt {
+  border-color: rgba(243, 156, 18, 0.3);
+  background: var(--warning-light);
+}
+
+.gcash-receipt-header {
+  background: linear-gradient(135deg, #007DFE 0%, #0060c7 100%);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--white);
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.gcash-receipt-img-wrapper {
+  padding: var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--white);
+  margin: var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.gcash-receipt-img {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.gcash-receipt-img:hover {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-md);
+}
+
+.gcash-view-full-btn {
+  display: block;
+  text-align: center;
+  padding: var(--space-sm) var(--space-md);
+  color: #007DFE;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: var(--transition);
+  border-top: 1px solid rgba(0, 125, 254, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.gcash-view-full-btn:hover {
+  background: rgba(0, 125, 254, 0.06);
+  color: #0060c7;
+}
+
+.gcash-no-receipt-text {
+  padding: var(--space-md);
+  text-align: center;
+  font-size: 0.88rem;
+  color: #7d6608;
+  font-weight: 500;
+}
+
+
+/* ============================================================
+   LOADING SPINNER
+   ============================================================ */
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.spinner.dark {
+  border-color: var(--gray-200);
+  border-top-color: var(--navy);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Loading overlay for buttons */
+.btn.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+
+/* ============================================================
+   TOAST NOTIFICATIONS
+   ============================================================ */
+.toast-container {
+  position: fixed;
+  top: var(--space-xl);
+  right: var(--space-xl);
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.toast {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 300px;
+  animation: toastIn 0.4s ease;
+  border-left: 4px solid var(--gray-300);
+}
+
+.toast.success { border-left-color: var(--success); }
+.toast.error   { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+.toast.info    { border-left-color: var(--info); }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.toast-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.toast-body h4 {
+  font-size: 0.85rem;
+  color: var(--navy);
+  margin-bottom: 2px;
+}
+
+.toast-body p {
+  font-size: 0.8rem;
+  color: var(--gray-400);
+}
+
+.toast-close {
+  background: none;
+  color: var(--gray-300);
+  font-size: 1.2rem;
+  padding: 4px;
+  margin-left: auto;
+  transition: var(--transition);
+}
+
+.toast-close:hover {
+  color: var(--gray-500);
+}
+
+
+/* ============================================================
+   FORMS
+   ============================================================ */
+/* Form card */
+.form-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-2xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--gray-100);
+  max-width: 800px;
+  margin: 0 auto var(--space-2xl);
+  overflow: hidden;
+}
+
+.form-card h2 {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  color: var(--navy);
+  margin-bottom: var(--space-xs);
+}
+
+.form-card .form-subtitle {
+  color: var(--gray-400);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: var(--space-xs);
+}
+
+.form-group label .required {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--gray-100);
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  color: var(--gray-500);
+  transition: var(--transition);
+  background: var(--white);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212,168,67,0.12);
+}
+
+.form-group input.error,
+.form-group select.error,
+.form-group textarea.error {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(231,76,60,0.1);
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%236b7a8d'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.form-hint {
+  font-size: 0.78rem;
+  color: var(--gray-300);
+  margin-top: var(--space-xs);
+}
+
+.error-message {
+  font-size: 0.78rem;
+  color: var(--danger);
+  margin-top: var(--space-xs);
+  display: none;
+}
+
+.error-message.visible {
+  display: block;
+}
+
