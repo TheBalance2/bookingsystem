@@ -804,3 +804,26 @@
     justify-content: center;
   }
 }
+
+/* ============================================================
+   RESPONSIVE — DASHBOARD
+   ============================================================ */
+@media (max-width: 992px) {
+  .dashboard-main {
+    margin-left: 0;
+    padding: var(--space-md);
+  }
+  .sidebar {
+    transform: translateX(-100%);
+    width: 280px;
+    z-index: 2000;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+}
+@media (min-width: 993px) {
+  .mobile-menu-btn {
+    display: none !important;
+  }
+}

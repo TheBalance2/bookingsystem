@@ -1280,3 +1280,20 @@
   });
 
 })();
+
+
+// Mobile sidebar toggle
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const mobileSidebar = document.getElementById('sidebar');
+if (mobileMenuBtn && mobileSidebar) {
+  mobileMenuBtn.addEventListener('click', () => {
+    mobileSidebar.classList.toggle('open');
+  });
+  document.querySelectorAll('.sidebar-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 992) {
+        mobileSidebar.classList.remove('open');
+      }
+    });
+  });
+}
