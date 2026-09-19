@@ -391,9 +391,9 @@
               <span>Business Office Payment Receipt</span>
             </div>
             <div class="gcash-receipt-img-wrapper">
-              <img src="${receiptUrl}" alt="Payment Receipt" class="gcash-receipt-img" onclick="window.open(this.src, '_blank')">
+              <img src="${receiptUrl}" alt="Payment Receipt" class="gcash-receipt-img" onclick="openReceiptImage(this.src)">
             </div>
-            <a href="${receiptUrl}" target="_blank" class="gcash-view-full-btn">View Full Receipt</a>
+            <button onclick="openReceiptImage(this.previousElementSibling.querySelector('img').src)" class="gcash-view-full-btn" style="border:none; cursor:pointer; width:100%; display:block; font-family:inherit;">View Full Receipt</button>
           </div>`;
       } else {
         html += `
@@ -435,6 +435,20 @@
   window.closeDetailsModal = function () {
     detailsModal.classList.remove('visible');
     currentModalDocId = null;
+  };
+
+  window.openReceiptImage = function(url) {
+    if (url && url.startsWith('data:image/')) {
+      const win = window.open();
+      if (win) {
+        win.document.write('<html><head><title>Receipt</title></head><body style="margin:0;display:flex;justify-content:center;align-items:center;background:#000;height:100vh;"><img src="' + url + '" style="max-width:100%;max-height:100%;object-fit:contain;"></body></html>');
+        win.document.close();
+      } else {
+        alert("Pop-up blocked. Please allow pop-ups for this site.");
+      }
+    } else {
+      window.open(url, '_blank');
+    }
   };
 
   // Close on overlay click
