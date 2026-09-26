@@ -352,7 +352,7 @@
       ['Time',         `${booking.startTime || '—'} – ${booking.endTime || '—'}`],
       ['Num. of Persons', booking.numPersons || '—'],
       ['Purpose',      booking.purpose || '—'],
-      ['Equipment',    (booking.equipment && booking.equipment.length) ? booking.equipment.join(', ') : 'None']
+      ['Equipment',    (booking.equipment && booking.equipment.length) ? booking.equipment.map(e => typeof e === 'string' ? e : `${e.item} (x${e.qty})`).join(', ') : 'None']
     );
 
     if (booking.otherEquipment) rows.push(['Other Equip.', booking.otherEquipment]);

@@ -280,6 +280,24 @@
     return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
   }
 
+  function getEquipmentWithQuantities(name) {
+    return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => {
+      const qtyInput = cb.parentElement.querySelector('.eq-qty');
+      const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+      return { item: cb.value, qty: qty };
+    });
+  }
+
+  // Equipment quantity toggle
+  document.querySelectorAll('.eq-checkbox').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const qtyInput = e.target.parentElement.querySelector('.eq-qty');
+      if (qtyInput) {
+        qtyInput.style.display = e.target.checked ? 'inline-block' : 'none';
+      }
+    });
+  });
+
   // ============================================================
   // CONFLICT CHECKING
   // ============================================================
@@ -405,7 +423,7 @@
       const vehicle    = getCheckedEquipment('vehicle');
       let   destination= document.getElementById('intDestination').value.trim();
       const purpose    = document.getElementById('intPurpose').value.trim();
-      const equipment  = getCheckedEquipment('equipment');
+      const equipment  = getEquipmentWithQuantities('equipment');
       const considerations = document.getElementById('intConsiderations').value.trim();
 
       // Clear destination if no vehicle is selected (destination is only for vehicles)
@@ -460,6 +478,15 @@
           createdAt:   firebase.firestore.FieldValue.serverTimestamp()
         });
 
+        const bookingData = {
+          referenceId: refId,
+          name: name, department: department, employeeId: employeeId, email: email,
+          facility: facility, date: date, startTime: startTime, endTime: endTime,
+          numPersons: numPersons, purpose: purpose, equipment: equipment, vehicle: vehicle,
+          destination: destination, considerations: considerations
+        };
+        generateInternalBookingPDF(bookingData);
+
         bookingRefId.textContent = refId;
         successModal.classList.add('visible');
         intForm.reset();
@@ -500,7 +527,7 @@
       const endTime    = document.getElementById('extEndTime').value;
       const numPersons = document.getElementById('extNumPersons').value;
       const purpose    = document.getElementById('extPurpose').value.trim();
-      const equipment  = getCheckedEquipment('extEquipment');
+      const equipment  = getEquipmentWithQuantities('extEquipment');
       const otherEquipment = document.getElementById('extOtherEquipment').value.trim();
       const considerations = document.getElementById('extConsiderations').value.trim();
 
@@ -650,7 +677,7 @@
       ['Time', data.startTime + ' – ' + data.endTime],
       ['Number of Persons', data.numPersons],
       ['Purpose', data.purpose],
-      ['Equipment', data.equipment && data.equipment.length > 0 ? data.equipment.join(', ') : 'None'],
+      ['Equipment', data.equipment && data.equipment.length > 0 ? data.equipment.map(e => typeof e === 'string' ? e : `${e.item} (x${e.qty})`).join(', ') : 'None'],
       ['Other Equipment', data.otherEquipment || 'None'],
       ['Considerations', data.considerations || 'None'],
     ];
@@ -713,6 +740,183 @@
         lastGeneratedPdf.save('SIC_Booking_' + refId + '.pdf');
       }
     });
+  }
+
+  const downloadInternalPdfBtn = document.getElementById('downloadInternalPdfBtn');
+  if (downloadInternalPdfBtn) {
+    downloadInternalPdfBtn.addEventListener('click', () => {
+      if (lastGeneratedPdf) {
+        const refId = bookingRefId ? bookingRefId.textContent : 'booking';
+        lastGeneratedPdf.save('SIC_Internal_Booking_' + refId + '.pdf');
+      }
+    });
+  }
+
+  // ============================================================
+  // INTERNAL PDF GENERATION (jsPDF)
+  // ============================================================
+  function generateInternalBookingPDF(data) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
+    try {
+      const logoImg = new Image();
+      logoImg.crossOrigin = 'anonymous';
+      logoImg.src = 'images/logo.jpg';
+
+      logoImg.onload = function() {
+        buildInternalPdfContent(doc, data, logoImg);
+      };
+      logoImg.onerror = function() {
+        buildInternalPdfContent(doc, data, null);
+      };
+    } catch (e) {
+      console.warn('Could not load logo for PDF:', e);
+      buildInternalPdfContent(doc, data, null);
+    }
+  }
+
+  function buildInternalPdfContent(doc, data, logoImg) {
+    drawInternalFormCopy(doc, data, logoImg, 10);
+    
+    doc.setDrawColor(150, 150, 150);
+    doc.setLineDashPattern([3, 3], 0);
+    doc.line(10, 148, 200, 148);
+    doc.setLineDashPattern([], 0);
+    
+    drawInternalFormCopy(doc, data, logoImg, 155);
+    
+    lastGeneratedPdf = doc;
+    doc.save('SIC_Internal_Booking_' + data.referenceId + '.pdf');
+  }
+
+  function drawInternalFormCopy(doc, data, logoImg, startY) {
+    if (logoImg) doc.addImage(logoImg, 'JPEG', 70, startY, 12, 12);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('SAN ISIDRO COLLEGE', 105, startY + 5, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('City of Malaybalay', 105, startY + 9, { align: 'center' });
+    
+    doc.text('RFUFVE Control No. ' + data.referenceId, 150, startY + 7);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('REQUEST FOR THE USE OF FACILITIES, VEHICLE & EQUIPMENT', 105, startY + 16, { align: 'center' });
+    
+    doc.setFontSize(8);
+    let y = startY + 22;
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('FACILITY', 15, y);
+    doc.text('EQUIPMENT', 105, y);
+    doc.text('VEHICLE', 155, y);
+    doc.setFont('helvetica', 'normal');
+    
+    const facilitiesLeft = ['Gymnasium', 'SMDC Conference Room', 'OMPH&SSTJ Chapel', 'Guest House/College H.E.', 'Board Room', 'Others (please specify)'];
+    const facilitiesRight = ['Student Center', 'Field/Oval', 'Sound System', 'Class room', 'Laboratory'];
+    
+    let leftY = y + 4;
+    facilitiesLeft.forEach(f => {
+      doc.rect(15, leftY - 3, 3, 3);
+      if (data.facility === f || (f === 'Others (please specify)' && data.facility && !facilitiesLeft.includes(data.facility) && !facilitiesRight.includes(data.facility))) {
+        doc.text('x', 15.5, leftY - 0.5);
+      }
+      doc.text(f === 'Others (please specify)' && data.facility && !facilitiesLeft.includes(data.facility) && !facilitiesRight.includes(data.facility) ? 'Others: ' + data.facility : f, 20, leftY);
+      leftY += 4.5;
+    });
+    
+    let rightY = y + 4;
+    facilitiesRight.forEach(f => {
+      doc.rect(60, rightY - 3, 3, 3);
+      if (data.facility === f) doc.text('x', 60.5, rightY - 0.5);
+      doc.text(f, 65, rightY);
+      rightY += 4.5;
+    });
+    
+    let eqY = y + 4;
+    const equipList = ['Tables', 'Chairs', 'Tools', 'Computer/Laptop'];
+    equipList.forEach(eq => {
+      doc.rect(105, eqY - 3, 3, 3);
+      const selEq = (data.equipment || []).find(e => typeof e === 'object' ? e.item === eq : e === eq);
+      if (selEq) doc.text('x', 105.5, eqY - 0.5);
+      doc.text(selEq && typeof selEq === 'object' ? `${eq} (x${selEq.qty})` : eq, 110, eqY);
+      eqY += 4.5;
+    });
+    
+    let vY = y + 4;
+    const vehicleList = ['Toyota Grandia Van', 'KIA Utility Van'];
+    vehicleList.forEach(v => {
+      doc.rect(155, vY - 3, 3, 3);
+      if (data.vehicle && data.vehicle.includes(v)) doc.text('x', 155.5, vY - 0.5);
+      doc.text(v, 160, vY);
+      vY += 4.5;
+    });
+    
+    y = Math.max(leftY, rightY, eqY, vY) + 2;
+    
+    doc.rect(15, y, 180, 35);
+    
+    doc.line(65, y, 65, y + 35);
+    doc.line(15, y + 7, 195, y + 7);
+    doc.line(15, y + 14, 195, y + 14);
+    doc.line(15, y + 21, 135, y + 21);
+    doc.line(15, y + 28, 195, y + 28);
+    
+    doc.line(135, y, 135, y + 7);
+    doc.line(135, y + 14, 135, y + 35);
+    
+    doc.text('Name of Requesting Person', 17, y + 5);
+    doc.text(data.name || '', 67, y + 5);
+    doc.text('Date:', 137, y + 5);
+    
+    doc.text('Purpose / Activity', 17, y + 12);
+    doc.text(doc.splitTextToSize(data.purpose || '', 125), 67, y + 11);
+    
+    doc.text('Date & Time of Use', 17, y + 19);
+    doc.text(`${data.date || ''} | ${data.startTime || ''}-${data.endTime || ''}`, 67, y + 19);
+    doc.text('Destination', 137, y + 19);
+    doc.text('(For Vehicle Only)', 137, y + 23);
+    
+    doc.text('Number of Persons', 17, y + 26);
+    doc.text(String(data.numPersons || ''), 67, y + 26);
+    doc.text(doc.splitTextToSize(data.destination || '', 55), 137, y + 27);
+    
+    doc.text('Equipment/Resources Needed', 17, y + 33);
+    const equipStr = (data.equipment || []).map(e => typeof e === 'string' ? e : `${e.item}(x${e.qty})`).join(', ');
+    doc.text(doc.splitTextToSize(equipStr || '', 65), 67, y + 32);
+    doc.text('Driver', 137, y + 33);
+    
+    y += 40;
+    doc.text('Other Considerations: ' + (data.considerations || ''), 15, y);
+    
+    y += 10;
+    doc.text('Noted:', 15, y);
+    doc.line(25, y + 1, 75, y + 1);
+    doc.text('Dean/Principal/Office Head', 50, y + 4, { align: 'center' });
+    
+    doc.line(125, y + 1, 190, y + 1);
+    doc.text('Name & Signature of the Requesting Personnel', 157.5, y + 4, { align: 'center' });
+    
+    y += 10;
+    doc.line(125, y + 1, 190, y + 1);
+    doc.text('Facilities In-charge', 157.5, y + 4, { align: 'center' });
+    
+    y += 10;
+    doc.text('Verified:', 15, y);
+    doc.line(28, y + 1, 75, y + 1);
+    doc.text('Comptroller', 51.5, y + 4, { align: 'center' });
+    
+    doc.text('Approved:', 90, y);
+    doc.line(105, y + 1, 175, y + 1);
+    doc.text('General Admin Services Coordinator', 140, y + 4, { align: 'center' });
+    
+    y += 8;
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7);
+    doc.text('Note: Accomplish in 2 copies: Requesting person, Facilities In-charge', 15, y);
   }
 
   // ============================================================
