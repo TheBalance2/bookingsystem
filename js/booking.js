@@ -608,16 +608,19 @@
   // ============================================================
   function generateBookingPDF(data) {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF('p', 'mm', 'a4');
 
-    // Try to load logo
     try {
       const logoImg = new Image();
       logoImg.crossOrigin = 'anonymous';
       logoImg.src = 'images/logo.jpg';
 
-      // We'll build the PDF with or without the logo
-      buildPdfContent(doc, data, logoImg);
+      logoImg.onload = function() {
+        buildPdfContent(doc, data, logoImg);
+      };
+      logoImg.onerror = function() {
+        buildPdfContent(doc, data, null);
+      };
     } catch (e) {
       console.warn('Could not load logo for PDF:', e);
       buildPdfContent(doc, data, null);
@@ -625,111 +628,189 @@
   }
 
   function buildPdfContent(doc, data, logoImg) {
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let y = 20;
-
-    // Try to add logo
-    try {
-      if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
-        doc.addImage(logoImg, 'JPEG', 15, y, 25, 25);
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.text('San Isidro College', 45, y + 10);
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Facility Reservation — Booking Summary', 45, y + 18);
-        y += 35;
-      } else {
-        addHeaderWithoutLogo(doc, y);
-        y += 25;
-      }
-    } catch (e) {
-      addHeaderWithoutLogo(doc, y);
-      y += 25;
-    }
-
-    // Divider line
-    doc.setDrawColor(10, 36, 99);
-    doc.setLineWidth(0.8);
-    doc.line(15, y, pageWidth - 15, y);
-    y += 10;
-
-    // Reference ID (prominent)
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(10, 36, 99);
-    doc.text('Reference ID: ' + data.referenceId, 15, y);
-    y += 10;
-
-    // Booking details
-    doc.setFontSize(10);
+    let startY = 15;
+    
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0);
-
-    const details = [
-      ['Contact Person', data.contactPerson],
-      ['Organization', data.agency],
-      ['Contact Number', data.contact],
-      ['Address', data.address],
-      ['Email', data.email],
-      ['Facility', data.facility],
-      ['Date', data.date],
-      ['Time', data.startTime + ' – ' + data.endTime],
-      ['Number of Persons', data.numPersons],
-      ['Purpose', data.purpose],
-      ['Equipment', data.equipment && data.equipment.length > 0 ? data.equipment.map(e => typeof e === 'string' ? e : `${e.item} (x${e.qty})`).join(', ') : 'None'],
-      ['Other Equipment', data.otherEquipment || 'None'],
-      ['Considerations', data.considerations || 'None'],
-    ];
-
-    details.forEach(([label, value]) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(label + ':', 15, y);
-      doc.setFont('helvetica', 'normal');
-
-      // Wrap long text
-      const maxWidth = pageWidth - 80;
-      const splitText = doc.splitTextToSize(String(value || '—'), maxWidth);
-      doc.text(splitText, 65, y);
-      y += splitText.length * 5 + 3;
-
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-    });
-
+    doc.text('IF 513\nRevised: 2011', 15, startY);
+    
+    if (logoImg) doc.addImage(logoImg, 'JPEG', 65, startY - 3, 15, 15);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('SAN ISIDRO COLLEGE', 105, startY + 2, { align: 'center' });
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('City of Malaybalay', 105, startY + 7, { align: 'center' });
+    
+    doc.text('RUF-EU Control No.: ' + data.referenceId, 140, startY);
+    
+    let y = startY + 25;
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('REQUEST FOR THE USE OF FACILITIES', 105, y, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text('[For External Users]', 105, y + 5, { align: 'center' });
+    
+    y += 15;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const dateFiled = new Date().toLocaleDateString();
+    doc.text('Date Filed: ' + dateFiled, 140, y);
+    
+    y += 10;
+    doc.text('[Please check the facilities to be requested.]', 15, y);
+    
     y += 5;
-
-    // Footer note box
+    const facilitiesLeft = ['Gymnasium', 'SMDC Conference Room', 'Chapel', 'Guest House/College H.E.'];
+    const facilitiesCenter = ['Student Center', 'Field/Oval', 'Sound System', 'Classroom'];
+    const facilitiesRight = ['Defense Room', 'Tables', 'Chairs'];
+    
+    let leftY = y;
+    facilitiesLeft.forEach(f => {
+      doc.rect(15, leftY - 3, 3, 3);
+      if (data.facility === f || (f === 'Chapel' && data.facility.includes('Chapel'))) doc.text('x', 15.5, leftY - 0.5);
+      doc.text(f, 20, leftY);
+      leftY += 6;
+    });
+    
+    let centerY = y;
+    facilitiesCenter.forEach(f => {
+      doc.rect(70, centerY - 3, 3, 3);
+      if (data.facility === f) doc.text('x', 70.5, centerY - 0.5);
+      doc.text(f, 75, centerY);
+      centerY += 6;
+    });
+    
+    let rightY = y;
+    facilitiesRight.forEach(f => {
+      doc.rect(125, rightY - 3, 3, 3);
+      let isChecked = false;
+      if (f === 'Tables' && data.equipment && data.equipment.find(e => typeof e === 'object' ? e.item === 'Tables' : e === 'Tables')) isChecked = true;
+      if (f === 'Chairs' && data.equipment && data.equipment.find(e => typeof e === 'object' ? e.item === 'Chairs' : e === 'Chairs')) isChecked = true;
+      if (isChecked) doc.text('x', 125.5, rightY - 0.5);
+      doc.text(f, 130, rightY);
+      rightY += 6;
+    });
+    
+    y = Math.max(leftY, centerY, rightY) + 5;
+    
+    const rowHeight = 12;
+    
+    // Row 1
+    doc.rect(15, y, 180, rowHeight);
+    doc.line(65, y, 65, y + rowHeight);
+    doc.text('Name of Contact\nPerson', 17, y + 5);
+    doc.text(data.contactPerson || '', 67, y + 7);
+    y += rowHeight;
+    
+    // Row 2
+    doc.rect(15, y, 180, rowHeight);
+    doc.line(65, y, 65, y + rowHeight);
+    doc.text('Name of\nAgency/Organization', 17, y + 5);
+    doc.text(data.agency || '', 67, y + 7);
+    y += rowHeight;
+    
+    // Row 3
+    doc.rect(15, y, 180, rowHeight);
+    doc.line(65, y, 65, y + rowHeight);
+    doc.text('Address', 17, y + 7);
+    doc.text(data.address || '', 67, y + 7);
+    y += rowHeight;
+    
+    // Row 4
+    doc.rect(15, y, 180, rowHeight);
+    doc.line(65, y, 65, y + rowHeight);
+    doc.text('Contact Number/s', 17, y + 7);
+    doc.text(data.contact || '', 67, y + 7);
+    y += rowHeight;
+    
+    // Row 5
+    doc.rect(15, y, 180, rowHeight);
+    doc.line(65, y, 65, y + rowHeight);
+    doc.text('Purpose / Activity', 17, y + 7);
+    doc.text(doc.splitTextToSize(data.purpose || '', 125), 67, y + 5);
+    y += rowHeight;
+    
+    // Row 6
+    doc.rect(15, y, 180, rowHeight);
+    doc.line(65, y, 65, y + rowHeight);
+    doc.line(110, y, 110, y + rowHeight);
+    doc.line(140, y, 140, y + rowHeight);
+    doc.text('Date of Use', 17, y + 7);
+    doc.text(data.date || '', 67, y + 7);
+    doc.text('Time of Use', 112, y + 7);
+    doc.text(`${data.startTime || ''} - ${data.endTime || ''}`, 142, y + 7);
+    y += rowHeight;
+    
+    // Row 7
+    doc.rect(15, y, 180, rowHeight);
+    doc.line(65, y, 65, y + rowHeight);
+    doc.text('Number of Persons', 17, y + 7);
+    doc.text(String(data.numPersons || ''), 67, y + 7);
+    y += rowHeight;
+    
+    // Row 8
+    const eqRowHeight = 20;
+    doc.rect(15, y, 180, eqRowHeight);
+    doc.line(65, y, 65, y + eqRowHeight);
+    doc.text('Equipment/Resources\nNeeded', 17, y + 7);
+    const equipStr = (data.equipment || []).map(e => typeof e === 'string' ? e : `${e.item}(x${e.qty})`).join(', ');
+    const allEqStr = equipStr + (data.otherEquipment ? (equipStr ? ', ' : '') + data.otherEquipment : '');
+    doc.text(doc.splitTextToSize(allEqStr || 'None', 125), 67, y + 7);
+    y += eqRowHeight;
+    
+    // Row 9 (Other Considerations)
+    const obsRowHeight = 25;
+    doc.rect(15, y, 180, obsRowHeight);
+    doc.line(65, y, 65, y + obsRowHeight);
+    doc.text('Other Considerations', 17, y + 12);
+    doc.text(doc.splitTextToSize(data.considerations || 'None', 125), 67, y + 7);
+    y += obsRowHeight;
+    
+    y += 5;
+    doc.setFontSize(8);
+    doc.text('[Note: Users are accountable for whatever damages during the activity.]', 15, y);
+    
+    y += 25;
+    doc.line(130, y, 195, y);
+    doc.text('Name & Signature of Requesting Person', 162.5, y + 4, { align: 'center' });
+    
+    y += 20;
+    doc.text('Noted:', 15, y - 5);
+    doc.line(25, y, 75, y);
+    doc.text('Facility In-Charge', 50, y + 4, { align: 'center' });
+    
+    doc.line(85, y, 135, y);
+    doc.text('Finance Officer', 110, y + 4, { align: 'center' });
+    
+    doc.text('Approved:', 140, y - 5);
+    doc.line(140, y, 195, y);
+    doc.text('Vice President for', 167.5, y + 4, { align: 'center' });
+    doc.text('Administration & Finance', 167.5, y + 8, { align: 'center' });
+    
+    y += 15;
+    doc.setFontSize(7);
+    doc.text('Note: Accomplish in 4 copies: Requesting Person, School Guard, Facility In-Charge, Finance Officer', 15, y);
+    
+    doc.addPage();
     doc.setDrawColor(230, 81, 0);
     doc.setFillColor(255, 243, 224);
-    doc.roundedRect(15, y, pageWidth - 30, 30, 3, 3, 'FD');
+    doc.roundedRect(15, 20, 180, 30, 3, 3, 'FD');
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(230, 81, 0);
-    doc.text('IMPORTANT:', 20, y + 8);
+    doc.text('IMPORTANT INSTRUCTIONS:', 20, 28);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(9);
-    const noteText = 'Please print this document and present it to the Business Office of San Isidro College for payment assessment. The price will be determined by the Business Office. After payment, upload your receipt on the booking page to confirm your reservation.';
-    const noteLines = doc.splitTextToSize(noteText, pageWidth - 40);
-    doc.text(noteLines, 20, y + 14);
-
-    // Store the doc for download button
+    const noteText = 'Please print the Booking Form on the previous page in 4 copies and present it to the Business Office of San Isidro College for payment assessment. The price will be determined by the Business Office. After payment, upload your receipt on the booking page to confirm your reservation.';
+    const noteLines = doc.splitTextToSize(noteText, 170);
+    doc.text(noteLines, 20, 34);
+    
     lastGeneratedPdf = doc;
-
-    // Auto-download
     doc.save('SIC_Booking_' + data.referenceId + '.pdf');
-  }
-
-  function addHeaderWithoutLogo(doc, y) {
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('San Isidro College', 15, y + 5);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Facility Reservation — Booking Summary', 15, y + 13);
   }
 
   // Download PDF button handler
