@@ -664,8 +664,8 @@
     
     y += 5;
     const facilitiesLeft = ['Gymnasium', 'SMDC Conference Room', 'Chapel', 'Guest House/College H.E.'];
-    const facilitiesCenter = ['Student Center', 'Field/Oval', 'Sound System', 'Classroom'];
-    const facilitiesRight = ['Defense Room', 'Tables', 'Chairs'];
+    const facilitiesCenter = ['Student Center', 'Field/Oval', 'Classroom'];
+    const facilitiesRight = ['Defense Room'];
     
     let leftY = y;
     facilitiesLeft.forEach(f => {
@@ -686,10 +686,7 @@
     let rightY = y;
     facilitiesRight.forEach(f => {
       doc.rect(125, rightY - 3, 3, 3);
-      let isChecked = false;
-      if (f === 'Tables' && data.equipment && data.equipment.find(e => typeof e === 'object' ? e.item === 'Tables' : e === 'Tables')) isChecked = true;
-      if (f === 'Chairs' && data.equipment && data.equipment.find(e => typeof e === 'object' ? e.item === 'Chairs' : e === 'Chairs')) isChecked = true;
-      if (isChecked) doc.text('x', 125.5, rightY - 0.5);
+      if (data.facility === f) doc.text('x', 125.5, rightY - 0.5);
       doc.text(f, 130, rightY);
       rightY += 6;
     });
