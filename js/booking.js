@@ -889,7 +889,6 @@
     
     doc.setFont('helvetica', 'bold');
     doc.text('FACILITY', 15, y);
-    doc.text('EQUIPMENT', 105, y);
     doc.text('VEHICLE', 155, y);
     doc.setFont('helvetica', 'normal');
     
@@ -913,17 +912,6 @@
       doc.text(f, 65, rightY);
       rightY += 4.5;
     });
-    
-    let eqY = y + 4;
-    const equipList = ['Tables', 'Chairs', 'Tools', 'Computer/Laptop'];
-    equipList.forEach(eq => {
-      doc.rect(105, eqY - 3, 3, 3);
-      const selEq = (data.equipment || []).find(e => typeof e === 'object' ? e.item === eq : e === eq);
-      if (selEq) doc.text('x', 105.5, eqY - 0.5);
-      doc.text(selEq && typeof selEq === 'object' ? `${eq} (x${selEq.qty})` : eq, 110, eqY);
-      eqY += 4.5;
-    });
-    
     let vY = y + 4;
     const vehicleList = ['Toyota Grandia Van', 'KIA Utility Van'];
     vehicleList.forEach(v => {
@@ -933,7 +921,7 @@
       vY += 4.5;
     });
     
-    y = Math.max(leftY, rightY, eqY, vY) + 2;
+    y = Math.max(leftY, rightY, vY) + 2;
     
     doc.rect(15, y, 180, 35);
     
