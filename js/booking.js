@@ -923,13 +923,14 @@
     
     y = Math.max(leftY, rightY, vY) + 2;
     
-    doc.rect(15, y, 180, 35);
+    doc.rect(15, y, 180, 42);
     
-    doc.line(65, y, 65, y + 35);
+    doc.line(65, y, 65, y + 42);
     doc.line(15, y + 7, 195, y + 7);
     doc.line(15, y + 14, 195, y + 14);
     doc.line(15, y + 21, 135, y + 21);
     doc.line(15, y + 28, 195, y + 28);
+    doc.line(15, y + 35, 195, y + 35);
     
     doc.line(135, y, 135, y + 7);
     doc.line(135, y + 14, 135, y + 35);
@@ -955,10 +956,10 @@
     doc.text(doc.splitTextToSize(equipStr || '', 65), 67, y + 32);
     doc.text('Driver', 137, y + 33);
     
-    y += 40;
-    doc.text('Other Considerations: ' + (data.considerations || ''), 15, y);
+    doc.text('Other Considerations', 17, y + 40);
+    doc.text(doc.splitTextToSize(data.considerations || 'None', 125), 67, y + 40);
     
-    y += 10;
+    y += 50;
     doc.text('Noted:', 15, y);
     doc.line(25, y + 1, 75, y + 1);
     doc.text('Dean/Principal/Office Head', 50, y + 4, { align: 'center' });
