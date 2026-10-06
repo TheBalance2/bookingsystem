@@ -1293,6 +1293,91 @@
     }
   });
 
+  // ============================================================
+  // SPECIAL BOOKING (ADMIN)
+  // ============================================================
+  const specialBookingBtn = document.getElementById('specialBookingBtn');
+  const specialBookingModal = document.getElementById('specialBookingModal');
+  const specialBookingForm = document.getElementById('specialBookingForm');
+  const sbFacilitySelect = document.getElementById('sbFacility');
+
+  if (specialBookingBtn && specialBookingModal) {
+    specialBookingBtn.addEventListener('click', () => {
+      // Populate facilities if not already populated
+      if (sbFacilitySelect && window._allFacilities && sbFacilitySelect.options.length <= 1) {
+        window._allFacilities.forEach(f => {
+          if (f.status === 'Active') {
+            const option = document.createElement('option');
+            option.value = f.name;
+            option.textContent = f.name;
+            sbFacilitySelect.appendChild(option);
+          }
+        });
+      }
+      specialBookingModal.classList.add('visible');
+    });
+    
+    // Close on overlay click
+    specialBookingModal.addEventListener('click', (e) => {
+      if (e.target === specialBookingModal) {
+        specialBookingModal.classList.remove('visible');
+      }
+    });
+  }
+
+  if (specialBookingForm) {
+    specialBookingForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('sbSubmitBtn');
+      btn.innerHTML = '<span class="spinner"></span> Submitting...';
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      const name = document.getElementById('sbName').value.trim();
+      const email = document.getElementById('sbEmail').value.trim();
+      const facility = document.getElementById('sbFacility').value;
+      const date = document.getElementById('sbDate').value;
+      const startTime = document.getElementById('sbStartTime').value;
+      const endTime = document.getElementById('sbEndTime').value;
+      const purpose = document.getElementById('sbPurpose').value.trim();
+
+      const generateRefId = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let id = 'SIC-';
+        for (let i = 0; i < 8; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
+        return id;
+      };
+
+      try {
+        const refId = generateRefId();
+        await db.collection('bookings').add({
+          userType: 'Internal', // Treat as internal or special
+          name: name,
+          email: email,
+          facility: facility,
+          date: date,
+          startTime: startTime,
+          endTime: endTime,
+          purpose: purpose,
+          status: 'Approved',
+          referenceId: refId,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        specialBookingModal.classList.remove('visible');
+        showToast('success', 'Special Booking Created', 'The reservation has been automatically approved.');
+        specialBookingForm.reset();
+      } catch (err) {
+        console.error('Special booking error:', err);
+        showToast('error', 'Error', 'Failed to create special booking.');
+      } finally {
+        btn.innerHTML = 'Submit Special Booking';
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    });
+  }
+
 })();
 
 

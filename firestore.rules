@@ -51,10 +51,12 @@ service cloud.firestore {
     match /bookings/{bookingId} {
       allow read: if true;
 
+      // Admin can create bookings anytime (Special Booking).
       // Public can create bookings during working hours with a
       // valid initial status only.
-      allow create: if isWorkingHours()
-                    && request.resource.data.status in ['Pending', 'Pending Payment'];
+      allow create: if isAdmin() 
+                    || (isWorkingHours()
+                        && request.resource.data.status in ['Pending', 'Pending Payment']);
 
       // Update rules:
       //  • Admin can update anything.

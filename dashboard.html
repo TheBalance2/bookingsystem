@@ -91,7 +91,10 @@
             <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Manage all facility reservations</p>
           </div>
         </div>
-        <div class="admin-info">
+        <div class="admin-info" style="display: flex; gap: 15px; align-items: center;">
+          <button class="btn btn-primary btn-sm" id="specialBookingBtn" style="background-color: var(--warning); color: #fff; border: none; font-weight: 500;">
+            Special Booking
+          </button>
           <span id="adminEmail">admin</span>
           <div class="admin-avatar" id="adminAvatar">A</div>
         </div>
@@ -355,6 +358,55 @@
       </div>
 
     </main>
+  </div>
+
+  <!-- ============================================================
+       SPECIAL BOOKING MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="specialBookingModal">
+    <div class="modal" style="max-width:600px; text-align:left; max-height:90vh; overflow-y:auto;">
+      <h2>Special Booking</h2>
+      <p style="color:var(--gray-400); font-size:0.9rem; margin-bottom:var(--space-md);">Bypass workhours and 3-day notice rules.</p>
+      
+      <form id="specialBookingForm" novalidate>
+        <div class="form-grid" style="gap:var(--space-md);">
+          <div class="form-group">
+            <label for="sbName">Requester Name <span class="required">*</span></label>
+            <input type="text" id="sbName" required>
+          </div>
+          <div class="form-group">
+            <label for="sbEmail">Email Address</label>
+            <input type="email" id="sbEmail">
+          </div>
+          <div class="form-group">
+            <label for="sbFacility">Facility / Location <span class="required">*</span></label>
+            <select id="sbFacility" required>
+              <option value="">Select Facility</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="sbDate">Date <span class="required">*</span></label>
+            <input type="date" id="sbDate" required>
+          </div>
+          <div class="form-group">
+            <label for="sbStartTime">Start Time <span class="required">*</span></label>
+            <input type="time" id="sbStartTime" required>
+          </div>
+          <div class="form-group">
+            <label for="sbEndTime">End Time <span class="required">*</span></label>
+            <input type="time" id="sbEndTime" required>
+          </div>
+          <div class="form-group full-width">
+            <label for="sbPurpose">Purpose <span class="required">*</span></label>
+            <textarea id="sbPurpose" rows="3" required></textarea>
+          </div>
+        </div>
+        <div class="form-actions" style="margin-top:var(--space-lg); display:flex; gap:12px; align-items:center;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('specialBookingModal').classList.remove('visible')">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="sbSubmitBtn">Submit Special Booking</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- ============================================================
