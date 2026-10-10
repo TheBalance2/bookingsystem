@@ -1300,6 +1300,17 @@
   const specialBookingModal = document.getElementById('specialBookingModal');
   const specialBookingForm = document.getElementById('specialBookingForm');
   const sbFacilitySelect = document.getElementById('sbFacility');
+  const sbVehicleOptions = document.getElementById('sbVehicleOptions');
+
+  // Equipment quantity toggle for Special Booking
+  document.querySelectorAll('#specialBookingForm .eq-checkbox').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const qtyInput = e.target.parentElement.querySelector('.eq-qty');
+      if (qtyInput) {
+        qtyInput.style.display = e.target.checked ? 'inline-block' : 'none';
+      }
+    });
+  });
 
   if (specialBookingBtn && specialBookingModal) {
     specialBookingBtn.addEventListener('click', () => {
@@ -1314,6 +1325,32 @@
           }
         });
       }
+
+      // Populate vehicles if not already populated
+      if (sbVehicleOptions && sbVehicleOptions.children.length === 0) {
+        db.collection('vehicles').orderBy('order', 'asc').get().then(snapshot => {
+          sbVehicleOptions.innerHTML = '';
+          snapshot.forEach(doc => {
+            const v = doc.data();
+            if (v.status === 'Active' && v.name) {
+              const label = document.createElement('label');
+              label.className = 'equipment-item';
+              const cb = document.createElement('input');
+              cb.type = 'checkbox';
+              cb.name = 'sbVehicle';
+              cb.value = v.name;
+              label.appendChild(cb);
+              label.appendChild(document.createTextNode(' ' + v.name));
+              sbVehicleOptions.appendChild(label);
+            }
+          });
+          if(snapshot.empty) sbVehicleOptions.innerHTML = '<span style="font-size:0.9rem; color:var(--gray-400);">No active vehicles</span>';
+        }).catch(err => {
+          console.warn('Could not load vehicles', err);
+          sbVehicleOptions.innerHTML = '<span style="font-size:0.9rem; color:var(--gray-400);">Error loading vehicles</span>';
+        });
+      }
+
       specialBookingModal.classList.add('visible');
     });
     
@@ -1322,6 +1359,14 @@
       if (e.target === specialBookingModal) {
         specialBookingModal.classList.remove('visible');
       }
+    });
+  }
+
+  function getSbEquipmentWithQuantities(name) {
+    return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => {
+      const qtyInput = cb.parentElement.querySelector('.eq-qty');
+      const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+      return { item: cb.value, qty: qty };
     });
   }
 
@@ -1334,12 +1379,20 @@
       btn.disabled = true;
 
       const name = document.getElementById('sbName').value.trim();
+      const department = document.getElementById('sbDepartment').value;
+      const employeeId = document.getElementById('sbEmployeeId').value.trim();
       const email = document.getElementById('sbEmail').value.trim();
       const facility = document.getElementById('sbFacility').value;
       const date = document.getElementById('sbDate').value;
       const startTime = document.getElementById('sbStartTime').value;
       const endTime = document.getElementById('sbEndTime').value;
+      const numPersons = document.getElementById('sbNumPersons').value;
+      const destination = document.getElementById('sbDestination').value.trim();
       const purpose = document.getElementById('sbPurpose').value.trim();
+      const considerations = document.getElementById('sbConsiderations').value.trim();
+
+      const vehicle = Array.from(document.querySelectorAll('input[name="sbVehicle"]:checked')).map(cb => cb.value);
+      const equipment = getSbEquipmentWithQuantities('sbEquipment');
 
       const generateRefId = () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -1351,14 +1404,21 @@
       try {
         const refId = generateRefId();
         await db.collection('bookings').add({
-          userType: 'Internal', // Treat as internal or special
+          userType: 'Internal', 
           name: name,
+          department: department,
+          employeeId: employeeId,
           email: email,
           facility: facility,
           date: date,
           startTime: startTime,
           endTime: endTime,
+          numPersons: numPersons,
+          vehicle: vehicle,
+          destination: vehicle.length > 0 ? destination : '',
+          equipment: equipment,
           purpose: purpose,
+          considerations: considerations,
           status: 'Approved',
           referenceId: refId,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1367,6 +1427,9 @@
         specialBookingModal.classList.remove('visible');
         showToast('success', 'Special Booking Created', 'The reservation has been automatically approved.');
         specialBookingForm.reset();
+        
+        // Hide all quantity inputs again
+        document.querySelectorAll('#specialBookingForm .eq-qty').forEach(q => q.style.display = 'none');
       } catch (err) {
         console.error('Special booking error:', err);
         showToast('error', 'Error', 'Failed to create special booking.');

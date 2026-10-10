@@ -369,38 +369,143 @@
       <p style="color:var(--gray-400); font-size:0.9rem; margin-bottom:var(--space-md);">Bypass workhours and 3-day notice rules.</p>
       
       <form id="specialBookingForm" novalidate>
-        <div class="form-grid" style="gap:var(--space-md);">
+        <div class="form-grid">
+          <!-- Name -->
           <div class="form-group">
-            <label for="sbName">Requester Name <span class="required">*</span></label>
-            <input type="text" id="sbName" required>
+            <label for="sbName">Full Name <span class="required">*</span></label>
+            <input type="text" id="sbName" name="name" placeholder="e.g. Juan Dela Cruz" required>
           </div>
+
+          <!-- Department -->
           <div class="form-group">
-            <label for="sbEmail">Email Address</label>
-            <input type="email" id="sbEmail">
-          </div>
-          <div class="form-group">
-            <label for="sbFacility">Facility / Location <span class="required">*</span></label>
-            <select id="sbFacility" required>
-              <option value="">Select Facility</option>
+            <label for="sbDepartment">Department <span class="required">*</span></label>
+            <select id="sbDepartment" name="department" required>
+              <option value="">Select Department</option>
+              <option value="College of Education">College of Education</option>
+              <option value="College of Business">College of Business</option>
+              <option value="College of Engineering">College of Engineering</option>
+              <option value="College of Arts & Sciences">College of Arts & Sciences</option>
+              <option value="College of Information Technology">College of Information Technology</option>
+              <option value="Senior High School">Senior High School</option>
+              <option value="Junior High School">Junior High School</option>
+              <option value="Elementary">Elementary</option>
+              <option value="Administration">Administration</option>
+              <option value="Student Affairs">Student Affairs</option>
+              <option value="Other">Other</option>
             </select>
           </div>
+
+          <!-- Employee ID -->
+          <div class="form-group">
+            <label for="sbEmployeeId">Employee ID <span class="required">*</span></label>
+            <input type="text" id="sbEmployeeId" name="employeeId" placeholder="e.g. SIC-2024-001" required>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label for="sbEmail">Email Address <span class="required">*</span></label>
+            <input type="email" id="sbEmail" name="email" placeholder="e.g. jdelacruz@sic.edu.ph" required>
+          </div>
+
+          <!-- Facility -->
+          <div class="form-group">
+            <label for="sbFacility">Facility</label>
+            <select id="sbFacility" name="facility">
+              <option value="">Select Facility (or leave blank if Vehicle only)</option>
+            </select>
+          </div>
+
+          <!-- Date -->
           <div class="form-group">
             <label for="sbDate">Date <span class="required">*</span></label>
             <input type="date" id="sbDate" required>
           </div>
+
+          <!-- Start Time -->
           <div class="form-group">
             <label for="sbStartTime">Start Time <span class="required">*</span></label>
             <input type="time" id="sbStartTime" required>
           </div>
+
+          <!-- End Time -->
           <div class="form-group">
             <label for="sbEndTime">End Time <span class="required">*</span></label>
             <input type="time" id="sbEndTime" required>
           </div>
+
+          <!-- Number of Persons -->
+          <div class="form-group">
+            <label for="sbNumPersons">Number of Persons <span class="required">*</span></label>
+            <input type="number" id="sbNumPersons" name="numPersons" min="1" placeholder="e.g. 50" required>
+          </div>
+
+          <!-- Vehicle -->
           <div class="form-group full-width">
-            <label for="sbPurpose">Purpose <span class="required">*</span></label>
-            <textarea id="sbPurpose" rows="3" required></textarea>
+            <label>Vehicle Needed</label>
+            <p class="form-subtitle" style="margin-bottom:var(--space-sm);">Select one or more vehicles if needed.</p>
+            <div class="equipment-grid" id="sbVehicleOptions">
+              <!-- Vehicles are loaded dynamically -->
+            </div>
+          </div>
+          
+          <!-- Vehicle Destination -->
+          <div class="form-group">
+            <label for="sbDestination">Destination (For Vehicle Only)</label>
+            <input type="text" id="sbDestination" name="destination" placeholder="e.g. Cagayan de Oro City">
+          </div>
+          
+          <!-- Equipment -->
+          <div class="form-group full-width">
+            <label>Equipment Needed (optional)</label>
+            <div class="equipment-grid">
+              <label class="equipment-item">
+                <input type="checkbox" name="sbEquipment" value="Tables" class="eq-checkbox"> Tables
+                <input type="number" name="qty_Tables" min="1" value="1" class="eq-qty" style="display:none; width:60px; margin-left:auto; padding:2px 4px; border:1px solid var(--gray-200); border-radius:4px;">
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="sbEquipment" value="Chairs" class="eq-checkbox"> Chairs
+                <input type="number" name="qty_Chairs" min="1" value="1" class="eq-qty" style="display:none; width:60px; margin-left:auto; padding:2px 4px; border:1px solid var(--gray-200); border-radius:4px;">
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="sbEquipment" value="Tools" class="eq-checkbox"> Tools
+                <input type="number" name="qty_Tools" min="1" value="1" class="eq-qty" style="display:none; width:60px; margin-left:auto; padding:2px 4px; border:1px solid var(--gray-200); border-radius:4px;">
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="sbEquipment" value="Computer/Laptop" class="eq-checkbox"> Computer/Laptop
+                <input type="number" name="qty_Computer/Laptop" min="1" value="1" class="eq-qty" style="display:none; width:60px; margin-left:auto; padding:2px 4px; border:1px solid var(--gray-200); border-radius:4px;">
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="sbEquipment" value="Projector" class="eq-checkbox"> Projector
+                <input type="number" name="qty_Projector" min="1" value="1" class="eq-qty" style="display:none; width:60px; margin-left:auto; padding:2px 4px; border:1px solid var(--gray-200); border-radius:4px;">
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="sbEquipment" value="Sound System" class="eq-checkbox"> Sound System
+                <input type="number" name="qty_Sound System" min="1" value="1" class="eq-qty" style="display:none; width:60px; margin-left:auto; padding:2px 4px; border:1px solid var(--gray-200); border-radius:4px;">
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="sbEquipment" value="Microphone" class="eq-checkbox"> Microphone
+                <input type="number" name="qty_Microphone" min="1" value="1" class="eq-qty" style="display:none; width:60px; margin-left:auto; padding:2px 4px; border:1px solid var(--gray-200); border-radius:4px;">
+              </label>
+              <label class="equipment-item">
+                <input type="checkbox" name="sbEquipment" value="Whiteboard" class="eq-checkbox"> Whiteboard
+                <input type="number" name="qty_Whiteboard" min="1" value="1" class="eq-qty" style="display:none; width:60px; margin-left:auto; padding:2px 4px; border:1px solid var(--gray-200); border-radius:4px;">
+              </label>
+            </div>
+          </div>
+
+          <!-- Purpose -->
+          <div class="form-group full-width">
+            <label for="sbPurpose">Purpose / Activity <span class="required">*</span></label>
+            <textarea id="sbPurpose" name="purpose" placeholder="Describe the purpose / activity..." required></textarea>
+          </div>
+
+          <!-- Other Considerations -->
+          <div class="form-group full-width">
+            <label for="sbConsiderations">Other Considerations</label>
+            <textarea id="sbConsiderations" name="considerations" placeholder="Any other details or requests..."></textarea>
           </div>
         </div>
+
         <div class="form-actions" style="margin-top:var(--space-lg); display:flex; gap:12px; align-items:center;">
           <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('specialBookingModal').classList.remove('visible')">Cancel</button>
           <button type="submit" class="btn btn-primary btn-sm" id="sbSubmitBtn">Submit Special Booking</button>
