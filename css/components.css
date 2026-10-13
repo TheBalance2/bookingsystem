@@ -397,6 +397,32 @@
   display: block;
 }
 
+/* Name Grid for split name inputs */
+.form-section-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: var(--space-xs);
+  display: block;
+}
+
+.name-grid {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr;
+  gap: var(--space-md);
+}
+
+.name-grid .form-group {
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .name-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+}
+
 /* Equipment checkboxes */
 .equipment-grid {
   display: grid;

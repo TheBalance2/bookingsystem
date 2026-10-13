@@ -136,6 +136,17 @@
     return formatVehicleList(booking.vehicle) || '—';
   }
 
+  function getBookingRequesterName(b) {
+    if (!b) return '—';
+    if (b.name) return b.name;
+    if (b.lastName || b.firstName) {
+      const mi = b.middleInitial ? (b.middleInitial.endsWith('.') ? b.middleInitial : b.middleInitial + '.') : '';
+      const firstMi = [b.firstName, mi].filter(Boolean).join(' ');
+      return b.lastName ? `${b.lastName}, ${firstMi}` : firstMi;
+    }
+    return b.contactPerson || '—';
+  }
+
   // ============================================================
   // RENDER TABLE
   // ============================================================
@@ -165,7 +176,7 @@
       const dateTime = `${dateText}<br><small style="color:var(--gray-300)">${timeText}</small>`;
 
       const ref = escapeHtml(b.referenceId || '—');
-      const name = escapeHtml(b.name || '—');
+      const name = escapeHtml(getBookingRequesterName(b));
       const userType = escapeHtml(b.userType || '—');
       const purpose = escapeHtml(b.purpose || '—');
       const statusText = escapeHtml(b.status || '—');
@@ -322,7 +333,7 @@
 
     let rows = [
       ['Reference',    booking.referenceId || '—'],
-      ['Requester',    booking.name || '—'],
+      ['Requester',    getBookingRequesterName(booking)],
       ['Type',         booking.userType || '—']
     ];
 

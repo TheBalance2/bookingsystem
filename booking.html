@@ -72,10 +72,25 @@
       <form id="internalBookingForm" novalidate>
         <div class="form-grid">
           <!-- Name -->
-          <div class="form-group">
-            <label for="intName">Full Name <span class="required">*</span></label>
-            <input type="text" id="intName" name="name" placeholder="e.g. Juan Dela Cruz" required>
-            <span class="error-message" id="intNameError">Please enter your full name</span>
+          <div class="form-group full-width">
+            <label class="form-section-title">Full Name</label>
+            <div class="name-grid">
+              <div class="form-group">
+                <label for="intFirstName">First Name <span class="required">*</span></label>
+                <input type="text" id="intFirstName" name="firstName" placeholder="e.g. John" required>
+                <span class="error-message" id="intFirstNameError">Please enter your first name</span>
+              </div>
+              <div class="form-group">
+                <label for="intLastName">Last Name <span class="required">*</span></label>
+                <input type="text" id="intLastName" name="lastName" placeholder="e.g. Doe" required>
+                <span class="error-message" id="intLastNameError">Please enter your last name</span>
+              </div>
+              <div class="form-group">
+                <label for="intMiddleInitial">Middle Initial <span class="required">*</span></label>
+                <input type="text" id="intMiddleInitial" name="middleInitial" placeholder="e.g. E." maxlength="5" style="text-transform: uppercase;" required>
+                <span class="error-message" id="intMiddleInitialError">Please enter middle initial (or N/A)</span>
+              </div>
+            </div>
           </div>
 
           <!-- Department -->
@@ -245,10 +260,25 @@
       <form id="externalBookingForm" novalidate>
         <div class="form-grid">
           <!-- Contact Person -->
-          <div class="form-group">
-            <label for="extContactPerson">Name of Contact Person <span class="required">*</span></label>
-            <input type="text" id="extContactPerson" name="contactPerson" placeholder="e.g. Juan Dela Cruz" required>
-            <span class="error-message" id="extContactPersonError">Please enter the contact person's name</span>
+          <div class="form-group full-width">
+            <label class="form-section-title">Name of Contact Person</label>
+            <div class="name-grid">
+              <div class="form-group">
+                <label for="extFirstName">First Name <span class="required">*</span></label>
+                <input type="text" id="extFirstName" name="firstName" placeholder="e.g. John" required>
+                <span class="error-message" id="extFirstNameError">Please enter contact person's first name</span>
+              </div>
+              <div class="form-group">
+                <label for="extLastName">Last Name <span class="required">*</span></label>
+                <input type="text" id="extLastName" name="lastName" placeholder="e.g. Doe" required>
+                <span class="error-message" id="extLastNameError">Please enter contact person's last name</span>
+              </div>
+              <div class="form-group">
+                <label for="extMiddleInitial">Middle Initial <span class="required">*</span></label>
+                <input type="text" id="extMiddleInitial" name="middleInitial" placeholder="e.g. E." maxlength="5" style="text-transform: uppercase;" required>
+                <span class="error-message" id="extMiddleInitialError">Please enter middle initial (or N/A)</span>
+              </div>
+            </div>
           </div>
 
           <!-- Agency/Organization -->

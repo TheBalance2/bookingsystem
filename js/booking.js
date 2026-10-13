@@ -242,6 +242,28 @@
     return /^\d+$/.test(String(str).trim());
   }
 
+  // Combine name parts into "LastName, FirstName M.I." format (e.g. "Doe, John E.")
+  function formatCombinedName(lastName, firstName, middleInitial) {
+    const last = (lastName || '').trim();
+    const first = (firstName || '').trim();
+    let mi = (middleInitial || '').trim();
+
+    if (/^(n\/?a|none|-|\.)$/i.test(mi)) {
+      mi = '';
+    } else if (mi) {
+      mi = mi.toUpperCase();
+      if (!mi.endsWith('.')) {
+        mi += '.';
+      }
+    }
+
+    const firstAndMi = [first, mi].filter(Boolean).join(' ');
+    if (last && firstAndMi) {
+      return `${last}, ${firstAndMi}`;
+    }
+    return last || firstAndMi || '';
+  }
+
   // Strip non-digit characters from an input's value (used on input event)
   function stripNonDigitsInput(el) {
     if (!el) return;
@@ -383,6 +405,16 @@
   const extContactEl = document.getElementById('extContact');
   if (extContactEl) stripNonDigitsInput(extContactEl);
 
+  // Automatically uppercase middle initial inputs as user types
+  ['intMiddleInitial', 'extMiddleInitial'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => {
+        el.value = el.value.toUpperCase();
+      });
+    }
+  });
+
   // ============================================================
   // SET MIN DATE (today + 3 days) on date inputs
   // ============================================================
@@ -411,20 +443,22 @@
       clearErrors('int');
 
       // Gather values
-      const name       = document.getElementById('intName').value.trim();
-      const department = document.getElementById('intDepartment').value;
-      const employeeId = document.getElementById('intEmployeeId').value.trim();
-      const email      = document.getElementById('intEmail').value.trim();
-      const facility   = document.getElementById('intFacility').value;
-      const date       = document.getElementById('intDate').value;
-      const startTime  = document.getElementById('intStartTime').value;
-      const endTime    = document.getElementById('intEndTime').value;
-      const numPersons = document.getElementById('intNumPersons').value;
-      const vehicle    = getCheckedEquipment('vehicle');
-      let   destination= document.getElementById('intDestination').value.trim();
-      const purpose    = document.getElementById('intPurpose').value.trim();
-      const equipment  = getEquipmentWithQuantities('equipment');
-      const considerations = document.getElementById('intConsiderations').value.trim();
+      const firstName     = document.getElementById('intFirstName').value.trim();
+      const lastName      = document.getElementById('intLastName').value.trim();
+      const middleInitial = document.getElementById('intMiddleInitial').value.trim();
+      const department    = document.getElementById('intDepartment').value;
+      const employeeId    = document.getElementById('intEmployeeId').value.trim();
+      const email         = document.getElementById('intEmail').value.trim();
+      const facility      = document.getElementById('intFacility').value;
+      const date          = document.getElementById('intDate').value;
+      const startTime     = document.getElementById('intStartTime').value;
+      const endTime       = document.getElementById('intEndTime').value;
+      const numPersons    = document.getElementById('intNumPersons').value;
+      const vehicle       = getCheckedEquipment('vehicle');
+      let   destination   = document.getElementById('intDestination').value.trim();
+      const purpose       = document.getElementById('intPurpose').value.trim();
+      const equipment     = getEquipmentWithQuantities('equipment');
+      const considerations= document.getElementById('intConsiderations').value.trim();
 
       // Clear destination if no vehicle is selected (destination is only for vehicles)
       if (vehicle.length === 0) {
@@ -434,7 +468,9 @@
 
       // Validate
       let valid = true;
-      if (!name)                         { showError('intNameError');       valid = false; }
+      if (!firstName)                    { showError('intFirstNameError');     valid = false; }
+      if (!lastName)                     { showError('intLastNameError');      valid = false; }
+      if (!middleInitial)                { showError('intMiddleInitialError'); valid = false; }
       if (!department)                   { showError('intDepartmentError'); valid = false; }
       if (!employeeId)                   { showError('intEmployeeIdError'); valid = false; }
       if (!email || !isValidEmail(email)) { showError('intEmailError');     valid = false; }
@@ -455,35 +491,52 @@
       btn.classList.add('loading');
 
       const refId = generateRefId();
+      const combinedName = formatCombinedName(lastName, firstName, middleInitial);
 
       try {
         await db.collection('bookings').add({
-          userType:    'Internal',
-          name:        name,
-          department:  department,
-          employeeId:  employeeId,
-          email:       email,
-          facility:    facility,
-          date:        date,
-          startTime:   startTime,
-          endTime:     endTime,
-          numPersons:  numPersons,
-          purpose:     purpose,
-          equipment:   equipment,
-          vehicle:     vehicle,
-          destination: destination,
-          considerations: considerations,
-          status:      'Pending',
-          referenceId: refId,
-          createdAt:   firebase.firestore.FieldValue.serverTimestamp()
+          userType:      'Internal',
+          firstName:     firstName,
+          lastName:      lastName,
+          middleInitial: middleInitial,
+          name:          combinedName,
+          department:    department,
+          employeeId:    employeeId,
+          email:         email,
+          facility:      facility,
+          date:          date,
+          startTime:     startTime,
+          endTime:       endTime,
+          numPersons:    numPersons,
+          purpose:       purpose,
+          equipment:     equipment,
+          vehicle:       vehicle,
+          destination:   destination,
+          considerations:considerations,
+          status:        'Pending',
+          referenceId:   refId,
+          createdAt:     firebase.firestore.FieldValue.serverTimestamp()
         });
 
         const bookingData = {
-          referenceId: refId,
-          name: name, department: department, employeeId: employeeId, email: email,
-          facility: facility, date: date, startTime: startTime, endTime: endTime,
-          numPersons: numPersons, purpose: purpose, equipment: equipment, vehicle: vehicle,
-          destination: destination, considerations: considerations
+          referenceId:   refId,
+          firstName:     firstName,
+          lastName:      lastName,
+          middleInitial: middleInitial,
+          name:          combinedName,
+          department:    department,
+          employeeId:    employeeId,
+          email:         email,
+          facility:      facility,
+          date:          date,
+          startTime:     startTime,
+          endTime:       endTime,
+          numPersons:    numPersons,
+          purpose:       purpose,
+          equipment:     equipment,
+          vehicle:       vehicle,
+          destination:   destination,
+          considerations:considerations
         };
         generateInternalBookingPDF(bookingData);
 
@@ -516,23 +569,27 @@
 
       clearErrors('ext');
 
-      const contactPerson = document.getElementById('extContactPerson').value.trim();
-      const agency     = document.getElementById('extAgency').value.trim();
-      const contact    = document.getElementById('extContact').value.trim();
-      const address    = document.getElementById('extAddress').value.trim();
-      const email      = document.getElementById('extEmail').value.trim();
-      const facility   = document.getElementById('extFacility').value;
-      const date       = document.getElementById('extDate').value;
-      const startTime  = document.getElementById('extStartTime').value;
-      const endTime    = document.getElementById('extEndTime').value;
-      const numPersons = document.getElementById('extNumPersons').value;
-      const purpose    = document.getElementById('extPurpose').value.trim();
-      const equipment  = getEquipmentWithQuantities('extEquipment');
+      const firstName     = document.getElementById('extFirstName').value.trim();
+      const lastName      = document.getElementById('extLastName').value.trim();
+      const middleInitial = document.getElementById('extMiddleInitial').value.trim();
+      const agency        = document.getElementById('extAgency').value.trim();
+      const contact       = document.getElementById('extContact').value.trim();
+      const address       = document.getElementById('extAddress').value.trim();
+      const email         = document.getElementById('extEmail').value.trim();
+      const facility      = document.getElementById('extFacility').value;
+      const date          = document.getElementById('extDate').value;
+      const startTime     = document.getElementById('extStartTime').value;
+      const endTime       = document.getElementById('extEndTime').value;
+      const numPersons    = document.getElementById('extNumPersons').value;
+      const purpose       = document.getElementById('extPurpose').value.trim();
+      const equipment     = getEquipmentWithQuantities('extEquipment');
       const otherEquipment = document.getElementById('extOtherEquipment').value.trim();
       const considerations = document.getElementById('extConsiderations').value.trim();
 
       let valid = true;
-      if (!contactPerson)                { showError('extContactPersonError'); valid = false; }
+      if (!firstName)                    { showError('extFirstNameError');     valid = false; }
+      if (!lastName)                     { showError('extLastNameError');      valid = false; }
+      if (!middleInitial)                { showError('extMiddleInitialError'); valid = false; }
       if (!agency)                       { showError('extAgencyError');    valid = false; }
       if (!contact)                      { showError('extContactError');   valid = false; }
       else if (!isDigitsOnly(contact))   { document.getElementById('extContactError').textContent = 'Contact must be numbers only.'; showError('extContactError'); valid = false; }
@@ -552,12 +609,16 @@
       btn.classList.add('loading');
 
       const refId = generateRefId();
+      const combinedName = formatCombinedName(lastName, firstName, middleInitial);
 
       try {
         await db.collection('bookings').add({
           userType:      'External',
-          contactPerson: contactPerson,
-          name:          contactPerson,
+          firstName:     firstName,
+          lastName:      lastName,
+          middleInitial: middleInitial,
+          contactPerson: combinedName,
+          name:          combinedName,
           organization:  agency,
           agency:        agency,
           contactNumber: contact,
@@ -579,8 +640,13 @@
 
         // Generate PDF
         const bookingData = {
-          referenceId: refId,
-          contactPerson, agency, contact, address, email,
+          referenceId:   refId,
+          firstName:     firstName,
+          lastName:      lastName,
+          middleInitial: middleInitial,
+          contactPerson: combinedName,
+          name:          combinedName,
+          agency, contact, address, email,
           facility, date, startTime, endTime, numPersons,
           purpose, equipment, otherEquipment, considerations
         };
@@ -699,7 +765,10 @@
     doc.rect(15, y, 180, rowHeight);
     doc.line(65, y, 65, y + rowHeight);
     doc.text('Name of Contact\nPerson', 17, y + 5);
-    doc.text(data.contactPerson || '', 67, y + 7);
+    const contactPersonText = (data.lastName || data.firstName)
+      ? formatCombinedName(data.lastName, data.firstName, data.middleInitial)
+      : (data.contactPerson || data.name || '');
+    doc.text(doc.splitTextToSize(contactPersonText, 125), 67, y + 7);
     y += rowHeight;
     
     // Row 2
@@ -936,7 +1005,10 @@
     doc.line(135, y + 14, 135, y + 35);
     
     doc.text('Name of Requesting Person', 17, y + 5);
-    doc.text(data.name || '', 67, y + 5);
+    const requestingPersonText = (data.lastName || data.firstName)
+      ? formatCombinedName(data.lastName, data.firstName, data.middleInitial)
+      : (data.name || '');
+    doc.text(doc.splitTextToSize(requestingPersonText, 65), 67, y + 5);
     doc.text('Date:', 137, y + 5);
     
     doc.text('Purpose / Activity', 17, y + 12);
