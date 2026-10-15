@@ -88,8 +88,9 @@
       // Only approved
       if (b.status !== 'Approved') return false;
 
-      // Parse booking date (expected format: "YYYY-MM-DD" or similar)
-      const bookingDate = parseBookingDate(b.date);
+      // Parse booking date (supports "YYYY-MM-DD", date ranges, or startDate field)
+      const rawDate = b.startDate || b.date;
+      const bookingDate = parseBookingDate(rawDate);
       if (!bookingDate) return false;
 
       // Month and year filter
@@ -109,7 +110,10 @@
   // ---- Parse date string robustly ----
   function parseBookingDate(dateStr) {
     if (!dateStr) return null;
-    // Handle "YYYY-MM-DD", "MM/DD/YYYY", "Month DD, YYYY" etc.
+    // If range like "2026-10-18 to 2026-10-20", pick the start date
+    if (typeof dateStr === 'string' && dateStr.includes(' to ')) {
+      dateStr = dateStr.split(' to ')[0].trim();
+    }
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return null;
     return d;
@@ -147,10 +151,14 @@
         ? (b.organization || b.agency || '—')
         : (b.department || '—');
 
+      const displayDate = (b.startDate && b.endDate && b.startDate !== b.endDate)
+        ? `${b.startDate} to ${b.endDate}`
+        : (b.date || '—');
+
       return `
         <tr>
           <td>${esc(b.referenceId || '—')}</td>
-          <td>${esc(b.date || '—')}</td>
+          <td>${esc(displayDate)}</td>
           <td>${esc(b.facility || formatVehicleList(b.vehicle) || '—')}</td>
           <td>${esc(b.name || '—')}</td>
           <td><span class="user-badge ${(b.userType || 'Internal').toLowerCase()}">${esc(b.userType || '—')}</span></td>
@@ -255,9 +263,13 @@
         }
       }
 
+      const dateVal = (b.startDate && b.endDate && b.startDate !== b.endDate)
+        ? `${b.startDate} to ${b.endDate}`
+        : (b.date || '');
+
       wsData.push([
         b.referenceId || '',
-        b.date || '',
+        dateVal,
         facility,
         b.name || '',
         b.userType || '',

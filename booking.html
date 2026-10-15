@@ -77,17 +77,17 @@
             <div class="name-grid">
               <div class="form-group">
                 <label for="intFirstName">First Name <span class="required">*</span></label>
-                <input type="text" id="intFirstName" name="firstName" placeholder="e.g. John" required>
+                <input type="text" id="intFirstName" name="firstName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. JOHN" required>
                 <span class="error-message" id="intFirstNameError">Please enter your first name</span>
               </div>
               <div class="form-group">
                 <label for="intLastName">Last Name <span class="required">*</span></label>
-                <input type="text" id="intLastName" name="lastName" placeholder="e.g. Doe" required>
+                <input type="text" id="intLastName" name="lastName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. DOE" required>
                 <span class="error-message" id="intLastNameError">Please enter your last name</span>
               </div>
               <div class="form-group">
                 <label for="intMiddleInitial">Middle Initial <span class="required">*</span></label>
-                <input type="text" id="intMiddleInitial" name="middleInitial" placeholder="e.g. E." maxlength="5" style="text-transform: uppercase;" required>
+                <input type="text" id="intMiddleInitial" name="middleInitial" class="input-uppercase" autocapitalize="characters" placeholder="e.g. E." maxlength="5" required>
                 <span class="error-message" id="intMiddleInitialError">Please enter middle initial (or N/A)</span>
               </div>
             </div>
@@ -129,18 +129,26 @@
 
           <!-- Facility -->
           <div class="form-group">
-            <label for="intFacility">Facility</label>
-            <select id="intFacility" name="facility">
-              <option value="">Select Facility (or leave blank if Vehicle only)</option>
+            <label for="intFacility">Facility / Vehicle <span class="required">*</span></label>
+            <select id="intFacility" name="facility" required>
+              <option value="">Select Facility or Vehicle</option>
+              <option value="Vehicle">Vehicle</option>
             </select>
             <span class="error-message" id="intFacilityError">Please select a facility or a vehicle</span>
           </div>
 
-          <!-- Date -->
+          <!-- Start Date -->
           <div class="form-group">
-            <label for="intDate">Preferred Date <span class="required">*</span></label>
-            <input type="date" id="intDate" name="date" required>
-            <span class="error-message" id="intDateError">Please select a date at least 3 days in the future</span>
+            <label for="intStartDate">Start Date <span class="required">*</span></label>
+            <input type="date" id="intStartDate" name="startDate" required>
+            <span class="error-message" id="intStartDateError">Please select a start date at least 3 days in the future</span>
+          </div>
+
+          <!-- End Date -->
+          <div class="form-group">
+            <label for="intEndDate">End Date <span class="required">*</span></label>
+            <input type="date" id="intEndDate" name="endDate" required>
+            <span class="error-message" id="intEndDateError">End date must be on or after the start date</span>
           </div>
 
           <!-- Start Time -->
@@ -154,29 +162,29 @@
           <div class="form-group">
             <label for="intEndTime">End Time <span class="required">*</span></label>
             <input type="time" id="intEndTime" name="endTime" required>
-            <span class="error-message" id="intEndTimeError">Please select an end time after start time</span>
+            <span class="error-message" id="intEndTimeError">For same-day bookings, end time must be after start time</span>
           </div>
 
           <!-- Number of Persons -->
           <div class="form-group">
             <label for="intNumPersons">Number of Persons <span class="required">*</span></label>
-            <input type="number" id="intNumPersons" name="numPersons" min="1" placeholder="e.g. 50" required>
+            <input type="text" id="intNumPersons" name="numPersons" class="digits-only" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="e.g. 50" required>
             <span class="error-message" id="intNumPersonsError">Please enter the number of persons</span>
           </div>
 
-          <!-- Vehicle -->
-          <div class="form-group full-width">
-            <label>Vehicle Needed</label>
-            <p class="form-subtitle" style="margin-bottom:var(--space-sm);">Select one or more vehicles if needed.</p>
+          <!-- Vehicle (shown only when "Vehicle" is chosen in the Facility dropdown) -->
+          <div class="form-group full-width vehicle-field" id="intVehicleGroup" style="display:none;">
+            <label>Vehicle Needed <span class="required">*</span></label>
+            <p class="form-subtitle" style="margin-bottom:var(--space-sm);">Select one or more vehicles.</p>
             <div class="equipment-grid" id="vehicleOptions">
               <!-- Vehicles are loaded dynamically from Firestore -->
             </div>
-            <span class="error-message" id="intFacilityVehicleError">You cannot select both a facility and a vehicle. Please choose only one.</span>
+            <span class="error-message" id="intFacilityVehicleError">Please select at least one vehicle</span>
           </div>
           
           <!-- Vehicle Destination -->
-          <div class="form-group">
-            <label for="intDestination">Destination (For Vehicle Only)</label>
+          <div class="form-group vehicle-field" id="intDestinationGroup" style="display:none;">
+            <label for="intDestination">Destination <span class="required">*</span></label>
             <input type="text" id="intDestination" name="destination" placeholder="e.g. Cagayan de Oro City">
             <span class="error-message" id="intDestinationError">Please enter the destination</span>
           </div>
@@ -265,17 +273,17 @@
             <div class="name-grid">
               <div class="form-group">
                 <label for="extFirstName">First Name <span class="required">*</span></label>
-                <input type="text" id="extFirstName" name="firstName" placeholder="e.g. John" required>
+                <input type="text" id="extFirstName" name="firstName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. JOHN" required>
                 <span class="error-message" id="extFirstNameError">Please enter contact person's first name</span>
               </div>
               <div class="form-group">
                 <label for="extLastName">Last Name <span class="required">*</span></label>
-                <input type="text" id="extLastName" name="lastName" placeholder="e.g. Doe" required>
+                <input type="text" id="extLastName" name="lastName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. DOE" required>
                 <span class="error-message" id="extLastNameError">Please enter contact person's last name</span>
               </div>
               <div class="form-group">
                 <label for="extMiddleInitial">Middle Initial <span class="required">*</span></label>
-                <input type="text" id="extMiddleInitial" name="middleInitial" placeholder="e.g. E." maxlength="5" style="text-transform: uppercase;" required>
+                <input type="text" id="extMiddleInitial" name="middleInitial" class="input-uppercase" autocapitalize="characters" placeholder="e.g. E." maxlength="5" required>
                 <span class="error-message" id="extMiddleInitialError">Please enter middle initial (or N/A)</span>
               </div>
             </div>
@@ -295,11 +303,51 @@
             <span class="error-message" id="extContactError">Please enter a valid contact number (numbers only)</span>
           </div>
 
-          <!-- Address -->
-          <div class="form-group full-width">
-            <label for="extAddress">Address <span class="required">*</span></label>
-            <input type="text" id="extAddress" name="address" placeholder="e.g. 123 Main St, City" required>
-            <span class="error-message" id="extAddressError">Please enter your address</span>
+          <!-- Address (Philippines — Region > Province > City/Municipality > Barangay > Street) -->
+          <div class="form-group full-width" id="extAddressBlock">
+            <label class="form-section-title">Address</label>
+            <div class="address-grid">
+              <div class="form-group">
+                <label for="extRegion">Region <span class="required">*</span></label>
+                <select id="extRegion" name="region" required>
+                  <option value="">Loading regions...</option>
+                </select>
+                <span class="error-message" id="extRegionError">Please select a region</span>
+              </div>
+              <div class="form-group" id="extProvinceGroup">
+                <label for="extProvince">Province <span class="required">*</span></label>
+                <select id="extProvince" name="province" required disabled>
+                  <option value="">Select Province</option>
+                </select>
+                <span class="error-message" id="extProvinceError">Please select a province</span>
+              </div>
+              <div class="form-group">
+                <label for="extCity">City / Municipality <span class="required">*</span></label>
+                <select id="extCity" name="city" required disabled>
+                  <option value="">Select City / Municipality</option>
+                </select>
+                <span class="error-message" id="extCityError">Please select a city or municipality</span>
+              </div>
+              <div class="form-group">
+                <label for="extBarangay">Barangay <span class="required">*</span></label>
+                <select id="extBarangay" name="barangay" required disabled>
+                  <option value="">Select Barangay</option>
+                </select>
+                <input type="text" id="extBarangayText" placeholder="Type your barangay" style="display:none;">
+                <span class="error-message" id="extBarangayError">Please select a barangay</span>
+              </div>
+              <div class="form-group address-street">
+                <label for="extStreet">Street / House No. / Building <span class="required">*</span></label>
+                <input type="text" id="extStreet" name="street" placeholder="e.g. 123 Fortich St., Purok 4" required>
+                <span class="error-message" id="extStreetError">Please enter your street / house no.</span>
+              </div>
+            </div>
+            <!-- Fallback when the address service cannot be reached -->
+            <div class="form-group" id="extAddressManualGroup" style="display:none;">
+              <p class="form-subtitle" style="margin-bottom:var(--space-sm);">The address list could not be loaded. Please type your complete address.</p>
+              <input type="text" id="extAddress" name="address" placeholder="e.g. 123 Fortich St., Brgy. Sumpong, Malaybalay City, Bukidnon">
+              <span class="error-message" id="extAddressError">Please enter your address</span>
+            </div>
           </div>
 
           <!-- Email -->
@@ -318,11 +366,18 @@
             <span class="error-message" id="extFacilityError">Please select a facility</span>
           </div>
 
-          <!-- Date -->
+          <!-- Start Date -->
           <div class="form-group">
-            <label for="extDate">Preferred Date <span class="required">*</span></label>
-            <input type="date" id="extDate" name="date" required>
-            <span class="error-message" id="extDateError">Please select a date at least 3 days in the future</span>
+            <label for="extStartDate">Start Date <span class="required">*</span></label>
+            <input type="date" id="extStartDate" name="startDate" required>
+            <span class="error-message" id="extStartDateError">Please select a start date at least 3 days in the future</span>
+          </div>
+
+          <!-- End Date -->
+          <div class="form-group">
+            <label for="extEndDate">End Date <span class="required">*</span></label>
+            <input type="date" id="extEndDate" name="endDate" required>
+            <span class="error-message" id="extEndDateError">End date must be on or after the start date</span>
           </div>
 
           <!-- Start Time -->
@@ -336,13 +391,13 @@
           <div class="form-group">
             <label for="extEndTime">End Time <span class="required">*</span></label>
             <input type="time" id="extEndTime" name="endTime" required>
-            <span class="error-message" id="extEndTimeError">Please select an end time after start time</span>
+            <span class="error-message" id="extEndTimeError">For same-day bookings, end time must be after start time</span>
           </div>
 
           <!-- Number of Persons -->
           <div class="form-group">
             <label for="extNumPersons">Number of Persons <span class="required">*</span></label>
-            <input type="number" id="extNumPersons" name="numPersons" min="1" placeholder="e.g. 50" required>
+            <input type="text" id="extNumPersons" name="numPersons" class="digits-only" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="e.g. 50" required>
             <span class="error-message" id="extNumPersonsError">Please enter the number of persons</span>
           </div>
 

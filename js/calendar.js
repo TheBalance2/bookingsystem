@@ -160,11 +160,13 @@
 
           const color = facilityColors[d.facility] || '#3498db';
 
+          const sDate = d.startDate || d.date;
+          const eDate = d.endDate || sDate;
           calendar.addEvent({
             id:    doc.id,
-            title: d.facility + ' — ' + d.name,
-            start: d.date + 'T' + d.startTime,
-            end:   d.date + 'T' + d.endTime,
+            title: (d.facility || 'Vehicle') + ' — ' + d.name,
+            start: sDate + 'T' + d.startTime,
+            end:   eDate + 'T' + d.endTime,
             color: color,
             extendedProps: {
               facility:  d.facility,
@@ -229,8 +231,12 @@
     minDate.setHours(0, 0, 0, 0);
     const isTooClose = dateObj >= today && dateObj < minDate;
 
-    // Find bookings on this date
-    const dayBookings = allApprovedBookings.filter(b => b.date === dateStr);
+    // Find bookings on this date (including multi-day ranges)
+    const dayBookings = allApprovedBookings.filter(b => {
+      const s = b.startDate || b.date;
+      const e = b.endDate || s;
+      return dateStr >= s && dateStr <= e;
+    });
 
     // Build facility cards
     if (activeFacilities.length === 0) {

@@ -33,6 +33,20 @@
   // Store last generated PDF for download button
   let lastGeneratedPdf = null;
 
+  // Value of the special "Vehicle" choice in the internal Facility dropdown
+  const VEHICLE_OPTION = 'Vehicle';
+
+  // Keep the "Vehicle" choice at the end of the internal Facility dropdown
+  function appendVehicleOption(select) {
+    if (!select) return;
+    const existing = Array.from(select.options).find(o => o.value === VEHICLE_OPTION);
+    if (existing) existing.remove();
+    const option = document.createElement('option');
+    option.value = VEHICLE_OPTION;
+    option.textContent = 'Vehicle';
+    select.appendChild(option);
+  }
+
   // ============================================================
   // USER TYPE TOGGLE
   // ============================================================
@@ -66,6 +80,9 @@
       .then(snapshot => {
         if (snapshot.empty) return; // Keep hardcoded defaults as fallback
 
+        // Remember the current internal choice so a late load doesn't wipe it
+        const prevIntChoice = intFacilitySelect ? intFacilitySelect.value : '';
+
         // Clear existing options (keep the placeholder)
         [intFacilitySelect, extFacilitySelect].forEach(select => {
           if (!select) return;
@@ -88,6 +105,13 @@
             select.appendChild(option);
           });
         });
+
+        // Internal form: vehicles are chosen via the "Vehicle" option
+        appendVehicleOption(intFacilitySelect);
+        if (intFacilitySelect && prevIntChoice &&
+            Array.from(intFacilitySelect.options).some(o => o.value === prevIntChoice)) {
+          intFacilitySelect.value = prevIntChoice;
+        }
       })
       .catch(err => {
         console.warn('Could not load facilities from Firestore, using hardcoded defaults:', err);
@@ -165,12 +189,12 @@
 
     if (!prefillDate && !prefillFacility) return;
 
-    // Pre-fill date inputs immediately
+    // Pre-fill date inputs immediately (same-day booking by default)
     if (prefillDate) {
-      const intDate = document.getElementById('intDate');
-      const extDate = document.getElementById('extDate');
-      if (intDate) intDate.value = prefillDate;
-      if (extDate) extDate.value = prefillDate;
+      ['intStartDate', 'intEndDate', 'extStartDate', 'extEndDate'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = prefillDate;
+      });
     }
 
     // Pre-fill facility selects — need a small delay for dynamic options to load
@@ -280,13 +304,62 @@
     return new Date(dateStr) >= minDate;
   }
 
-  function showError(id) {
+  // Positive whole number (no +, -, e, decimals)
+  function isValidPersonCount(value) {
+    return /^\d+$/.test(String(value).trim()) && parseInt(value, 10) >= 1;
+  }
+
+  // Local "YYYY-MM-DD" (avoids the UTC shift of toISOString)
+  function getLocalDateStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  // "YYYY-MM-DD" + "HH:MM" -> epoch ms (local time)
+  function toDateTimeMs(dateStr, timeStr) {
+    if (!dateStr || !timeStr) return NaN;
+    return new Date(`${dateStr}T${timeStr}`).getTime();
+  }
+
+  // Human-friendly date range: "Oct 18, 2026" / "Oct 18-20, 2026" / "Oct 30 - Nov 2, 2026"
+  function formatDateRange(startDate, endDate) {
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const parse = s => {
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+      return m ? { y: +m[1], m: +m[2] - 1, d: +m[3] } : null;
+    };
+    const s = parse(startDate);
+    if (!s) return startDate || '';
+    const e = parse(endDate) || s;
+
+    if (!endDate || startDate === endDate) return `${MONTHS[s.m]} ${s.d}, ${s.y}`;
+    if (s.y === e.y && s.m === e.m) return `${MONTHS[s.m]} ${s.d}-${e.d}, ${s.y}`;
+    if (s.y === e.y) return `${MONTHS[s.m]} ${s.d} - ${MONTHS[e.m]} ${e.d}, ${s.y}`;
+    return `${MONTHS[s.m]} ${s.d}, ${s.y} - ${MONTHS[e.m]} ${e.d}, ${e.y}`;
+  }
+
+  // First visible text/select/textarea inside a form group (skips checkboxes)
+  function findVisibleField(group) {
+    if (!group) return null;
+    return Array.from(group.querySelectorAll('input, select, textarea')).find(f =>
+      f.type !== 'checkbox' && f.type !== 'hidden' && f.offsetParent !== null
+    ) || null;
+  }
+
+  // Show an error message (optionally overriding its text) and highlight its field
+  function showError(id, message) {
     const el = document.getElementById(id);
-    if (el) el.classList.add('visible');
-    // Also highlight the input
-    const input = el ? el.previousElementSibling : null;
-    if (input && (input.tagName === 'INPUT' || input.tagName === 'SELECT' || input.tagName === 'TEXTAREA')) {
-      input.classList.add('error');
+    if (!el) return;
+    if (el.dataset.defaultText === undefined) el.dataset.defaultText = el.textContent;
+    el.textContent = message || el.dataset.defaultText;
+    el.classList.add('visible');
+
+    const group = el.closest('.form-group');
+    const field = findVisibleField(group);
+    if (field) {
+      field.classList.add('error');
+    } else if (group) {
+      const grid = group.querySelector('.equipment-grid');
+      if (grid) grid.classList.add('error');
     }
   }
 
@@ -294,8 +367,59 @@
     document.querySelectorAll(`[id^="${prefix}"]`).forEach(el => {
       if (el.classList.contains('error-message')) el.classList.remove('visible');
     });
-    document.querySelectorAll(`#${prefix === 'int' ? 'internalForm' : 'externalForm'} input, #${prefix === 'int' ? 'internalForm' : 'externalForm'} select, #${prefix === 'int' ? 'internalForm' : 'externalForm'} textarea`)
+    const containerId = prefix === 'int' ? 'internalForm' : 'externalForm';
+    document.querySelectorAll(`#${containerId} input, #${containerId} select, #${containerId} textarea, #${containerId} .equipment-grid`)
       .forEach(inp => inp.classList.remove('error'));
+  }
+
+  // Scroll to, focus and shake the first missing/invalid field of a form
+  function focusFirstError(formEl) {
+    if (!formEl) return;
+    const firstMsg = formEl.querySelector('.error-message.visible');
+    if (!firstMsg) return;
+
+    const group = firstMsg.closest('.form-group') || firstMsg.parentElement;
+    const field = findVisibleField(group);
+    const target = field || group;
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (field && !field.disabled) {
+      try { field.focus({ preventScroll: true }); } catch (_) { field.focus(); }
+    }
+
+    target.classList.remove('field-shake');
+    void target.offsetWidth; // restart animation
+    target.classList.add('field-shake');
+    setTimeout(() => target.classList.remove('field-shake'), 500);
+  }
+
+  // Shared date/time rules for requester forms (prefix = 'int' | 'ext')
+  //  - Start date must respect the 3-day advance rule
+  //  - End date must be on/after start date
+  //  - Same-day bookings: end time must be after start time
+  //  - Multi-day bookings: end time is on the end date, so any time is fine
+  function validateSchedule(prefix, startDate, endDate, startTime, endTime) {
+    let ok = true;
+    if (!startDate || !isAllowedDate(startDate)) { showError(prefix + 'StartDateError'); ok = false; }
+
+    if (!endDate) {
+      showError(prefix + 'EndDateError', 'Please select an end date');
+      ok = false;
+    } else if (startDate && endDate < startDate) {
+      showError(prefix + 'EndDateError', 'End date must be on or after the start date');
+      ok = false;
+    }
+
+    if (!startTime) { showError(prefix + 'StartTimeError'); ok = false; }
+
+    if (!endTime) {
+      showError(prefix + 'EndTimeError', 'Please select an end time');
+      ok = false;
+    } else if (startTime && startDate && startDate === endDate && endTime <= startTime) {
+      showError(prefix + 'EndTimeError', 'For same-day bookings, end time must be after start time');
+      ok = false;
+    }
+    return ok;
   }
 
   function getCheckedEquipment(name) {
@@ -323,11 +447,17 @@
   // ============================================================
   // CONFLICT CHECKING
   // ============================================================
-  async function checkConflict(facility, date, startTime, endTime, warningId, textId) {
+  // Checks overlap against Pending/Approved bookings of the same facility.
+  // Bookings may span several days, so we compare full date-time ranges.
+  async function checkConflict(facility, startDate, endDate, startTime, endTime, warningId, textId) {
     const warningEl = document.getElementById(warningId);
     const textEl    = document.getElementById(textId);
 
-    if (!facility || !date || !startTime || !endTime) {
+    const effectiveEnd = endDate || startDate;
+    const newStart = toDateTimeMs(startDate, startTime);
+    const newEnd   = toDateTimeMs(effectiveEnd, endTime);
+
+    if (!facility || Number.isNaN(newStart) || Number.isNaN(newEnd) || newEnd <= newStart) {
       warningEl.classList.remove('visible');
       return false;
     }
@@ -335,31 +465,29 @@
     try {
       const snapshot = await db.collection('bookings')
         .where('facility', '==', facility)
-        .where('date', '==', date)
         .where('status', 'in', ['Pending', 'Approved'])
         .get();
 
       let hasConflict = false;
 
-      const newStart = timeToMinutes(startTime);
-      const newEnd = timeToMinutes(endTime);
-
       snapshot.forEach(doc => {
         const d = doc.data();
-        const existingStart = timeToMinutes(d.startTime);
-        const existingEnd = timeToMinutes(d.endTime);
+        const exStartDate = d.startDate || d.date;
+        const exEndDate   = d.endDate || exStartDate;
+        const existingStart = toDateTimeMs(exStartDate, d.startTime);
+        const existingEnd   = toDateTimeMs(exEndDate, d.endTime);
 
-        // If parsing failed for any time, skip that record
+        // If parsing failed for any value, skip that record
         if (Number.isNaN(existingStart) || Number.isNaN(existingEnd)) return;
 
-        // Time overlap: newStart < existingEnd && newEnd > existingStart
+        // Range overlap: newStart < existingEnd && newEnd > existingStart
         if (newStart < existingEnd && newEnd > existingStart) {
           hasConflict = true;
         }
       });
 
       if (hasConflict) {
-        textEl.textContent = `${escapeHtml(facility)} already has a booking on ${escapeHtml(date)} that overlaps with ${escapeHtml(startTime)}–${escapeHtml(endTime)}. Your request may be rejected.`;
+        textEl.textContent = `${facility} already has a booking that overlaps with ${formatDateRange(startDate, effectiveEnd)}, ${startTime}–${endTime}. Your request may be rejected.`;
         warningEl.classList.add('visible');
       } else {
         warningEl.classList.remove('visible');
@@ -373,58 +501,383 @@
     }
   }
 
+  // ============================================================
+  // DATE RANGE SETUP — min date (today + 3 days) and Start/End linking
+  // (registered before the conflict listeners so the end date is synced first)
+  // ============================================================
+  const minDateObj = new Date();
+  minDateObj.setDate(minDateObj.getDate() + 3);
+  const minDateStr = getLocalDateStr(minDateObj);
+
+  function linkDateRange(startId, endId) {
+    const startEl = document.getElementById(startId);
+    const endEl   = document.getElementById(endId);
+    if (!startEl || !endEl) return;
+
+    startEl.setAttribute('min', minDateStr);
+    endEl.setAttribute('min', minDateStr);
+
+    startEl.addEventListener('change', () => {
+      if (startEl.value) {
+        endEl.min = startEl.value;
+        // Default to a same-day booking; never allow end before start
+        if (!endEl.value || endEl.value < startEl.value) endEl.value = startEl.value;
+      } else {
+        endEl.min = minDateStr;
+      }
+    });
+  }
+  linkDateRange('intStartDate', 'intEndDate');
+  linkDateRange('extStartDate', 'extEndDate');
+
   // Attach conflict check listeners — Internal
-  ['intFacility', 'intDate', 'intStartTime', 'intEndTime'].forEach(id => {
+  function runIntConflictCheck() {
+    const choice = document.getElementById('intFacility').value;
+    checkConflict(
+      choice === VEHICLE_OPTION ? '' : choice,
+      document.getElementById('intStartDate').value,
+      document.getElementById('intEndDate').value,
+      document.getElementById('intStartTime').value,
+      document.getElementById('intEndTime').value,
+      'intConflictWarning', 'intConflictText'
+    );
+  }
+  ['intFacility', 'intStartDate', 'intEndDate', 'intStartTime', 'intEndTime'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('change', () => {
-        const facility  = document.getElementById('intFacility').value;
-        const date      = document.getElementById('intDate').value;
-        const startTime = document.getElementById('intStartTime').value;
-        const endTime   = document.getElementById('intEndTime').value;
-        checkConflict(facility, date, startTime, endTime, 'intConflictWarning', 'intConflictText');
-      });
-    }
+    if (el) el.addEventListener('change', runIntConflictCheck);
   });
 
   // Attach conflict check listeners — External
-  ['extFacility', 'extDate', 'extStartTime', 'extEndTime'].forEach(id => {
+  function runExtConflictCheck() {
+    checkConflict(
+      document.getElementById('extFacility').value,
+      document.getElementById('extStartDate').value,
+      document.getElementById('extEndDate').value,
+      document.getElementById('extStartTime').value,
+      document.getElementById('extEndTime').value,
+      'extConflictWarning', 'extConflictText'
+    );
+  }
+  ['extFacility', 'extStartDate', 'extEndDate', 'extStartTime', 'extEndTime'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('change', () => {
-        const facility  = document.getElementById('extFacility').value;
-        const date      = document.getElementById('extDate').value;
-        const startTime = document.getElementById('extStartTime').value;
-        const endTime   = document.getElementById('extEndTime').value;
-        checkConflict(facility, date, startTime, endTime, 'extConflictWarning', 'extConflictText');
-      });
-    }
+    if (el) el.addEventListener('change', runExtConflictCheck);
   });
 
   // Ensure extContact input accepts only digits while typing
   const extContactEl = document.getElementById('extContact');
   if (extContactEl) stripNonDigitsInput(extContactEl);
 
-  // Automatically uppercase middle initial inputs as user types
-  ['intMiddleInitial', 'extMiddleInitial'].forEach(id => {
+  // Number of Persons: digits only (blocks +, -, e, decimals and pasted symbols)
+  ['intNumPersons', 'extNumPersons'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('input', () => {
-        el.value = el.value.toUpperCase();
-      });
-    }
+    if (!el) return;
+    el.addEventListener('keydown', (e) => {
+      if (['+', '-', 'e', 'E', '.', ','].includes(e.key)) e.preventDefault();
+    });
+    stripNonDigitsInput(el);
+  });
+
+  // Automatically uppercase name inputs as the user types (keeps caret position)
+  ['intFirstName', 'intLastName', 'intMiddleInitial', 'extFirstName', 'extLastName', 'extMiddleInitial'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      const upper = el.value.toUpperCase();
+      if (upper === el.value) return;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      el.value = upper;
+      try { el.setSelectionRange(start, end); } catch (_) { /* not supported */ }
+    });
   });
 
   // ============================================================
-  // SET MIN DATE (today + 3 days) on date inputs
+  // VEHICLE FIELDS — only shown when "Vehicle" is chosen (Internal form)
   // ============================================================
-  const minDateObj = new Date();
-  minDateObj.setDate(minDateObj.getDate() + 3);
-  const minDateStr = minDateObj.toISOString().split('T')[0];
-  ['intDate', 'extDate'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.setAttribute('min', minDateStr);
-  });
+  const intFacilityEl = document.getElementById('intFacility');
+  const vehicleFields = document.querySelectorAll('#internalForm .vehicle-field');
+
+  function updateVehicleVisibility() {
+    const isVehicle = !!intFacilityEl && intFacilityEl.value === VEHICLE_OPTION;
+
+    vehicleFields.forEach(el => {
+      const wasHidden = el.style.display === 'none';
+      el.style.display = isVehicle ? '' : 'none';
+      if (isVehicle && wasHidden) {
+        el.classList.remove('revealed');
+        void el.offsetWidth; // restart animation
+        el.classList.add('revealed');
+      }
+    });
+
+    if (!isVehicle) {
+      // Switching to a facility: drop any vehicle selections / destination
+      document.querySelectorAll('input[name="vehicle"]:checked').forEach(cb => { cb.checked = false; });
+      const dest = document.getElementById('intDestination');
+      if (dest) { dest.value = ''; dest.classList.remove('error'); }
+      ['intFacilityVehicleError', 'intDestinationError'].forEach(id => {
+        const err = document.getElementById(id);
+        if (err) err.classList.remove('visible');
+      });
+      const grid = document.getElementById('vehicleOptions');
+      if (grid) grid.classList.remove('error');
+    }
+  }
+
+  if (intFacilityEl) intFacilityEl.addEventListener('change', updateVehicleVisibility);
+  if (intForm) {
+    intForm.addEventListener('reset', () => {
+      setTimeout(() => {
+        updateVehicleVisibility();
+        clearErrors('int');
+        document.getElementById('intConflictWarning').classList.remove('visible');
+      }, 0);
+    });
+  }
+  if (extForm) {
+    extForm.addEventListener('reset', () => {
+      setTimeout(() => {
+        clearErrors('ext');
+        document.getElementById('extConflictWarning').classList.remove('visible');
+      }, 0);
+    });
+  }
+
+  // ============================================================
+  // PHILIPPINE ADDRESS SELECTOR (External form)
+  // Region > Province > City/Municipality > Barangay via the public PSGC API.
+  // Falls back to a free-text address field if the API can't be reached.
+  // ============================================================
+  const PSGC_API_BASE = 'https://psgc.gitlab.io/api';
+  const INDEPENDENT_CITIES = '__independent__';
+  const addr = {
+    region:        document.getElementById('extRegion'),
+    province:      document.getElementById('extProvince'),
+    provinceGroup: document.getElementById('extProvinceGroup'),
+    city:          document.getElementById('extCity'),
+    barangay:      document.getElementById('extBarangay'),
+    barangayText:  document.getElementById('extBarangayText'),
+    street:        document.getElementById('extStreet'),
+    grid:          document.querySelector('#extAddressBlock .address-grid'),
+    manualGroup:   document.getElementById('extAddressManualGroup'),
+    manual:        document.getElementById('extAddress')
+  };
+  let addressManualMode = false;
+  let regionCities = []; // cities/municipalities of the selected region
+
+  // Fetch JSON from PSGC with a timeout; responses are cached per browser session
+  function psgcFetch(path) {
+    const cacheKey = 'psgc:' + path;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) return Promise.resolve(JSON.parse(cached));
+    } catch (_) { /* storage unavailable */ }
+
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 10000) : null;
+
+    return fetch(PSGC_API_BASE + path, controller ? { signal: controller.signal } : undefined)
+      .then(res => {
+        if (!res.ok) throw new Error('PSGC request failed: ' + res.status);
+        return res.json();
+      })
+      .then(data => {
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch (_) { /* quota */ }
+        return data;
+      })
+      .finally(() => { if (timer) clearTimeout(timer); });
+  }
+
+  function byLabel(a, b) { return a.label.localeCompare(b.label); }
+
+  function fillSelect(select, items, placeholder) {
+    select.innerHTML = '';
+    const ph = document.createElement('option');
+    ph.value = '';
+    ph.textContent = placeholder;
+    select.appendChild(ph);
+    items.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.code;
+      opt.textContent = item.label;
+      opt.dataset.name = item.name !== undefined ? item.name : item.label;
+      select.appendChild(opt);
+    });
+    select.disabled = items.length === 0;
+  }
+
+  function setSelectLoading(select) {
+    select.innerHTML = '<option value="">Loading...</option>';
+    select.disabled = true;
+  }
+
+  function selectedName(select) {
+    if (!select || !select.value) return '';
+    const opt = select.options[select.selectedIndex];
+    return opt ? (opt.dataset.name || opt.textContent).trim() : '';
+  }
+
+  function toItems(list) {
+    return list.map(x => ({ code: x.code, label: x.name })).sort(byLabel);
+  }
+
+  function showBarangayTextInput(show) {
+    addr.barangay.style.display = show ? 'none' : '';
+    addr.barangayText.style.display = show ? '' : 'none';
+    if (!show) addr.barangayText.value = '';
+  }
+
+  function resetAddressBelow(level) {
+    if (level === 'region') {
+      regionCities = [];
+      addr.provinceGroup.style.display = '';
+      fillSelect(addr.province, [], 'Select Province');
+    }
+    if (level === 'region' || level === 'province') {
+      fillSelect(addr.city, [], 'Select City / Municipality');
+    }
+    fillSelect(addr.barangay, [], 'Select Barangay');
+    showBarangayTextInput(false);
+  }
+
+  function enableManualAddress(err) {
+    console.warn('PH address list unavailable, switching to manual address entry:', err);
+    addressManualMode = true;
+    if (addr.grid) addr.grid.style.display = 'none';
+    if (addr.manualGroup) addr.manualGroup.style.display = '';
+  }
+
+  function initAddressSelector() {
+    if (!addr.region) return;
+
+    psgcFetch('/regions/')
+      .then(regions => {
+        const items = regions
+          .slice()
+          .sort((a, b) => String(a.code).localeCompare(String(b.code)))
+          .map(r => ({
+            code:  r.code,
+            name:  r.name,
+            label: r.regionName && r.regionName !== r.name ? `${r.regionName} – ${r.name}` : r.name
+          }));
+        fillSelect(addr.region, items, 'Select Region');
+      })
+      .catch(enableManualAddress);
+
+    addr.region.addEventListener('change', () => {
+      const code = addr.region.value;
+      resetAddressBelow('region');
+      if (!code) return;
+      setSelectLoading(addr.province);
+
+      Promise.all([
+        psgcFetch(`/regions/${code}/provinces/`),
+        psgcFetch(`/regions/${code}/cities-municipalities/`)
+      ]).then(([provinces, cities]) => {
+        if (addr.region.value !== code) return; // region changed meanwhile
+        regionCities = cities;
+
+        if (provinces.length === 0) {
+          // e.g. NCR has no provinces — go straight to cities
+          addr.provinceGroup.style.display = 'none';
+          fillSelect(addr.province, [], 'Select Province');
+          fillSelect(addr.city, toItems(cities), 'Select City / Municipality');
+          return;
+        }
+
+        const items = toItems(provinces);
+        // Highly urbanized / independent cities are not under any province
+        if (cities.some(c => !c.provinceCode)) {
+          items.push({ code: INDEPENDENT_CITIES, label: 'Independent / Highly Urbanized Cities', name: '' });
+        }
+        fillSelect(addr.province, items, 'Select Province');
+      }).catch(enableManualAddress);
+    });
+
+    addr.province.addEventListener('change', () => {
+      const code = addr.province.value;
+      resetAddressBelow('province');
+      if (!code) return;
+      const list = regionCities.filter(c =>
+        code === INDEPENDENT_CITIES ? !c.provinceCode : c.provinceCode === code
+      );
+      fillSelect(addr.city, toItems(list), 'Select City / Municipality');
+    });
+
+    addr.city.addEventListener('change', () => {
+      const code = addr.city.value;
+      resetAddressBelow('city');
+      if (!code) return;
+      setSelectLoading(addr.barangay);
+
+      psgcFetch(`/cities-municipalities/${code}/barangays/`)
+        .then(barangays => {
+          if (addr.city.value !== code) return;
+          if (!barangays.length) {
+            fillSelect(addr.barangay, [], 'Select Barangay');
+            showBarangayTextInput(true);
+            return;
+          }
+          fillSelect(addr.barangay, toItems(barangays), 'Select Barangay');
+        })
+        .catch(err => {
+          console.warn('Could not load barangays, allowing manual entry:', err);
+          if (addr.city.value !== code) return;
+          fillSelect(addr.barangay, [], 'Select Barangay');
+          showBarangayTextInput(true);
+        });
+    });
+
+    if (extForm) {
+      extForm.addEventListener('reset', () => {
+        setTimeout(() => { if (!addressManualMode) resetAddressBelow('region'); }, 0);
+      });
+    }
+  }
+
+  // Validate the address fields and build the combined address string
+  function collectExtAddress() {
+    if (addressManualMode) {
+      const value = addr.manual.value.trim();
+      if (!value) { showError('extAddressError'); return { valid: false }; }
+      return { valid: true, address: value, parts: null };
+    }
+
+    let valid = true;
+    const needsProvince = addr.provinceGroup.style.display !== 'none';
+    const barangayIsText = addr.barangayText.style.display !== 'none';
+
+    if (!addr.region.value)                  { showError('extRegionError');   valid = false; }
+    if (needsProvince && !addr.province.value) { showError('extProvinceError'); valid = false; }
+    if (!addr.city.value)                    { showError('extCityError');     valid = false; }
+
+    const barangay = barangayIsText ? addr.barangayText.value.trim() : selectedName(addr.barangay);
+    if (!barangay) {
+      showError('extBarangayError', barangayIsText ? 'Please type your barangay' : 'Please select a barangay');
+      valid = false;
+    }
+
+    const street = addr.street.value.trim();
+    if (!street) { showError('extStreetError'); valid = false; }
+
+    if (!valid) return { valid: false };
+
+    const parts = {
+      region:   selectedName(addr.region),
+      province: needsProvince && addr.province.value !== INDEPENDENT_CITIES ? selectedName(addr.province) : '',
+      city:     selectedName(addr.city),
+      barangay: barangay,
+      street:   street
+    };
+    const barangayLabel = /^(brgy\.?|barangay)\s/i.test(barangay) ? barangay : `Brgy. ${barangay}`;
+    const address = [parts.street, barangayLabel, parts.city, parts.province, parts.region]
+      .filter(Boolean)
+      .join(', ');
+
+    return { valid: true, address, parts };
+  }
+
+  initAddressSelector();
 
   // ============================================================
   // INTERNAL FORM SUBMISSION
@@ -442,26 +895,31 @@
 
       clearErrors('int');
 
-      // Gather values
-      const firstName     = document.getElementById('intFirstName').value.trim();
-      const lastName      = document.getElementById('intLastName').value.trim();
-      const middleInitial = document.getElementById('intMiddleInitial').value.trim();
+      // Gather values (names are stored in uppercase)
+      const firstName     = document.getElementById('intFirstName').value.trim().toUpperCase();
+      const lastName      = document.getElementById('intLastName').value.trim().toUpperCase();
+      const middleInitial = document.getElementById('intMiddleInitial').value.trim().toUpperCase();
       const department    = document.getElementById('intDepartment').value;
       const employeeId    = document.getElementById('intEmployeeId').value.trim();
       const email         = document.getElementById('intEmail').value.trim();
-      const facility      = document.getElementById('intFacility').value;
-      const date          = document.getElementById('intDate').value;
+      const facilityChoice= document.getElementById('intFacility').value;
+      const isVehicle     = facilityChoice === VEHICLE_OPTION;
+      // Vehicle bookings keep facility empty (same data shape as before)
+      const facility      = isVehicle ? '' : facilityChoice;
+      const startDate     = document.getElementById('intStartDate').value;
+      const endDate       = document.getElementById('intEndDate').value;
       const startTime     = document.getElementById('intStartTime').value;
       const endTime       = document.getElementById('intEndTime').value;
-      const numPersons    = document.getElementById('intNumPersons').value;
-      const vehicle       = getCheckedEquipment('vehicle');
+      const numPersonsRaw = document.getElementById('intNumPersons').value.trim();
+      const numPersons    = isValidPersonCount(numPersonsRaw) ? String(parseInt(numPersonsRaw, 10)) : numPersonsRaw;
+      const vehicle       = isVehicle ? getCheckedEquipment('vehicle') : [];
       let   destination   = document.getElementById('intDestination').value.trim();
       const purpose       = document.getElementById('intPurpose').value.trim();
       const equipment     = getEquipmentWithQuantities('equipment');
       const considerations= document.getElementById('intConsiderations').value.trim();
 
-      // Clear destination if no vehicle is selected (destination is only for vehicles)
-      if (vehicle.length === 0) {
+      // Destination only applies to vehicle bookings
+      if (!isVehicle) {
         destination = '';
         document.getElementById('intDestination').value = '';
       }
@@ -474,16 +932,17 @@
       if (!department)                   { showError('intDepartmentError'); valid = false; }
       if (!employeeId)                   { showError('intEmployeeIdError'); valid = false; }
       if (!email || !isValidEmail(email)) { showError('intEmailError');     valid = false; }
-      if (!facility && vehicle.length === 0) { showError('intFacilityError');   valid = false; }
-      if (facility && vehicle.length > 0)    { showError('intFacilityVehicleError'); valid = false; }
-      if (!date || !isAllowedDate(date))  { showError('intDateError');      valid = false; }
-      if (!startTime)                    { showError('intStartTimeError'); valid = false; }
-      if (!endTime || endTime <= startTime) { showError('intEndTimeError'); valid = false; }
-      if (!numPersons || numPersons < 1) { showError('intNumPersonsError'); valid = false; }
-      if (vehicle.length > 0 && !destination) { showError('intDestinationError'); valid = false; }
+      if (!facilityChoice)               { showError('intFacilityError');   valid = false; }
+      if (!validateSchedule('int', startDate, endDate, startTime, endTime)) valid = false;
+      if (!isValidPersonCount(numPersonsRaw)) { showError('intNumPersonsError'); valid = false; }
+      if (isVehicle && vehicle.length === 0)  { showError('intFacilityVehicleError'); valid = false; }
+      if (isVehicle && !destination)          { showError('intDestinationError'); valid = false; }
       if (!purpose)                      { showError('intPurposeError');   valid = false; }
 
-      if (!valid) return;
+      if (!valid) {
+        focusFirstError(intForm);
+        return;
+      }
 
       // Disable submit
       const btn = document.getElementById('intSubmitBtn');
@@ -504,7 +963,9 @@
           employeeId:    employeeId,
           email:         email,
           facility:      facility,
-          date:          date,
+          date:          startDate,
+          startDate:     startDate,
+          endDate:       endDate,
           startTime:     startTime,
           endTime:       endTime,
           numPersons:    numPersons,
@@ -528,7 +989,9 @@
           employeeId:    employeeId,
           email:         email,
           facility:      facility,
-          date:          date,
+          date:          formatDateRange(startDate, endDate),
+          startDate:     startDate,
+          endDate:       endDate,
           startTime:     startTime,
           endTime:       endTime,
           numPersons:    numPersons,
@@ -569,18 +1032,19 @@
 
       clearErrors('ext');
 
-      const firstName     = document.getElementById('extFirstName').value.trim();
-      const lastName      = document.getElementById('extLastName').value.trim();
-      const middleInitial = document.getElementById('extMiddleInitial').value.trim();
+      const firstName     = document.getElementById('extFirstName').value.trim().toUpperCase();
+      const lastName      = document.getElementById('extLastName').value.trim().toUpperCase();
+      const middleInitial = document.getElementById('extMiddleInitial').value.trim().toUpperCase();
       const agency        = document.getElementById('extAgency').value.trim();
       const contact       = document.getElementById('extContact').value.trim();
-      const address       = document.getElementById('extAddress').value.trim();
       const email         = document.getElementById('extEmail').value.trim();
       const facility      = document.getElementById('extFacility').value;
-      const date          = document.getElementById('extDate').value;
+      const startDate     = document.getElementById('extStartDate').value;
+      const endDate       = document.getElementById('extEndDate').value;
       const startTime     = document.getElementById('extStartTime').value;
       const endTime       = document.getElementById('extEndTime').value;
-      const numPersons    = document.getElementById('extNumPersons').value;
+      const numPersonsRaw = document.getElementById('extNumPersons').value.trim();
+      const numPersons    = isValidPersonCount(numPersonsRaw) ? String(parseInt(numPersonsRaw, 10)) : numPersonsRaw;
       const purpose       = document.getElementById('extPurpose').value.trim();
       const equipment     = getEquipmentWithQuantities('extEquipment');
       const otherEquipment = document.getElementById('extOtherEquipment').value.trim();
@@ -592,17 +1056,21 @@
       if (!middleInitial)                { showError('extMiddleInitialError'); valid = false; }
       if (!agency)                       { showError('extAgencyError');    valid = false; }
       if (!contact)                      { showError('extContactError');   valid = false; }
-      else if (!isDigitsOnly(contact))   { document.getElementById('extContactError').textContent = 'Contact must be numbers only.'; showError('extContactError'); valid = false; }
-      if (!address)                      { showError('extAddressError');   valid = false; }
+      else if (!isDigitsOnly(contact))   { showError('extContactError', 'Contact must be numbers only.'); valid = false; }
+      const addressInfo = collectExtAddress();
+      if (!addressInfo.valid)            { valid = false; }
       if (!email || !isValidEmail(email)) { showError('extEmailError');    valid = false; }
       if (!facility)                     { showError('extFacilityError');  valid = false; }
-      if (!date || !isAllowedDate(date))  { showError('extDateError');     valid = false; }
-      if (!startTime)                    { showError('extStartTimeError'); valid = false; }
-      if (!endTime || endTime <= startTime) { showError('extEndTimeError'); valid = false; }
-      if (!numPersons || numPersons < 1) { showError('extNumPersonsError'); valid = false; }
+      if (!validateSchedule('ext', startDate, endDate, startTime, endTime)) valid = false;
+      if (!isValidPersonCount(numPersonsRaw)) { showError('extNumPersonsError'); valid = false; }
       if (!purpose)                      { showError('extPurposeError');  valid = false; }
 
-      if (!valid) return;
+      if (!valid) {
+        focusFirstError(extForm);
+        return;
+      }
+
+      const address = addressInfo.address;
 
       const btn = document.getElementById('extSubmitBtn');
       btn.innerHTML = '<span class="spinner"></span> Submitting...';
@@ -623,9 +1091,12 @@
           agency:        agency,
           contactNumber: contact,
           address:       address,
+          addressDetails: addressInfo.parts,
           email:         email,
           facility:      facility,
-          date:          date,
+          date:          startDate,
+          startDate:     startDate,
+          endDate:       endDate,
           startTime:     startTime,
           endTime:       endTime,
           numPersons:    numPersons,
@@ -647,7 +1118,9 @@
           contactPerson: combinedName,
           name:          combinedName,
           agency, contact, address, email,
-          facility, date, startTime, endTime, numPersons,
+          facility, startTime, endTime, numPersons,
+          date: formatDateRange(startDate, endDate),
+          startDate, endDate,
           purpose, equipment, otherEquipment, considerations
         };
         generateBookingPDF(bookingData);

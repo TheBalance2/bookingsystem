@@ -171,7 +171,10 @@
       const showActions = b.status === 'Pending' || b.status === 'Payment Under Review';
       const locationText = escapeHtml(getBookingLocation(b));
 
-      const dateText = escapeHtml(b.date || '—');
+      const dateRangeText = (b.startDate && b.endDate && b.startDate !== b.endDate)
+        ? `${b.startDate} to ${b.endDate}`
+        : (b.date || '—');
+      const dateText = escapeHtml(dateRangeText);
       const timeText = `${escapeHtml(b.startTime || '')} – ${escapeHtml(b.endTime || '')}`;
       const dateTime = `${dateText}<br><small style="color:var(--gray-300)">${timeText}</small>`;
 
@@ -358,8 +361,12 @@
 
     if (booking.destination) rows.push(['Destination', booking.destination]);
 
+    const dateDisplay = (booking.startDate && booking.endDate && booking.startDate !== booking.endDate)
+      ? `${booking.startDate} to ${booking.endDate}`
+      : (booking.date || '—');
+
     rows.push(
-      ['Date',         booking.date || '—'],
+      ['Date',         dateDisplay],
       ['Time',         `${booking.startTime || '—'} – ${booking.endTime || '—'}`],
       ['Num. of Persons', booking.numPersons || '—'],
       ['Purpose',      booking.purpose || '—'],
@@ -1323,12 +1330,68 @@
     });
   });
 
+  // Vehicle fields toggle for Special Booking
+  const sbVehicleGroup = document.getElementById('sbVehicleGroup');
+  const sbDestinationGroup = document.getElementById('sbDestinationGroup');
+
+  function updateSbVehicleVisibility() {
+    const isVehicle = sbFacilitySelect && sbFacilitySelect.value === 'Vehicle';
+    if (sbVehicleGroup) sbVehicleGroup.style.display = isVehicle ? '' : 'none';
+    if (sbDestinationGroup) sbDestinationGroup.style.display = isVehicle ? '' : 'none';
+    if (!isVehicle) {
+      document.querySelectorAll('input[name="sbVehicle"]:checked').forEach(cb => { cb.checked = false; });
+      const dest = document.getElementById('sbDestination');
+      if (dest) dest.value = '';
+    }
+  }
+
+  if (sbFacilitySelect) {
+    sbFacilitySelect.addEventListener('change', updateSbVehicleVisibility);
+  }
+
+  // Name uppercase listener for special booking
+  const sbNameInput = document.getElementById('sbName');
+  if (sbNameInput) {
+    sbNameInput.addEventListener('input', () => {
+      sbNameInput.value = sbNameInput.value.toUpperCase();
+    });
+  }
+
+  // Digits-only for sbNumPersons
+  const sbNumPersonsInput = document.getElementById('sbNumPersons');
+  if (sbNumPersonsInput) {
+    sbNumPersonsInput.addEventListener('keydown', (e) => {
+      if (['+', '-', 'e', 'E', '.', ','].includes(e.key)) e.preventDefault();
+    });
+    sbNumPersonsInput.addEventListener('input', () => {
+      sbNumPersonsInput.value = sbNumPersonsInput.value.replace(/\D+/g, '');
+    });
+  }
+
+  // Start Date / End Date linking for Special Booking
+  const sbStartDateInput = document.getElementById('sbStartDate');
+  const sbEndDateInput = document.getElementById('sbEndDate');
+  if (sbStartDateInput && sbEndDateInput) {
+    sbStartDateInput.addEventListener('change', () => {
+      if (sbStartDateInput.value) {
+        sbEndDateInput.min = sbStartDateInput.value;
+        if (!sbEndDateInput.value || sbEndDateInput.value < sbStartDateInput.value) {
+          sbEndDateInput.value = sbStartDateInput.value;
+        }
+      }
+    });
+  }
+
   if (specialBookingBtn && specialBookingModal) {
     specialBookingBtn.addEventListener('click', () => {
       // Populate facilities if not already populated
-      if (sbFacilitySelect && window._allFacilities && sbFacilitySelect.options.length <= 1) {
+      if (sbFacilitySelect && window._allFacilities && sbFacilitySelect.options.length <= 2) {
+        // Clear non-defaults
+        while (sbFacilitySelect.options.length > 2) {
+          sbFacilitySelect.remove(2);
+        }
         window._allFacilities.forEach(f => {
-          if (f.status === 'Active') {
+          if (f.status === 'Active' && f.name !== 'Vehicle') {
             const option = document.createElement('option');
             option.value = f.name;
             option.textContent = f.name;
@@ -1362,6 +1425,7 @@
         });
       }
 
+      updateSbVehicleVisibility();
       specialBookingModal.classList.add('visible');
     });
     
@@ -1384,26 +1448,52 @@
   if (specialBookingForm) {
     specialBookingForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = document.getElementById('sbSubmitBtn');
-      btn.innerHTML = '<span class="spinner"></span> Submitting...';
-      btn.classList.add('loading');
-      btn.disabled = true;
 
-      const name = document.getElementById('sbName').value.trim();
+      const name = (document.getElementById('sbName').value || '').trim().toUpperCase();
       const department = document.getElementById('sbDepartment').value;
       const employeeId = document.getElementById('sbEmployeeId').value.trim();
       const email = document.getElementById('sbEmail').value.trim();
-      const facility = document.getElementById('sbFacility').value;
-      const date = document.getElementById('sbDate').value;
+      const facilityChoice = document.getElementById('sbFacility').value;
+      const isVehicle = facilityChoice === 'Vehicle';
+      const facility = isVehicle ? '' : facilityChoice;
+      const startDate = document.getElementById('sbStartDate').value;
+      const endDate = document.getElementById('sbEndDate').value;
       const startTime = document.getElementById('sbStartTime').value;
       const endTime = document.getElementById('sbEndTime').value;
-      const numPersons = document.getElementById('sbNumPersons').value;
+      const numPersonsRaw = document.getElementById('sbNumPersons').value.trim();
+      const numPersons = parseInt(numPersonsRaw, 10);
       const destination = document.getElementById('sbDestination').value.trim();
       const purpose = document.getElementById('sbPurpose').value.trim();
       const considerations = document.getElementById('sbConsiderations').value.trim();
 
-      const vehicle = Array.from(document.querySelectorAll('input[name="sbVehicle"]:checked')).map(cb => cb.value);
+      const vehicle = isVehicle
+        ? Array.from(document.querySelectorAll('input[name="sbVehicle"]:checked')).map(cb => cb.value)
+        : [];
       const equipment = getSbEquipmentWithQuantities('sbEquipment');
+
+      if (!name) { alert('Please enter requester name.'); return; }
+      if (!department) { alert('Please select department.'); return; }
+      if (!employeeId) { alert('Please enter employee ID.'); return; }
+      if (!email) { alert('Please enter email address.'); return; }
+      if (!facilityChoice) { alert('Please select a facility or Vehicle.'); return; }
+      if (!startDate) { alert('Please select start date.'); return; }
+      if (!endDate) { alert('Please select end date.'); return; }
+      if (endDate < startDate) { alert('End date cannot be earlier than start date.'); return; }
+      if (!startTime) { alert('Please select start time.'); return; }
+      if (!endTime) { alert('Please select end time.'); return; }
+      if (startDate === endDate && endTime <= startTime) {
+        alert('For same-day reservations, end time must be after start time.');
+        return;
+      }
+      if (!numPersons || numPersons < 1) { alert('Please enter a valid number of persons.'); return; }
+      if (isVehicle && vehicle.length === 0) { alert('Please select at least one vehicle.'); return; }
+      if (isVehicle && !destination) { alert('Please enter a destination.'); return; }
+      if (!purpose) { alert('Please describe the purpose.'); return; }
+
+      const btn = document.getElementById('sbSubmitBtn');
+      btn.innerHTML = '<span class="spinner"></span> Submitting...';
+      btn.classList.add('loading');
+      btn.disabled = true;
 
       const generateRefId = () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -1421,12 +1511,14 @@
           employeeId: employeeId,
           email: email,
           facility: facility,
-          date: date,
+          date: startDate,
+          startDate: startDate,
+          endDate: endDate,
           startTime: startTime,
           endTime: endTime,
-          numPersons: numPersons,
+          numPersons: String(numPersons),
           vehicle: vehicle,
-          destination: vehicle.length > 0 ? destination : '',
+          destination: isVehicle ? destination : '',
           equipment: equipment,
           purpose: purpose,
           considerations: considerations,
@@ -1438,6 +1530,7 @@
         specialBookingModal.classList.remove('visible');
         showToast('success', 'Special Booking Created', 'The reservation has been automatically approved.');
         specialBookingForm.reset();
+        updateSbVehicleVisibility();
         
         // Hide all quantity inputs again
         document.querySelectorAll('#specialBookingForm .eq-qty').forEach(q => q.style.display = 'none');

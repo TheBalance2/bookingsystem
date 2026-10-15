@@ -423,6 +423,66 @@
   }
 }
 
+/* Uppercase name inputs (value is also uppercased in JS) */
+.input-uppercase {
+  text-transform: uppercase;
+}
+
+.input-uppercase::placeholder {
+  text-transform: none;
+}
+
+/* Philippine address selector (Region > Province > City > Barangay > Street) */
+.address-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+}
+
+.address-grid .address-street {
+  grid-column: 1 / -1;
+}
+
+.form-group select:disabled {
+  background-color: var(--gray-100);
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+@media (max-width: 640px) {
+  .address-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+}
+
+/* Vehicle fields reveal animation */
+.vehicle-field.revealed {
+  animation: fieldReveal 0.3s ease;
+}
+
+@keyframes fieldReveal {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Highlight for the first missing field after submit */
+@keyframes fieldShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.field-shake {
+  animation: fieldShake 0.45s ease-in-out;
+}
+
+.equipment-grid.error {
+  outline: 2px solid var(--danger);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
 /* Equipment checkboxes */
 .equipment-grid {
   display: grid;
