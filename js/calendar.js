@@ -320,9 +320,14 @@
   }
 
   // Helper: convert 24h time "14:00" to "2:00 PM"
-  function formatTime12(time) {
-    if (!time) return '—';
-    const [h, m] = time.split(':').map(Number);
+  function formatTime12(time, fallback = '—') {
+    if (!time) return fallback;
+    if (/am|pm/i.test(time)) return time;
+    const parts = String(time).split(':');
+    if (parts.length < 2) return time;
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (isNaN(h) || isNaN(m)) return time;
     const ampm = h >= 12 ? 'PM' : 'AM';
     const h12 = h % 12 || 12;
     return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
@@ -341,8 +346,14 @@
     const details = document.getElementById('modalDetails');
 
     const p = event.extendedProps || {};
-    const startStr = event.start ? event.start.toLocaleString() : '—';
-    const endStr   = event.end   ? event.end.toLocaleString()   : '—';
+    const formatDateTime12 = d => {
+      if (!d) return '—';
+      const datePart = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      const timePart = formatTime12(`${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`);
+      return `${datePart}, ${timePart}`;
+    };
+    const startStr = formatDateTime12(event.start);
+    const endStr   = formatDateTime12(event.end);
 
     title.textContent = p.facility || event.title;
 

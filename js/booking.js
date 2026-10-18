@@ -337,6 +337,27 @@
     return `${MONTHS[s.m]} ${s.d}, ${s.y} - ${MONTHS[e.m]} ${e.d}, ${e.y}`;
   }
 
+  // Convert 24h time "08:00" to 12h format "8:00 AM"
+  function formatTime12(time, fallback = '—') {
+    if (!time) return fallback;
+    if (/am|pm/i.test(time)) return time;
+    const parts = String(time).split(':');
+    if (parts.length < 2) return time;
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (isNaN(h) || isNaN(m)) return time;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+
+  function formatTimeRange12(startTime, endTime, separator = ' – ', fallback = '—') {
+    if (!startTime && !endTime) return fallback;
+    if (startTime && !endTime) return formatTime12(startTime, fallback);
+    if (!startTime && endTime) return formatTime12(endTime, fallback);
+    return `${formatTime12(startTime, fallback)}${separator}${formatTime12(endTime, fallback)}`;
+  }
+
   // First visible text/select/textarea inside a form group (skips checkboxes)
   function findVisibleField(group) {
     if (!group) return null;
@@ -487,7 +508,7 @@
       });
 
       if (hasConflict) {
-        textEl.textContent = `${facility} already has a booking that overlaps with ${formatDateRange(startDate, effectiveEnd)}, ${startTime}–${endTime}. Your request may be rejected.`;
+        textEl.textContent = `${facility} already has a booking that overlaps with ${formatDateRange(startDate, effectiveEnd)}, ${formatTimeRange12(startTime, endTime)}. Your request may be rejected.`;
         warningEl.classList.add('visible');
       } else {
         warningEl.classList.remove('visible');
@@ -566,6 +587,33 @@
   // Ensure extContact input accepts only digits while typing
   const extContactEl = document.getElementById('extContact');
   if (extContactEl) stripNonDigitsInput(extContactEl);
+
+  // Toggle "Other" input for Agency/Organization Type
+  const extAgencyTypeEl = document.getElementById('extAgencyType');
+  const extAgencyTypeOtherGroup = document.getElementById('extAgencyTypeOtherGroup');
+  const extAgencyTypeOtherInput = document.getElementById('extAgencyTypeOther');
+
+  function updateExtAgencyOtherVisibility() {
+    if (!extAgencyTypeEl || !extAgencyTypeOtherGroup) return;
+    const isOther = extAgencyTypeEl.value.startsWith('Other');
+    extAgencyTypeOtherGroup.style.display = isOther ? '' : 'none';
+    if (!isOther && extAgencyTypeOtherInput) {
+      extAgencyTypeOtherInput.value = '';
+      extAgencyTypeOtherInput.classList.remove('error');
+      const otherErr = document.getElementById('extAgencyTypeOtherError');
+      if (otherErr) otherErr.classList.remove('visible');
+    }
+  }
+
+  if (extAgencyTypeEl) {
+    extAgencyTypeEl.addEventListener('change', updateExtAgencyOtherVisibility);
+  }
+
+  if (extForm) {
+    extForm.addEventListener('reset', () => {
+      setTimeout(updateExtAgencyOtherVisibility, 0);
+    });
+  }
 
   // Number of Persons: digits only (blocks +, -, e, decimals and pasted symbols)
   ['intNumPersons', 'extNumPersons'].forEach(id => {
@@ -1032,29 +1080,36 @@
 
       clearErrors('ext');
 
-      const firstName     = document.getElementById('extFirstName').value.trim().toUpperCase();
-      const lastName      = document.getElementById('extLastName').value.trim().toUpperCase();
-      const middleInitial = document.getElementById('extMiddleInitial').value.trim().toUpperCase();
-      const agency        = document.getElementById('extAgency').value.trim();
-      const contact       = document.getElementById('extContact').value.trim();
-      const email         = document.getElementById('extEmail').value.trim();
-      const facility      = document.getElementById('extFacility').value;
-      const startDate     = document.getElementById('extStartDate').value;
-      const endDate       = document.getElementById('extEndDate').value;
-      const startTime     = document.getElementById('extStartTime').value;
-      const endTime       = document.getElementById('extEndTime').value;
-      const numPersonsRaw = document.getElementById('extNumPersons').value.trim();
-      const numPersons    = isValidPersonCount(numPersonsRaw) ? String(parseInt(numPersonsRaw, 10)) : numPersonsRaw;
-      const purpose       = document.getElementById('extPurpose').value.trim();
-      const equipment     = getEquipmentWithQuantities('extEquipment');
-      const otherEquipment = document.getElementById('extOtherEquipment').value.trim();
-      const considerations = document.getElementById('extConsiderations').value.trim();
+      const firstName       = document.getElementById('extFirstName').value.trim().toUpperCase();
+      const lastName        = document.getElementById('extLastName').value.trim().toUpperCase();
+      const middleInitial   = document.getElementById('extMiddleInitial').value.trim().toUpperCase();
+      const agencyTypeRaw   = document.getElementById('extAgencyType').value;
+      const agencyTypeOther = document.getElementById('extAgencyTypeOther').value.trim();
+      const agencyType      = (agencyTypeRaw.startsWith('Other') && agencyTypeOther) ? agencyTypeOther : agencyTypeRaw;
+      const agencyName      = document.getElementById('extAgencyName').value.trim();
+      const officeName      = document.getElementById('extOfficeName').value.trim();
+      const contact         = document.getElementById('extContact').value.trim();
+      const email           = document.getElementById('extEmail').value.trim();
+      const facility        = document.getElementById('extFacility').value;
+      const startDate       = document.getElementById('extStartDate').value;
+      const endDate         = document.getElementById('extEndDate').value;
+      const startTime       = document.getElementById('extStartTime').value;
+      const endTime         = document.getElementById('extEndTime').value;
+      const numPersonsRaw   = document.getElementById('extNumPersons').value.trim();
+      const numPersons      = isValidPersonCount(numPersonsRaw) ? String(parseInt(numPersonsRaw, 10)) : numPersonsRaw;
+      const purpose         = document.getElementById('extPurpose').value.trim();
+      const equipment       = getEquipmentWithQuantities('extEquipment');
+      const otherEquipment  = document.getElementById('extOtherEquipment').value.trim();
+      const considerations  = document.getElementById('extConsiderations').value.trim();
 
       let valid = true;
       if (!firstName)                    { showError('extFirstNameError');     valid = false; }
       if (!lastName)                     { showError('extLastNameError');      valid = false; }
       if (!middleInitial)                { showError('extMiddleInitialError'); valid = false; }
-      if (!agency)                       { showError('extAgencyError');    valid = false; }
+      if (!agencyTypeRaw)                { showError('extAgencyTypeError');    valid = false; }
+      if (agencyTypeRaw.startsWith('Other') && !agencyTypeOther) { showError('extAgencyTypeOtherError'); valid = false; }
+      if (!agencyName)                   { showError('extAgencyNameError');    valid = false; }
+      if (!officeName)                   { showError('extOfficeNameError');    valid = false; }
       if (!contact)                      { showError('extContactError');   valid = false; }
       else if (!isDigitsOnly(contact))   { showError('extContactError', 'Contact must be numbers only.'); valid = false; }
       const addressInfo = collectExtAddress();
@@ -1078,6 +1133,7 @@
 
       const refId = generateRefId();
       const combinedName = formatCombinedName(lastName, firstName, middleInitial);
+      const combinedOrg = `${agencyName} - ${officeName}`;
 
       try {
         await db.collection('bookings').add({
@@ -1087,8 +1143,11 @@
           middleInitial: middleInitial,
           contactPerson: combinedName,
           name:          combinedName,
-          organization:  agency,
-          agency:        agency,
+          agencyType:    agencyType,
+          agencyName:    agencyName,
+          officeName:    officeName,
+          organization:  combinedOrg,
+          agency:        agencyName,
           contactNumber: contact,
           address:       address,
           addressDetails: addressInfo.parts,
@@ -1117,7 +1176,12 @@
           middleInitial: middleInitial,
           contactPerson: combinedName,
           name:          combinedName,
-          agency, contact, address, email,
+          agencyType,
+          agencyName,
+          officeName,
+          agency:        agencyName,
+          organization:  combinedOrg,
+          contact, address, email,
           facility, startTime, endTime, numPersons,
           date: formatDateRange(startDate, endDate),
           startDate, endDate,
@@ -1244,11 +1308,19 @@
     doc.text(doc.splitTextToSize(contactPersonText, 125), 67, y + 7);
     y += rowHeight;
     
-    // Row 2
+    // Row 2: Agency / Organization & Office
     doc.rect(15, y, 180, rowHeight);
     doc.line(65, y, 65, y + rowHeight);
     doc.text('Name of\nAgency/Organization', 17, y + 5);
-    doc.text(data.agency || '', 67, y + 7);
+    const orgLine1 = data.agencyName || data.agency || '';
+    const orgDetails = [
+      data.officeName ? `Office: ${data.officeName}` : '',
+      data.agencyType ? `(${data.agencyType})` : ''
+    ].filter(Boolean).join(' • ');
+    const fullOrgText = orgDetails ? `${orgLine1}\n${orgDetails}` : orgLine1;
+    doc.setFontSize(8.5);
+    doc.text(doc.splitTextToSize(fullOrgText, 125), 67, orgDetails ? y + 4.5 : y + 7);
+    doc.setFontSize(10);
     y += rowHeight;
     
     // Row 3
@@ -1280,7 +1352,10 @@
     doc.text('Date of Use', 17, y + 7);
     doc.text(data.date || '', 67, y + 7);
     doc.text('Time of Use', 112, y + 7);
-    doc.text(`${data.startTime || ''} - ${data.endTime || ''}`, 142, y + 7);
+    const formattedTimeRange = (data.startTime && data.endTime)
+      ? `${formatTime12(data.startTime)} - ${formatTime12(data.endTime)}`
+      : (data.startTime || data.endTime || '—');
+    doc.text(formattedTimeRange, 142, y + 7);
     y += rowHeight;
     
     // Row 7
@@ -1488,7 +1563,10 @@
     doc.text(doc.splitTextToSize(data.purpose || '', 125), 67, y + 11);
     
     doc.text('Date & Time of Use', 17, y + 19);
-    doc.text(`${data.date || ''} | ${data.startTime || ''}-${data.endTime || ''}`, 67, y + 19);
+    const internalTimeRange = (data.startTime && data.endTime)
+      ? `${formatTime12(data.startTime)} - ${formatTime12(data.endTime)}`
+      : (data.startTime || data.endTime || '—');
+    doc.text(`${data.date || ''} | ${internalTimeRange}`, 67, y + 19);
     doc.text('Destination', 137, y + 19);
     doc.text('(For Vehicle Only)', 137, y + 23);
     
@@ -1547,8 +1625,8 @@
         to_name:      data.contactPerson,
         facility:     data.facility,
         date:         data.date,
-        start_time:   data.startTime,
-        end_time:     data.endTime,
+        start_time:   formatTime12(data.startTime),
+        end_time:     formatTime12(data.endTime),
         purpose:      data.purpose,
         status:       'Booking Submitted',
         reference_id: data.referenceId,

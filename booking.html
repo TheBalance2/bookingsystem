@@ -71,19 +71,19 @@
 
       <form id="internalBookingForm" novalidate>
         <div class="form-grid">
-          <!-- Name -->
+          <!-- Contact Person -->
           <div class="form-group full-width">
-            <label class="form-section-title">Full Name</label>
+            <label class="form-section-title">Name of Contact Person</label>
             <div class="name-grid">
               <div class="form-group">
                 <label for="intFirstName">First Name <span class="required">*</span></label>
                 <input type="text" id="intFirstName" name="firstName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. JOHN" required>
-                <span class="error-message" id="intFirstNameError">Please enter your first name</span>
+                <span class="error-message" id="intFirstNameError">Please enter contact person's first name</span>
               </div>
               <div class="form-group">
                 <label for="intLastName">Last Name <span class="required">*</span></label>
                 <input type="text" id="intLastName" name="lastName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. DOE" required>
-                <span class="error-message" id="intLastNameError">Please enter your last name</span>
+                <span class="error-message" id="intLastNameError">Please enter contact person's last name</span>
               </div>
               <div class="form-group">
                 <label for="intMiddleInitial">Middle Initial <span class="required">*</span></label>
@@ -289,11 +289,59 @@
             </div>
           </div>
 
-          <!-- Agency/Organization -->
-          <div class="form-group">
-            <label for="extAgency">Name of Agency/Organization <span class="required">*</span></label>
-            <input type="text" id="extAgency" name="agency" placeholder="e.g. City Government" required>
-            <span class="error-message" id="extAgencyError">Please enter the agency or organization name</span>
+          <!-- Agency/Organization Information -->
+          <div class="form-group full-width" id="extAgencyBlock">
+            <label class="form-section-title">Agency / Organization Information</label>
+            <div class="agency-grid">
+              <!-- Agency / Organization Type -->
+              <div class="form-group agency-type-group">
+                <label for="extAgencyType">Agency / Organization Type <span class="required">*</span></label>
+                <select id="extAgencyType" name="agencyType" required>
+                  <option value="">Select Agency / Organization Type</option>
+                  <optgroup label="Government / Public Sector">
+                    <option value="National Government Agency (NGA)">National Government Agency (NGA)</option>
+                    <option value="Local Government Unit (LGU)">Local Government Unit (LGU)</option>
+                    <option value="Government-Owned or Controlled Corporation (GOCC)">Government-Owned or Controlled Corporation (GOCC)</option>
+                    <option value="State University or College (SUC) / Public School">State University or College (SUC) / Public School</option>
+                    <option value="Constitutional Commission / Independent Body">Constitutional Commission / Independent Body</option>
+                    <option value="Judiciary / Legislative Branch">Judiciary / Legislative Branch</option>
+                    <option value="Uniformed / Armed / Law Enforcement">Uniformed / Armed / Law Enforcement (PNP, AFP, BFP, etc.)</option>
+                    <option value="Other Public Agency">Other Public / Government Entity</option>
+                  </optgroup>
+                  <optgroup label="Private & Non-Government Sector">
+                    <option value="Private Corporation / Business">Private Corporation / Commercial Enterprise</option>
+                    <option value="Private Educational Institution">Private Educational Institution / School</option>
+                    <option value="Non-Government Organization (NGO) / Foundation">Non-Government Organization (NGO) / Foundation</option>
+                    <option value="Religious / Faith-Based Organization">Religious / Faith-Based Organization / Parish</option>
+                    <option value="Cooperative / Credit Union">Cooperative / Credit Union (CDA Registered)</option>
+                    <option value="Civic / Professional Association">Civic / Professional Association (Rotary, IBP, etc.)</option>
+                    <option value="Other Private Organization">Other Private Entity</option>
+                  </optgroup>
+                </select>
+                <span class="error-message" id="extAgencyTypeError">Please select the agency or organization type</span>
+              </div>
+
+              <!-- Conditional "Other" specification -->
+              <div class="form-group full-width" id="extAgencyTypeOtherGroup" style="display:none;">
+                <label for="extAgencyTypeOther">Please Specify Type <span class="required">*</span></label>
+                <input type="text" id="extAgencyTypeOther" name="agencyTypeOther" placeholder="Specify your organization type">
+                <span class="error-message" id="extAgencyTypeOtherError">Please specify the organization type</span>
+              </div>
+
+              <!-- Agency Name -->
+              <div class="form-group">
+                <label for="extAgencyName">Agency / Organization Name <span class="required">*</span></label>
+                <input type="text" id="extAgencyName" name="agencyName" placeholder="e.g. Department of Education" required>
+                <span class="error-message" id="extAgencyNameError">Please enter the agency or organization name</span>
+              </div>
+
+              <!-- Office / Department Name -->
+              <div class="form-group">
+                <label for="extOfficeName">Office / Department / Division <span class="required">*</span></label>
+                <input type="text" id="extOfficeName" name="officeName" placeholder="e.g. Division of Malaybalay City / HR Dept" required>
+                <span class="error-message" id="extOfficeNameError">Please enter your office or department name</span>
+              </div>
+            </div>
           </div>
 
           <!-- Contact Number -->
@@ -301,6 +349,13 @@
             <label for="extContact">Contact Number <span class="required">*</span></label>
             <input type="tel" id="extContact" name="contactNumber" placeholder="e.g. 09171234567" inputmode="numeric" pattern="\d*" required>
             <span class="error-message" id="extContactError">Please enter a valid contact number (numbers only)</span>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label for="extEmail">Email Address <span class="required">*</span></label>
+            <input type="email" id="extEmail" name="email" placeholder="e.g. contact@org.com" required>
+            <span class="error-message" id="extEmailError">Please enter a valid email address</span>
           </div>
 
           <!-- Address (Philippines — Region > Province > City/Municipality > Barangay > Street) -->
@@ -348,13 +403,6 @@
               <input type="text" id="extAddress" name="address" placeholder="e.g. 123 Fortich St., Brgy. Sumpong, Malaybalay City, Bukidnon">
               <span class="error-message" id="extAddressError">Please enter your address</span>
             </div>
-          </div>
-
-          <!-- Email -->
-          <div class="form-group">
-            <label for="extEmail">Email Address <span class="required">*</span></label>
-            <input type="email" id="extEmail" name="email" placeholder="e.g. contact@org.com" required>
-            <span class="error-message" id="extEmailError">Please enter a valid email address</span>
           </div>
 
           <!-- Facility -->

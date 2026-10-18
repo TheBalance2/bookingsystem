@@ -52,6 +52,27 @@
     return '';
   }
 
+  // Convert 24h time "08:00" to 12h format "8:00 AM"
+  function formatTime12(time, fallback = '—') {
+    if (!time) return fallback;
+    if (/am|pm/i.test(time)) return time;
+    const parts = String(time).split(':');
+    if (parts.length < 2) return time;
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (isNaN(h) || isNaN(m)) return time;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+
+  function formatTimeRange12(startTime, endTime, separator = ' – ', fallback = '—') {
+    if (!startTime && !endTime) return fallback;
+    if (startTime && !endTime) return formatTime12(startTime, fallback);
+    if (!startTime && endTime) return formatTime12(endTime, fallback);
+    return `${formatTime12(startTime, fallback)}${separator}${formatTime12(endTime, fallback)}`;
+  }
+
   // ============================================================
   // AUTH GUARD
   // ============================================================
@@ -175,7 +196,10 @@
         ? `${b.startDate} to ${b.endDate}`
         : (b.date || '—');
       const dateText = escapeHtml(dateRangeText);
-      const timeText = `${escapeHtml(b.startTime || '')} – ${escapeHtml(b.endTime || '')}`;
+      const timeFormatted = (b.startTime && b.endTime)
+        ? `${formatTime12(b.startTime)} – ${formatTime12(b.endTime)}`
+        : (b.startTime || b.endTime || '—');
+      const timeText = escapeHtml(timeFormatted);
       const dateTime = `${dateText}<br><small style="color:var(--gray-300)">${timeText}</small>`;
 
       const ref = escapeHtml(b.referenceId || '—');
@@ -309,8 +333,8 @@
         facility:         getBookingLocation(bookingData),
         vehicle:          formatVehicleList(bookingData.vehicle),
         date:             bookingData.date,
-        start_time:       bookingData.startTime,
-        end_time:         bookingData.endTime,
+        start_time:       formatTime12(bookingData.startTime),
+        end_time:         formatTime12(bookingData.endTime),
         purpose:          bookingData.purpose,
         reference_id:     bookingData.referenceId || '—',
         status:           status,
@@ -348,7 +372,13 @@
 
     // External-specific fields
     if (booking.userType === 'External') {
-      rows.push(['Organization', booking.organization || booking.agency || '—']);
+      if (booking.agencyType) {
+        rows.push(['Agency Type', booking.agencyType]);
+      }
+      rows.push(['Agency / Organization', booking.agencyName || booking.agency || booking.organization || '—']);
+      if (booking.officeName) {
+        rows.push(['Office / Department', booking.officeName]);
+      }
       rows.push(['Contact', booking.contactNumber || '—']);
       rows.push(['Address', booking.address || '—']);
     }
@@ -367,7 +397,7 @@
 
     rows.push(
       ['Date',         dateDisplay],
-      ['Time',         `${booking.startTime || '—'} – ${booking.endTime || '—'}`],
+      ['Time',         (booking.startTime && booking.endTime) ? `${formatTime12(booking.startTime)} – ${formatTime12(booking.endTime)}` : (booking.startTime || booking.endTime || '—')],
       ['Num. of Persons', booking.numPersons || '—'],
       ['Purpose',      booking.purpose || '—'],
       ['Equipment',    (booking.equipment && booking.equipment.length) ? booking.equipment.map(e => typeof e === 'string' ? e : `${e.item} (x${e.qty})`).join(', ') : 'None']

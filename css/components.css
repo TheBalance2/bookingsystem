@@ -432,6 +432,24 @@
   text-transform: none;
 }
 
+/* Agency/Organization grid */
+.agency-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+}
+
+.agency-grid .agency-type-group {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .agency-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+}
+
 /* Philippine address selector (Region > Province > City > Barangay > Street) */
 .address-grid {
   display: grid;

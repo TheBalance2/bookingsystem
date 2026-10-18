@@ -148,7 +148,7 @@
 
     previewBody.innerHTML = lastFilteredData.map(b => {
       const deptOrg = b.userType === 'External'
-        ? (b.organization || b.agency || '—')
+        ? (b.organization || [b.agencyName, b.officeName].filter(Boolean).join(' - ') || b.agency || '—')
         : (b.department || '—');
 
       const displayDate = (b.startDate && b.endDate && b.startDate !== b.endDate)
@@ -165,13 +165,32 @@
           <td>${esc(deptOrg)}</td>
           <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(b.purpose || '')}">${esc(b.purpose || '—')}</td>
           <td>${esc(b.numPersons || '—')}</td>
-          <td>${esc(b.startTime || '')} – ${esc(b.endTime || '')}</td>
+          <td>${esc(formatTimeRange12(b.startTime, b.endTime))}</td>
         </tr>
       `;
     }).join('');
   }
 
   // ---- Helpers ----
+  function formatTime12(time, fallback = '—') {
+    if (!time) return fallback;
+    if (/am|pm/i.test(time)) return time;
+    const parts = String(time).split(':');
+    if (parts.length < 2) return time;
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (isNaN(h) || isNaN(m)) return time;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+
+  function formatTimeRange12(startTime, endTime, separator = ' – ', fallback = '—') {
+    if (!startTime && !endTime) return fallback;
+    if (startTime && !endTime) return formatTime12(startTime, fallback);
+    if (!startTime && endTime) return formatTime12(endTime, fallback);
+    return `${formatTime12(startTime, fallback)}${separator}${formatTime12(endTime, fallback)}`;
+  }
   function esc(str) {
     if (str === undefined || str === null) return '';
     return String(str)
@@ -248,7 +267,7 @@
     // Data rows
     data.forEach(b => {
       const deptOrg = b.userType === 'External'
-        ? (b.organization || b.agency || '')
+        ? (b.organization || [b.agencyName, b.officeName].filter(Boolean).join(' - ') || b.agency || '')
         : (b.department || '');
 
       const facility = b.facility || formatVehicleList(b.vehicle) || '';
@@ -277,8 +296,8 @@
         b.email || '',
         b.purpose || '',
         b.numPersons || '',
-        b.startTime || '',
-        b.endTime || '',
+        formatTime12(b.startTime, ''),
+        formatTime12(b.endTime, ''),
         b.status || '',
         submittedOn
       ]);
