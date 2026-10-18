@@ -266,7 +266,7 @@
     return /^\d+$/.test(String(str).trim());
   }
 
-  // Combine name parts into "LastName, FirstName M.I." format (e.g. "Doe, John E.")
+  // Combine name parts into "LastName, FirstName M.I." format (e.g. "Dela Cruz, Juan M.")
   function formatCombinedName(lastName, firstName, middleInitial) {
     const last = (lastName || '').trim();
     const first = (firstName || '').trim();
