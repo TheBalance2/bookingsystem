@@ -673,10 +673,45 @@
   }
 
   if (intFacilityEl) intFacilityEl.addEventListener('change', updateVehicleVisibility);
+
+  // Toggle conditional Course / School of College for Internal Department
+  const intDepartmentEl = document.getElementById('intDepartment');
+  const intCollegeSchoolGroup = document.getElementById('intCollegeSchoolGroup');
+  const intCollegeSchoolEl = document.getElementById('intCollegeSchool');
+
+  function updateIntDepartmentSchoolVisibility() {
+    if (!intDepartmentEl || !intCollegeSchoolGroup) return;
+    const isCollege = intDepartmentEl.value === 'College';
+    const wasHidden = intCollegeSchoolGroup.style.display === 'none';
+    intCollegeSchoolGroup.style.display = isCollege ? '' : 'none';
+
+    if (isCollege) {
+      if (intCollegeSchoolEl) intCollegeSchoolEl.required = true;
+      if (wasHidden) {
+        intCollegeSchoolGroup.classList.remove('revealed');
+        void intCollegeSchoolGroup.offsetWidth;
+        intCollegeSchoolGroup.classList.add('revealed');
+      }
+    } else {
+      if (intCollegeSchoolEl) {
+        intCollegeSchoolEl.required = false;
+        intCollegeSchoolEl.value = '';
+        intCollegeSchoolEl.classList.remove('error');
+      }
+      const schoolErr = document.getElementById('intCollegeSchoolError');
+      if (schoolErr) schoolErr.classList.remove('visible');
+    }
+  }
+
+  if (intDepartmentEl) {
+    intDepartmentEl.addEventListener('change', updateIntDepartmentSchoolVisibility);
+  }
+
   if (intForm) {
     intForm.addEventListener('reset', () => {
       setTimeout(() => {
         updateVehicleVisibility();
+        updateIntDepartmentSchoolVisibility();
         clearErrors('int');
         document.getElementById('intConflictWarning').classList.remove('visible');
       }, 0);
@@ -947,7 +982,9 @@
       const firstName     = document.getElementById('intFirstName').value.trim().toUpperCase();
       const lastName      = document.getElementById('intLastName').value.trim().toUpperCase();
       const middleInitial = document.getElementById('intMiddleInitial').value.trim().toUpperCase();
-      const department    = document.getElementById('intDepartment').value;
+      const departmentRaw = document.getElementById('intDepartment').value;
+      const collegeSchool = intCollegeSchoolEl ? intCollegeSchoolEl.value : '';
+      let finalDepartment = departmentRaw;
       const employeeId    = document.getElementById('intEmployeeId').value.trim();
       const email         = document.getElementById('intEmail').value.trim();
       const facilityChoice= document.getElementById('intFacility').value;
@@ -977,7 +1014,17 @@
       if (!firstName)                    { showError('intFirstNameError');     valid = false; }
       if (!lastName)                     { showError('intLastNameError');      valid = false; }
       if (!middleInitial)                { showError('intMiddleInitialError'); valid = false; }
-      if (!department)                   { showError('intDepartmentError'); valid = false; }
+      if (!departmentRaw) {
+        showError('intDepartmentError');
+        valid = false;
+      } else if (departmentRaw === 'College') {
+        if (!collegeSchool) {
+          showError('intCollegeSchoolError');
+          valid = false;
+        } else {
+          finalDepartment = collegeSchool;
+        }
+      }
       if (!employeeId)                   { showError('intEmployeeIdError'); valid = false; }
       if (!email || !isValidEmail(email)) { showError('intEmailError');     valid = false; }
       if (!facilityChoice)               { showError('intFacilityError');   valid = false; }
@@ -1002,40 +1049,44 @@
 
       try {
         await db.collection('bookings').add({
-          userType:      'Internal',
-          firstName:     firstName,
-          lastName:      lastName,
-          middleInitial: middleInitial,
-          name:          combinedName,
-          department:    department,
-          employeeId:    employeeId,
-          email:         email,
-          facility:      facility,
-          date:          startDate,
-          startDate:     startDate,
-          endDate:       endDate,
-          startTime:     startTime,
-          endTime:       endTime,
-          numPersons:    numPersons,
-          purpose:       purpose,
-          equipment:     equipment,
-          vehicle:       vehicle,
-          destination:   destination,
-          considerations:considerations,
-          status:        'Pending',
-          referenceId:   refId,
-          createdAt:     firebase.firestore.FieldValue.serverTimestamp()
+          userType:         'Internal',
+          firstName:        firstName,
+          lastName:         lastName,
+          middleInitial:    middleInitial,
+          name:             combinedName,
+          department:       finalDepartment,
+          parentDepartment: departmentRaw,
+          collegeSchool:    departmentRaw === 'College' ? collegeSchool : '',
+          employeeId:       employeeId,
+          email:            email,
+          facility:         facility,
+          date:             startDate,
+          startDate:        startDate,
+          endDate:          endDate,
+          startTime:        startTime,
+          endTime:          endTime,
+          numPersons:       numPersons,
+          purpose:          purpose,
+          equipment:        equipment,
+          vehicle:          vehicle,
+          destination:      destination,
+          considerations:   considerations,
+          status:           'Pending',
+          referenceId:      refId,
+          createdAt:        firebase.firestore.FieldValue.serverTimestamp()
         });
 
         const bookingData = {
-          referenceId:   refId,
-          firstName:     firstName,
-          lastName:      lastName,
-          middleInitial: middleInitial,
-          name:          combinedName,
-          department:    department,
-          employeeId:    employeeId,
-          email:         email,
+          referenceId:      refId,
+          firstName:        firstName,
+          lastName:         lastName,
+          middleInitial:    middleInitial,
+          name:             combinedName,
+          department:       finalDepartment,
+          parentDepartment: departmentRaw,
+          collegeSchool:    departmentRaw === 'College' ? collegeSchool : '',
+          employeeId:       employeeId,
+          email:            email,
           facility:      facility,
           date:          formatDateRange(startDate, endDate),
           startDate:     startDate,

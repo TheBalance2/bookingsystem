@@ -98,19 +98,30 @@
             <label for="intDepartment">Department <span class="required">*</span></label>
             <select id="intDepartment" name="department" required>
               <option value="">Select Department</option>
-              <option value="College of Education">College of Education</option>
-              <option value="College of Business">College of Business</option>
-              <option value="College of Engineering">College of Engineering</option>
-              <option value="College of Arts & Sciences">College of Arts & Sciences</option>
-              <option value="College of Information Technology">College of Information Technology</option>
-              <option value="Senior High School">Senior High School</option>
-              <option value="Junior High School">Junior High School</option>
-              <option value="Elementary">Elementary</option>
+              <option value="College">College</option>
+              <option value="IBED">IBED</option>
+              <option value="Non-teaching Personnel">Non-teaching Personnel</option>
               <option value="Administration">Administration</option>
-              <option value="Student Affairs">Student Affairs</option>
-              <option value="Other">Other</option>
             </select>
             <span class="error-message" id="intDepartmentError">Please select your department</span>
+          </div>
+
+          <!-- Conditional College School / Course -->
+          <div class="form-group" id="intCollegeSchoolGroup" style="display: none;">
+            <label for="intCollegeSchool">School / Course <span class="required">*</span></label>
+            <select id="intCollegeSchool" name="collegeSchool">
+              <option value="">Select School / Course</option>
+              <option value="School of Education">School of Education</option>
+              <option value="School of Business Administration">School of Business Administration</option>
+              <option value="School of Office Administration">School of Office Administration</option>
+              <option value="School of Information Technology">School of Information Technology</option>
+              <option value="School of Accountancy">School of Accountancy</option>
+              <option value="School of Nursing">School of Nursing</option>
+              <option value="School of Midwifery">School of Midwifery</option>
+              <option value="School of Arts & Sciences">School of Arts & Sciences</option>
+              <option value="School of Engineering">School of Engineering</option>
+            </select>
+            <span class="error-message" id="intCollegeSchoolError">Please select your school or course</span>
           </div>
 
           <!-- Employee ID -->

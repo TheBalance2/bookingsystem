@@ -1379,6 +1379,23 @@
     sbFacilitySelect.addEventListener('change', updateSbVehicleVisibility);
   }
 
+  // Department / College School toggle for Special Booking
+  const sbDepartmentSelect = document.getElementById('sbDepartment');
+  const sbCollegeSchoolGroup = document.getElementById('sbCollegeSchoolGroup');
+  const sbCollegeSchoolSelect = document.getElementById('sbCollegeSchool');
+
+  function updateSbCollegeSchoolVisibility() {
+    const isCollege = sbDepartmentSelect && sbDepartmentSelect.value === 'College';
+    if (sbCollegeSchoolGroup) sbCollegeSchoolGroup.style.display = isCollege ? '' : 'none';
+    if (!isCollege && sbCollegeSchoolSelect) {
+      sbCollegeSchoolSelect.value = '';
+    }
+  }
+
+  if (sbDepartmentSelect) {
+    sbDepartmentSelect.addEventListener('change', updateSbCollegeSchoolVisibility);
+  }
+
   // Name uppercase listener for special booking
   const sbNameInput = document.getElementById('sbName');
   if (sbNameInput) {
@@ -1456,6 +1473,7 @@
       }
 
       updateSbVehicleVisibility();
+      updateSbCollegeSchoolVisibility();
       specialBookingModal.classList.add('visible');
     });
     
@@ -1480,7 +1498,9 @@
       e.preventDefault();
 
       const name = (document.getElementById('sbName').value || '').trim().toUpperCase();
-      const department = document.getElementById('sbDepartment').value;
+      const departmentRaw = document.getElementById('sbDepartment').value;
+      const collegeSchool = sbCollegeSchoolSelect ? sbCollegeSchoolSelect.value : '';
+      let finalDepartment = departmentRaw;
       const employeeId = document.getElementById('sbEmployeeId').value.trim();
       const email = document.getElementById('sbEmail').value.trim();
       const facilityChoice = document.getElementById('sbFacility').value;
@@ -1502,7 +1522,15 @@
       const equipment = getSbEquipmentWithQuantities('sbEquipment');
 
       if (!name) { alert('Please enter requester name.'); return; }
-      if (!department) { alert('Please select department.'); return; }
+      if (!departmentRaw) { alert('Please select department.'); return; }
+      if (departmentRaw === 'College') {
+        if (!collegeSchool) {
+          alert('Please select course/school of College.');
+          if (sbCollegeSchoolSelect) sbCollegeSchoolSelect.focus();
+          return;
+        }
+        finalDepartment = collegeSchool;
+      }
       if (!employeeId) { alert('Please enter employee ID.'); return; }
       if (!email) { alert('Please enter email address.'); return; }
       if (!facilityChoice) { alert('Please select a facility or Vehicle.'); return; }
@@ -1537,7 +1565,9 @@
         await db.collection('bookings').add({
           userType: 'Internal', 
           name: name,
-          department: department,
+          department: finalDepartment,
+          parentDepartment: departmentRaw,
+          collegeSchool: departmentRaw === 'College' ? collegeSchool : '',
           employeeId: employeeId,
           email: email,
           facility: facility,
@@ -1561,6 +1591,7 @@
         showToast('success', 'Special Booking Created', 'The reservation has been automatically approved.');
         specialBookingForm.reset();
         updateSbVehicleVisibility();
+        updateSbCollegeSchoolVisibility();
         
         // Hide all quantity inputs again
         document.querySelectorAll('#specialBookingForm .eq-qty').forEach(q => q.style.display = 'none');
