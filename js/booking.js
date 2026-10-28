@@ -337,6 +337,30 @@
     return `${MONTHS[s.m]} ${s.d}, ${s.y} - ${MONTHS[e.m]} ${e.d}, ${e.y}`;
   }
 
+  // Format a date object, timestamp or date string to "Oct 28, 2026"
+  function formatFilingDate(inputDate) {
+    if (!inputDate) inputDate = new Date();
+    let d;
+    if (inputDate instanceof Date) {
+      d = inputDate;
+    } else if (inputDate && typeof inputDate.toDate === 'function') {
+      d = inputDate.toDate();
+    } else if (typeof inputDate === 'string' || typeof inputDate === 'number') {
+      d = new Date(inputDate);
+    }
+    if (!d || isNaN(d.getTime())) return String(inputDate);
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  function getFilingDate(data) {
+    if (!data) return formatFilingDate(new Date());
+    if (data.filingDate) return data.filingDate;
+    if (data.dateSubmitted) return formatFilingDate(data.dateSubmitted);
+    if (data.createdAt) return formatFilingDate(data.createdAt);
+    return formatFilingDate(new Date());
+  }
+
   // Convert 24h time "08:00" to 12h format "8:00 AM"
   function formatTime12(time, fallback = '—') {
     if (!time) return fallback;
@@ -1046,6 +1070,7 @@
 
       const refId = generateRefId();
       const combinedName = formatCombinedName(lastName, firstName, middleInitial);
+      const filingDateStr = formatFilingDate(new Date());
 
       try {
         await db.collection('bookings').add({
@@ -1071,6 +1096,7 @@
           vehicle:          vehicle,
           destination:      destination,
           considerations:   considerations,
+          dateSubmitted:    filingDateStr,
           status:           'Pending',
           referenceId:      refId,
           createdAt:        firebase.firestore.FieldValue.serverTimestamp()
@@ -1098,7 +1124,8 @@
           equipment:     equipment,
           vehicle:       vehicle,
           destination:   destination,
-          considerations:considerations
+          considerations:considerations,
+          dateSubmitted: filingDateStr
         };
         generateInternalBookingPDF(bookingData);
 
@@ -1185,6 +1212,7 @@
       const refId = generateRefId();
       const combinedName = formatCombinedName(lastName, firstName, middleInitial);
       const combinedOrg = `${agencyName} - ${officeName}`;
+      const filingDateStr = formatFilingDate(new Date());
 
       try {
         await db.collection('bookings').add({
@@ -1214,6 +1242,7 @@
           equipment:     equipment,
           otherEquipment:otherEquipment,
           considerations:considerations,
+          dateSubmitted: filingDateStr,
           status:        'Pending Payment',
           referenceId:   refId,
           createdAt:     firebase.firestore.FieldValue.serverTimestamp()
@@ -1236,7 +1265,8 @@
           facility, startTime, endTime, numPersons,
           date: formatDateRange(startDate, endDate),
           startDate, endDate,
-          purpose, equipment, otherEquipment, considerations
+          purpose, equipment, otherEquipment, considerations,
+          dateSubmitted: filingDateStr
         };
         generateBookingPDF(bookingData);
 
@@ -1310,7 +1340,7 @@
     y += 15;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    const dateFiled = new Date().toLocaleDateString();
+    const dateFiled = getFilingDate(data);
     doc.text('Date Filed: ' + dateFiled, 140, y);
     
     y += 10;
@@ -1608,7 +1638,8 @@
       ? formatCombinedName(data.lastName, data.firstName, data.middleInitial)
       : (data.name || '');
     doc.text(doc.splitTextToSize(requestingPersonText, 65), 67, y + 5);
-    doc.text('Date:', 137, y + 5);
+    const filingDate = getFilingDate(data);
+    doc.text('Date: ' + filingDate, 137, y + 5);
     
     doc.text('Purpose / Activity', 17, y + 12);
     doc.text(doc.splitTextToSize(data.purpose || '', 125), 67, y + 11);
