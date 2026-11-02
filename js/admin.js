@@ -22,6 +22,8 @@
   // ---- DOM ----
   const tableBody      = document.getElementById('bookingsTableBody');
   const emptyState     = document.getElementById('emptyState');
+  const emptyStateTitle = document.getElementById('emptyStateTitle');
+  const emptyStateText  = document.getElementById('emptyStateText');
   const filterTabs     = document.getElementById('filterTabs');
   const detailsModal   = document.getElementById('detailsModal');
   const detailsContent = document.getElementById('detailsContent');
@@ -29,6 +31,28 @@
   const adminAvatar    = document.getElementById('adminAvatar');
   const logoutBtn      = document.getElementById('logoutBtn');
   const toastContainer = document.getElementById('toastContainer');
+
+  // Search & Filter DOM
+  const bookingSearchInput     = document.getElementById('bookingSearchInput');
+  const bookingSearchClearBtn  = document.getElementById('bookingSearchClearBtn');
+  const filterFacilityVehicle  = document.getElementById('filterFacilityVehicle');
+  const filterUserType         = document.getElementById('filterUserType');
+  const filterDeptOrg          = document.getElementById('filterDeptOrg');
+  const filterDateFrom         = document.getElementById('filterDateFrom');
+  const filterDateTo           = document.getElementById('filterDateTo');
+  const filterSort             = document.getElementById('filterSort');
+  const clearBookingFiltersBtn = document.getElementById('clearBookingFiltersBtn');
+  const bookingResultsSummary  = document.getElementById('bookingResultsSummary');
+
+  const filterState = {
+    search:   '',
+    facility: '',
+    userType: '',
+    deptOrg:  '',
+    dateFrom: '',
+    dateTo:   '',
+    sort:     'submitted_desc'
+  };
 
   // Sidebar links
   const sidebarLinks = document.querySelectorAll('.sidebar-link[data-filter]');
@@ -85,6 +109,11 @@
     if (adminEmail) adminEmail.textContent = user.email;
     if (adminAvatar) adminAvatar.textContent = (user.email || 'A')[0].toUpperCase();
 
+    // Initialize real-time notifications UI & listeners
+    if (window.BookingNotifier && typeof window.BookingNotifier.init === 'function') {
+      window.BookingNotifier.init();
+    }
+
     // Start listening to bookings
     listenBookings();
 
@@ -117,6 +146,10 @@
           allBookings.push({ id: doc.id, ...doc.data() });
         });
         window._allBookings = allBookings; // Expose for reports module
+        if (window.BookingNotifier && typeof window.BookingNotifier.processSnapshot === 'function') {
+          window.BookingNotifier.processSnapshot(snapshot);
+        }
+        populateFilterOptions();
         updateStats();
         renderTable();
       }, err => {
@@ -152,6 +185,13 @@
     return String(vehicleValue);
   }
 
+  function getBookingVehicleArray(booking) {
+    const raw = booking && booking.vehicle;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.map(v => String(v || '').trim()).filter(Boolean);
+    return String(raw).split(',').map(v => v.trim()).filter(Boolean);
+  }
+
   function getBookingLocation(booking) {
     if (booking.facility) return booking.facility;
     return formatVehicleList(booking.vehicle) || '—';
@@ -168,19 +208,388 @@
     return b.contactPerson || '—';
   }
 
+  function getExternalOrgName(b) {
+    if (!b) return '';
+    return String(b.agencyName || b.agency || b.organization || '').trim();
+  }
+
+  function normalizeIsoDate(raw) {
+    if (!raw) return '';
+    const s = String(raw).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+    return '';
+  }
+
+  function getBookingDateBounds(b) {
+    if (!b) return null;
+    let rawStart = b.startDate || '';
+    let rawEnd   = b.endDate || '';
+
+    if (!rawStart && b.date) {
+      const dateStr = String(b.date);
+      if (dateStr.includes(' to ')) {
+        const parts = dateStr.split(' to ');
+        rawStart = parts[0];
+        rawEnd   = parts[1] || parts[0];
+      } else {
+        rawStart = dateStr;
+      }
+    }
+
+    const start = normalizeIsoDate(rawStart);
+    if (!start) return null;
+    const endParsed = normalizeIsoDate(rawEnd);
+    const end = (endParsed && endParsed >= start) ? endParsed : start;
+    return { start, end };
+  }
+
+  function getCreatedAtMs(b) {
+    if (!b || !b.createdAt) return 0;
+    if (typeof b.createdAt.toMillis === 'function') return b.createdAt.toMillis();
+    if (typeof b.createdAt.seconds === 'number') return b.createdAt.seconds * 1000;
+    const t = new Date(b.createdAt).getTime();
+    return isNaN(t) ? 0 : t;
+  }
+
+  function getLocalTodayIso() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function hasActiveSearchOrFilter() {
+    return Boolean(
+      filterState.search ||
+      filterState.facility ||
+      filterState.userType ||
+      filterState.deptOrg ||
+      filterState.dateFrom ||
+      filterState.dateTo ||
+      filterState.sort !== 'submitted_desc'
+    );
+  }
+
+  // ============================================================
+  // POPULATE DYNAMIC FILTER DROPDOWNS
+  // ============================================================
+  const BASE_INTERNAL_DEPTS = [
+    'Administration',
+    'College',
+    'IBED',
+    'Non-teaching Personnel'
+  ];
+
+  function populateFilterOptions() {
+    // 1. Facility / Vehicle dropdown
+    if (filterFacilityVehicle) {
+      const prevFacVal = filterState.facility;
+      const facilitySet = new Set();
+      const vehicleSet  = new Set();
+
+      (window._allFacilities || []).forEach(f => {
+        if (f && f.name) facilitySet.add(String(f.name).trim());
+      });
+      (window._allVehicles || []).forEach(v => {
+        if (v && v.name) vehicleSet.add(String(v.name).trim());
+      });
+
+      allBookings.forEach(b => {
+        if (b.facility) facilitySet.add(String(b.facility).trim());
+        getBookingVehicleArray(b).forEach(vName => vehicleSet.add(vName));
+      });
+
+      filterFacilityVehicle.innerHTML = '<option value="">All Facilities &amp; Vehicles</option>';
+
+      if (facilitySet.size > 0) {
+        const facGroup = document.createElement('optgroup');
+        facGroup.label = 'Facilities';
+        Array.from(facilitySet).filter(Boolean).forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = `fac:${name}`;
+          opt.textContent = name;
+          facGroup.appendChild(opt);
+        });
+        filterFacilityVehicle.appendChild(facGroup);
+      }
+
+      if (vehicleSet.size > 0) {
+        const vehGroup = document.createElement('optgroup');
+        vehGroup.label = 'Vehicles';
+
+        const anyVehOpt = document.createElement('option');
+        anyVehOpt.value = '__any_vehicle__';
+        anyVehOpt.textContent = 'All Vehicles (Any)';
+        vehGroup.appendChild(anyVehOpt);
+
+        Array.from(vehicleSet).filter(Boolean).forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = `veh:${name}`;
+          opt.textContent = name;
+          vehGroup.appendChild(opt);
+        });
+        filterFacilityVehicle.appendChild(vehGroup);
+      }
+
+      const validFacValues = Array.from(filterFacilityVehicle.options).map(o => o.value);
+      if (prevFacVal && validFacValues.includes(prevFacVal)) {
+        filterFacilityVehicle.value = prevFacVal;
+      } else {
+        filterState.facility = '';
+        filterFacilityVehicle.value = '';
+      }
+    }
+
+    // 2. Department / Organization grouped dropdown
+    if (filterDeptOrg) {
+      const prevDeptVal = filterState.deptOrg;
+      const parentDeptSet = new Set(BASE_INTERNAL_DEPTS);
+      const subSchoolSet  = new Set();
+      const externalOrgSet = new Set();
+
+      allBookings.forEach(b => {
+        const uType = b.userType || 'Internal';
+        if (uType === 'External') {
+          const org = getExternalOrgName(b);
+          if (org) externalOrgSet.add(org);
+        } else {
+          const pDept = String(b.parentDepartment || '').trim();
+          const dept  = String(b.department || '').trim();
+          const cSch  = String(b.collegeSchool || '').trim();
+
+          if (pDept) {
+            if (BASE_INTERNAL_DEPTS.includes(pDept)) parentDeptSet.add(pDept);
+            else subSchoolSet.add(pDept);
+          }
+          if (dept) {
+            if (BASE_INTERNAL_DEPTS.includes(dept)) parentDeptSet.add(dept);
+            else subSchoolSet.add(dept);
+          }
+          if (cSch) {
+            subSchoolSet.add(cSch);
+          }
+        }
+      });
+
+      filterDeptOrg.innerHTML = '<option value="">All Departments / Orgs</option>';
+
+      const intGroup = document.createElement('optgroup');
+      intGroup.label = 'Internal Departments';
+
+      Array.from(parentDeptSet).forEach(dept => {
+        const opt = document.createElement('option');
+        opt.value = `int:${dept}`;
+        opt.textContent = dept;
+        intGroup.appendChild(opt);
+      });
+
+      Array.from(subSchoolSet)
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+        .forEach(school => {
+          const opt = document.createElement('option');
+          opt.value = `int:${school}`;
+          opt.textContent = school;
+          intGroup.appendChild(opt);
+        });
+
+      filterDeptOrg.appendChild(intGroup);
+
+      if (externalOrgSet.size > 0) {
+        const extGroup = document.createElement('optgroup');
+        extGroup.label = 'External Organizations';
+        Array.from(externalOrgSet)
+          .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+          .forEach(org => {
+            const opt = document.createElement('option');
+            opt.value = `ext:${org}`;
+            opt.textContent = org;
+            extGroup.appendChild(opt);
+          });
+        filterDeptOrg.appendChild(extGroup);
+      }
+
+      const validDeptValues = Array.from(filterDeptOrg.options).map(o => o.value);
+      if (prevDeptVal && validDeptValues.includes(prevDeptVal)) {
+        filterDeptOrg.value = prevDeptVal;
+      } else {
+        filterState.deptOrg = '';
+        filterDeptOrg.value = '';
+      }
+    }
+  }
+
+  // ============================================================
+  // FILTER + SORT PIPELINE
+  // ============================================================
+  function getStatusFilteredBookings() {
+    if (activeFilter === 'all') return allBookings;
+    if (activeFilter === 'Pending') {
+      return allBookings.filter(b => b.status === 'Pending' || b.status === 'Pending Payment');
+    }
+    return allBookings.filter(b => b.status === activeFilter);
+  }
+
+  function getFilteredBookings() {
+    const statusBase = getStatusFilteredBookings();
+    const q = filterState.search.trim().toLowerCase();
+
+    const matched = statusBase.filter(b => {
+      // 1. Text search: referenceId, requester name variants, email, purpose
+      if (q) {
+        const haystack = [
+          b.referenceId,
+          getBookingRequesterName(b),
+          b.name,
+          b.contactPerson,
+          b.firstName,
+          b.lastName,
+          b.email,
+          b.purpose
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        if (!haystack.includes(q)) return false;
+      }
+
+      // 2. Facility / Vehicle filter
+      if (filterState.facility) {
+        if (filterState.facility === '__any_vehicle__') {
+          if (getBookingVehicleArray(b).length === 0) return false;
+        } else if (filterState.facility.startsWith('fac:')) {
+          const targetFac = filterState.facility.slice(4);
+          if ((b.facility || '').trim() !== targetFac) return false;
+        } else if (filterState.facility.startsWith('veh:')) {
+          const targetVeh = filterState.facility.slice(4);
+          if (!getBookingVehicleArray(b).includes(targetVeh)) return false;
+        }
+      }
+
+      // 3. User Type filter
+      if (filterState.userType) {
+        const bType = b.userType || 'Internal';
+        if (bType !== filterState.userType) return false;
+      }
+
+      // 4. Department / Organization filter
+      if (filterState.deptOrg) {
+        const bType = b.userType || 'Internal';
+        if (filterState.deptOrg.startsWith('int:')) {
+          if (bType !== 'Internal') return false;
+          const targetDept = filterState.deptOrg.slice(4);
+          const matchesDept =
+            (b.parentDepartment || '').trim() === targetDept ||
+            (b.department || '').trim() === targetDept ||
+            (b.collegeSchool || '').trim() === targetDept;
+          if (!matchesDept) return false;
+        } else if (filterState.deptOrg.startsWith('ext:')) {
+          if (bType !== 'External') return false;
+          const targetOrg = filterState.deptOrg.slice(4);
+          if (getExternalOrgName(b) !== targetOrg) return false;
+        }
+      }
+
+      // 5. Event Date Range overlap filter
+      if (filterState.dateFrom || filterState.dateTo) {
+        const bounds = getBookingDateBounds(b);
+        if (!bounds) return false;
+        if (filterState.dateFrom && bounds.end < filterState.dateFrom) return false;
+        if (filterState.dateTo && bounds.start > filterState.dateTo) return false;
+      }
+
+      return true;
+    });
+
+    // 6. Sort
+    const sorted = matched.slice();
+    const sortMode = filterState.sort || 'submitted_desc';
+
+    if (sortMode === 'submitted_asc') {
+      sorted.sort((a, b) => getCreatedAtMs(a) - getCreatedAtMs(b));
+    } else if (sortMode === 'submitted_desc') {
+      sorted.sort((a, b) => getCreatedAtMs(b) - getCreatedAtMs(a));
+    } else if (sortMode === 'event_desc') {
+      sorted.sort((a, b) => {
+        const ba = getBookingDateBounds(a);
+        const bb = getBookingDateBounds(b);
+        if (!ba && !bb) return getCreatedAtMs(b) - getCreatedAtMs(a);
+        if (!ba) return 1;
+        if (!bb) return -1;
+        const ka = `${ba.start} ${a.startTime || '00:00'}`;
+        const kb = `${bb.start} ${b.startTime || '00:00'}`;
+        if (kb !== ka) return kb.localeCompare(ka);
+        return getCreatedAtMs(b) - getCreatedAtMs(a);
+      });
+    } else if (sortMode === 'event_asc') {
+      const todayIso = getLocalTodayIso();
+      const hasRangeFilter = Boolean(filterState.dateFrom || filterState.dateTo);
+
+      sorted.sort((a, b) => {
+        const ba = getBookingDateBounds(a);
+        const bb = getBookingDateBounds(b);
+        if (!ba && !bb) return getCreatedAtMs(b) - getCreatedAtMs(a);
+        if (!ba) return 1;
+        if (!bb) return -1;
+
+        if (!hasRangeFilter) {
+          const aUpcoming = ba.end >= todayIso;
+          const bUpcoming = bb.end >= todayIso;
+          if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
+          if (!aUpcoming && !bUpcoming) {
+            // Both in the past: show most recent past first
+            const kaPast = `${ba.start} ${a.startTime || '00:00'}`;
+            const kbPast = `${bb.start} ${b.startTime || '00:00'}`;
+            return kbPast.localeCompare(kaPast);
+          }
+        }
+
+        const ka = `${ba.start} ${a.startTime || '00:00'}`;
+        const kb = `${bb.start} ${b.startTime || '00:00'}`;
+        if (ka !== kb) return ka.localeCompare(kb);
+        return getCreatedAtMs(b) - getCreatedAtMs(a);
+      });
+    }
+
+    return { filtered: sorted, baseTotal: statusBase.length };
+  }
+
   // ============================================================
   // RENDER TABLE
   // ============================================================
   function renderTable() {
-    const filtered = activeFilter === 'all'
-      ? allBookings
-      : activeFilter === 'Pending' 
-        ? allBookings.filter(b => b.status === 'Pending' || b.status === 'Pending Payment')
-        : allBookings.filter(b => b.status === activeFilter);
+    const { filtered, baseTotal } = getFilteredBookings();
+    const filtersActive = hasActiveSearchOrFilter();
+
+    if (clearBookingFiltersBtn) {
+      clearBookingFiltersBtn.disabled = !filtersActive;
+    }
+
+    if (bookingResultsSummary) {
+      const countWord = baseTotal === 1 ? 'reservation' : 'reservations';
+      bookingResultsSummary.textContent = `Showing ${filtered.length} of ${baseTotal} ${countWord}`;
+    }
 
     if (filtered.length === 0) {
       tableBody.innerHTML = '';
       emptyState.style.display = 'block';
+      if (emptyStateTitle && emptyStateText) {
+        if (filtersActive) {
+          emptyStateTitle.textContent = 'No reservations match your search/filters';
+          emptyStateText.textContent  = 'Try adjusting your search keywords or click "Clear" to reset filters.';
+        } else {
+          emptyStateTitle.textContent = 'No reservations found';
+          emptyStateText.textContent  = 'There are no reservations matching the current filter.';
+        }
+      }
       return;
     }
 
@@ -191,6 +600,11 @@
       const typeClass = (b.userType || 'Internal').toLowerCase();
       const showActions = b.status === 'Pending' || b.status === 'Payment Under Review';
       const locationText = escapeHtml(getBookingLocation(b));
+      const isNewUnread = Boolean(
+        window.BookingNotifier &&
+        typeof window.BookingNotifier.isUnreadBooking === 'function' &&
+        window.BookingNotifier.isUnreadBooking(b.id)
+      );
 
       const dateRangeText = (b.startDate && b.endDate && b.startDate !== b.endDate)
         ? `${b.startDate} to ${b.endDate}`
@@ -207,10 +621,11 @@
       const userType = escapeHtml(b.userType || '—');
       const purpose = escapeHtml(b.purpose || '—');
       const statusText = escapeHtml(b.status || '—');
+      const safeId = escapeHtml(b.id);
 
       return `
-        <tr>
-          <td><strong style="color:var(--navy); cursor:pointer;" onclick="viewBookingDetails('${b.id}')">${ref}</strong></td>
+        <tr data-booking-id="${safeId}" class="${isNewUnread ? 'booking-row-new' : ''}">
+          <td><strong style="color:var(--navy); cursor:pointer;" onclick="viewBookingDetails('${safeId}')">${ref}</strong></td>
           <td>${name}</td>
           <td><span class="user-badge ${typeClass}">${userType}</span></td>
           <td>${locationText}</td>
@@ -220,16 +635,112 @@
           <td>
             ${showActions ? `
               <div class="table-actions">
-                <button class="action-btn approve" onclick="approveBooking('${b.id}')">Approve</button>
-                <button class="action-btn reject" onclick="rejectBooking('${b.id}')">Reject</button>
+                <button class="action-btn approve" onclick="approveBooking('${safeId}')">Approve</button>
+                <button class="action-btn reject" onclick="rejectBooking('${safeId}')">Reject</button>
               </div>
             ` : `<div class="table-actions">
-                <button class="action-btn reject" onclick="deleteBooking('${b.id}')" title="Delete booking">Delete</button>
+                <button class="action-btn reject" onclick="deleteBooking('${safeId}')" title="Delete booking">Delete</button>
               </div>`}
           </td>
         </tr>
       `;
     }).join('');
+  }
+
+  // ============================================================
+  // SEARCH & FILTER EVENT LISTENERS
+  // ============================================================
+  let searchDebounceTimer = null;
+
+  if (bookingSearchInput) {
+    bookingSearchInput.addEventListener('input', () => {
+      const val = bookingSearchInput.value;
+      if (bookingSearchClearBtn) {
+        bookingSearchClearBtn.style.display = val ? 'inline-flex' : 'none';
+      }
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        filterState.search = val;
+        renderTable();
+      }, 200);
+    });
+  }
+
+  if (bookingSearchClearBtn && bookingSearchInput) {
+    bookingSearchClearBtn.addEventListener('click', () => {
+      clearTimeout(searchDebounceTimer);
+      bookingSearchInput.value = '';
+      bookingSearchClearBtn.style.display = 'none';
+      filterState.search = '';
+      renderTable();
+      bookingSearchInput.focus();
+    });
+  }
+
+  if (filterFacilityVehicle) {
+    filterFacilityVehicle.addEventListener('change', () => {
+      filterState.facility = filterFacilityVehicle.value;
+      renderTable();
+    });
+  }
+
+  if (filterUserType) {
+    filterUserType.addEventListener('change', () => {
+      filterState.userType = filterUserType.value;
+      renderTable();
+    });
+  }
+
+  if (filterDeptOrg) {
+    filterDeptOrg.addEventListener('change', () => {
+      filterState.deptOrg = filterDeptOrg.value;
+      renderTable();
+    });
+  }
+
+  if (filterDateFrom) {
+    filterDateFrom.addEventListener('change', () => {
+      filterState.dateFrom = filterDateFrom.value;
+      renderTable();
+    });
+  }
+
+  if (filterDateTo) {
+    filterDateTo.addEventListener('change', () => {
+      filterState.dateTo = filterDateTo.value;
+      renderTable();
+    });
+  }
+
+  if (filterSort) {
+    filterSort.addEventListener('change', () => {
+      filterState.sort = filterSort.value || 'submitted_desc';
+      renderTable();
+    });
+  }
+
+  if (clearBookingFiltersBtn) {
+    clearBookingFiltersBtn.addEventListener('click', () => {
+      clearTimeout(searchDebounceTimer);
+      filterState.search   = '';
+      filterState.facility = '';
+      filterState.userType = '';
+      filterState.deptOrg  = '';
+      filterState.dateFrom = '';
+      filterState.dateTo   = '';
+      filterState.sort     = 'submitted_desc';
+
+      if (bookingSearchInput) bookingSearchInput.value = '';
+      if (bookingSearchClearBtn) bookingSearchClearBtn.style.display = 'none';
+      if (filterFacilityVehicle) filterFacilityVehicle.value = '';
+      if (filterUserType) filterUserType.value = '';
+      if (filterDeptOrg) filterDeptOrg.value = '';
+      if (filterDateFrom) filterDateFrom.value = '';
+      if (filterDateTo) filterDateTo.value = '';
+      if (filterSort) filterSort.value = 'submitted_desc';
+
+      renderTable();
+    });
   }
 
   // ============================================================
@@ -357,6 +868,9 @@
     if (!booking) return;
 
     currentModalDocId = docId;
+    if (window.BookingNotifier && typeof window.BookingNotifier.markBookingRead === 'function') {
+      window.BookingNotifier.markBookingRead(docId);
+    }
 
     let rows = [
       ['Reference',    booking.referenceId || '—'],
@@ -509,17 +1023,25 @@
   // ============================================================
   // TOAST NOTIFICATION
   // ============================================================
-  function showToast(type, title, message) {
+  function showToast(type, title, message, onClick) {
+    if (!toastContainer) return;
     const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
+    toast.className = `toast ${type}${typeof onClick === 'function' ? ' clickable' : ''}`;
 
     toast.innerHTML = `
       <div class="toast-body">
         <h4>${escapeHtml(title)}</h4>
         <p>${escapeHtml(message)}</p>
       </div>
-      <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+      <button class="toast-close" onclick="event.stopPropagation(); this.parentElement.remove()">✕</button>
     `;
+
+    if (typeof onClick === 'function') {
+      toast.addEventListener('click', () => {
+        onClick();
+        toast.remove();
+      });
+    }
 
     toastContainer.appendChild(toast);
 
@@ -531,6 +1053,7 @@
       }
     }, 5000);
   }
+  window.showAdminToast = showToast;
 
   // ============================================================
   // DELETE BOOKING
@@ -599,8 +1122,18 @@
     document.querySelector('.dashboard-topbar'),
     document.querySelector('.stats-grid'),
     document.getElementById('filterTabs'),
+    document.getElementById('bookingFilters'),
     document.querySelector('.table-card')
   ].filter(Boolean);
+
+  window.switchToBookingsView = function () {
+    if (currentView !== 'bookings') {
+      switchView('bookings');
+      sidebarLinks.forEach(l => {
+        l.classList.toggle('active', l.dataset.filter === activeFilter);
+      });
+    }
+  };
 
   function switchView(view) {
     currentView = view;
@@ -728,6 +1261,7 @@
           allFacilities.push({ id: doc.id, ...doc.data() });
         });
         window._allFacilities = allFacilities; // Expose for reports module
+        populateFilterOptions();
         renderFacilitiesTable();
       }, err => {
         console.error('Facilities listener error:', err);
@@ -1164,6 +1698,8 @@
         snapshot.forEach(doc => {
           allVehicles.push({ id: doc.id, ...doc.data() });
         });
+        window._allVehicles = allVehicles;
+        populateFilterOptions();
         renderVehiclesTable();
       }, err => {
         console.error('Vehicles listener error:', err);

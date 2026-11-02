@@ -107,9 +107,46 @@
   .table-card {
     border-radius: var(--radius-md);
   }
+
+  .booking-filters-card {
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+  }
+
+  .booking-filters-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .booking-filters-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .dashboard-topbar {
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  .dashboard-topbar #adminEmail {
+    display: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .notif-dropdown {
+    position: fixed;
+    top: 70px;
+    left: var(--space-md);
+    right: var(--space-md);
+    width: auto;
+  }
 }
 
 @media (max-width: 480px) {
+  .booking-filters-grid {
+    grid-template-columns: 1fr;
+  }
+
   html {
     font-size: 14px;
   }

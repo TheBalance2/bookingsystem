@@ -7,8 +7,8 @@
   <title>Admin Dashboard — San Isidro College</title>
   <link rel="stylesheet" href="css/core.css?v=2">
   <link rel="stylesheet" href="css/components.css?v=2">
-  <link rel="stylesheet" href="css/admin.css?v=2">
-  <link rel="stylesheet" href="css/responsive.css?v=2">
+  <link rel="stylesheet" href="css/admin.css?v=3">
+  <link rel="stylesheet" href="css/responsive.css?v=3">
 </head>
 <body>
 
@@ -95,6 +95,37 @@
           <button class="btn btn-primary btn-sm" id="specialBookingBtn" style="background-color: var(--warning); color: #fff; border: none; font-weight: 500;">
             Special Booking
           </button>
+
+          <!-- Notification Bell & Dropdown -->
+          <div class="notif-wrapper" id="notifWrapper">
+            <button type="button" class="notif-bell-btn" id="notifBellBtn" aria-label="Booking notifications" aria-haspopup="true" aria-expanded="false">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              <span class="notif-status-dot" id="notifStatusDot" aria-hidden="true"></span>
+              <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+            </button>
+
+            <div class="notif-dropdown" id="notifDropdown" role="region" aria-label="Recent booking notifications">
+              <div class="notif-dropdown-header">
+                <h3>Notifications</h3>
+                <div class="notif-dropdown-actions">
+                  <button type="button" class="notif-action-btn" id="notifMuteBtn" aria-pressed="false"></button>
+                  <button type="button" class="notif-action-btn clear" id="notifClearBtn" style="display:none;">Clear</button>
+                </div>
+              </div>
+
+              <div class="notif-perm-banner" id="notifPermBanner" style="display:none;"></div>
+
+              <div class="notif-list" id="notifList"></div>
+
+              <div class="notif-dropdown-footer">
+                Tip: Keep this tab open (or pinned) and exclude this site from browser Sleeping Tabs / Memory Saver for uninterrupted background alerts.
+              </div>
+            </div>
+          </div>
+
           <span id="adminEmail">admin</span>
           <div class="admin-avatar" id="adminAvatar">A</div>
         </div>
@@ -159,6 +190,75 @@
         </button>
       </div>
 
+      <!-- Search & Filter Bar -->
+      <div class="booking-filters-card" id="bookingFilters">
+        <div class="booking-filters-top">
+          <div class="booking-search-box">
+            <svg class="booking-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="bookingSearchInput" placeholder="Search ref no., requester name, email, purpose..." autocomplete="off" aria-label="Search reservations">
+            <button type="button" class="booking-search-clear" id="bookingSearchClearBtn" aria-label="Clear search" style="display:none;">&times;</button>
+          </div>
+          <div class="booking-filters-meta">
+            <span class="booking-results-summary" id="bookingResultsSummary">Showing 0 of 0 reservations</span>
+            <button type="button" class="btn-clear-filters" id="clearBookingFiltersBtn" disabled>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <div class="booking-filters-grid">
+          <div class="booking-filter-group">
+            <label for="filterFacilityVehicle">Facility / Vehicle</label>
+            <select id="filterFacilityVehicle">
+              <option value="">All Facilities &amp; Vehicles</option>
+            </select>
+          </div>
+
+          <div class="booking-filter-group">
+            <label for="filterUserType">User Type</label>
+            <select id="filterUserType">
+              <option value="">All Types</option>
+              <option value="Internal">Internal</option>
+              <option value="External">External</option>
+            </select>
+          </div>
+
+          <div class="booking-filter-group">
+            <label for="filterDeptOrg">Department / Org</label>
+            <select id="filterDeptOrg">
+              <option value="">All Departments / Orgs</option>
+            </select>
+          </div>
+
+          <div class="booking-filter-group">
+            <label for="filterDateFrom">Event From</label>
+            <input type="date" id="filterDateFrom">
+          </div>
+
+          <div class="booking-filter-group">
+            <label for="filterDateTo">Event To</label>
+            <input type="date" id="filterDateTo">
+          </div>
+
+          <div class="booking-filter-group">
+            <label for="filterSort">Sort By</label>
+            <select id="filterSort">
+              <option value="submitted_desc">Newest Submitted</option>
+              <option value="submitted_asc">Oldest Submitted</option>
+              <option value="event_asc">Upcoming Event Date</option>
+              <option value="event_desc">Latest Event Date</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <!-- Table -->
       <div class="table-card">
         <div class="table-responsive">
@@ -183,8 +283,8 @@
 
         <!-- Empty state -->
         <div class="empty-state" id="emptyState" style="display:none;">
-          <h3>No reservations found</h3>
-          <p>There are no reservations matching the current filter.</p>
+          <h3 id="emptyStateTitle">No reservations found</h3>
+          <p id="emptyStateText">There are no reservations matching the current filter.</p>
         </div>
       </div>
 
@@ -707,7 +807,8 @@
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
   <script src="js/firebase-config.js"></script>
-  <script src="js/admin.js?v=3"></script>
+  <script src="js/notifications.js?v=1"></script>
+  <script src="js/admin.js?v=4"></script>
   <script src="js/reports.js?v=2"></script>
 </body>
 </html>
