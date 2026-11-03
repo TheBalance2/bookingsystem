@@ -288,6 +288,36 @@
     'Non-teaching Personnel'
   ];
 
+  const KNOWN_COLLEGE_SCHOOLS = [
+    'School of Education',
+    'School of Business Administration',
+    'School of Office Administration',
+    'School of Information Technology',
+    'School of Accountancy',
+    'School of Nursing',
+    'School of Midwifery',
+    'School of Arts & Sciences',
+    'School of Engineering'
+  ];
+
+  function isCollegeSchoolName(name) {
+    if (!name) return false;
+    const s = String(name).trim();
+    if (!s) return false;
+    if (KNOWN_COLLEGE_SCHOOLS.some(k => k.toLowerCase() === s.toLowerCase())) return true;
+    return /^(School|College)\s+of\b/i.test(s);
+  }
+
+  function isCollegeBooking(b) {
+    if (!b) return false;
+    const pDept = String(b.parentDepartment || '').trim();
+    const dept  = String(b.department || '').trim();
+    const cSch  = String(b.collegeSchool || '').trim();
+    if (pDept.toLowerCase() === 'college' || dept.toLowerCase() === 'college') return true;
+    if (cSch) return true;
+    return isCollegeSchoolName(dept) || isCollegeSchoolName(pDept);
+  }
+
   function populateFilterOptions() {
     // 1. Facility / Vehicle dropdown
     if (filterFacilityVehicle) {
@@ -351,9 +381,10 @@
     // 2. Department / Organization grouped dropdown
     if (filterDeptOrg) {
       const prevDeptVal = filterState.deptOrg;
-      const parentDeptSet = new Set(BASE_INTERNAL_DEPTS);
-      const subSchoolSet  = new Set();
-      const externalOrgSet = new Set();
+      const parentDeptSet    = new Set(BASE_INTERNAL_DEPTS);
+      const collegeSchoolSet = new Set(KNOWN_COLLEGE_SCHOOLS);
+      const otherIntDeptSet  = new Set();
+      const externalOrgSet   = new Set();
 
       allBookings.forEach(b => {
         const uType = b.userType || 'Internal';
@@ -365,16 +396,19 @@
           const dept  = String(b.department || '').trim();
           const cSch  = String(b.collegeSchool || '').trim();
 
-          if (pDept) {
-            if (BASE_INTERNAL_DEPTS.includes(pDept)) parentDeptSet.add(pDept);
-            else subSchoolSet.add(pDept);
-          }
-          if (dept) {
-            if (BASE_INTERNAL_DEPTS.includes(dept)) parentDeptSet.add(dept);
-            else subSchoolSet.add(dept);
-          }
+          [pDept, dept].forEach(val => {
+            if (!val) return;
+            if (BASE_INTERNAL_DEPTS.includes(val)) {
+              parentDeptSet.add(val);
+            } else if (isCollegeSchoolName(val)) {
+              collegeSchoolSet.add(val);
+            } else {
+              otherIntDeptSet.add(val);
+            }
+          });
+
           if (cSch) {
-            subSchoolSet.add(cSch);
+            collegeSchoolSet.add(cSch);
           }
         }
       });
@@ -384,19 +418,34 @@
       const intGroup = document.createElement('optgroup');
       intGroup.label = 'Internal Departments';
 
+      const sortedSchools = Array.from(collegeSchoolSet)
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
       Array.from(parentDeptSet).forEach(dept => {
         const opt = document.createElement('option');
         opt.value = `int:${dept}`;
-        opt.textContent = dept;
+        opt.textContent = dept === 'College' ? 'College (All Schools)' : dept;
         intGroup.appendChild(opt);
+
+        // Nest indented College schools directly underneath "College (All Schools)"
+        if (dept === 'College') {
+          sortedSchools.forEach(school => {
+            const schoolOpt = document.createElement('option');
+            schoolOpt.value = `int:${school}`;
+            schoolOpt.textContent = `\u00A0\u00A0— ${school}`;
+            intGroup.appendChild(schoolOpt);
+          });
+        }
       });
 
-      Array.from(subSchoolSet)
+      Array.from(otherIntDeptSet)
+        .filter(Boolean)
         .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-        .forEach(school => {
+        .forEach(dept => {
           const opt = document.createElement('option');
-          opt.value = `int:${school}`;
-          opt.textContent = school;
+          opt.value = `int:${dept}`;
+          opt.textContent = dept;
           intGroup.appendChild(opt);
         });
 
@@ -486,11 +535,16 @@
         if (filterState.deptOrg.startsWith('int:')) {
           if (bType !== 'Internal') return false;
           const targetDept = filterState.deptOrg.slice(4);
-          const matchesDept =
-            (b.parentDepartment || '').trim() === targetDept ||
-            (b.department || '').trim() === targetDept ||
-            (b.collegeSchool || '').trim() === targetDept;
-          if (!matchesDept) return false;
+          if (targetDept === 'College') {
+            if (!isCollegeBooking(b)) return false;
+          } else {
+            const targetLower = targetDept.toLowerCase();
+            const matchesDept =
+              String(b.parentDepartment || '').trim().toLowerCase() === targetLower ||
+              String(b.department || '').trim().toLowerCase() === targetLower ||
+              String(b.collegeSchool || '').trim().toLowerCase() === targetLower;
+            if (!matchesDept) return false;
+          }
         } else if (filterState.deptOrg.startsWith('ext:')) {
           if (bType !== 'External') return false;
           const targetOrg = filterState.deptOrg.slice(4);
