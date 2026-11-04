@@ -122,6 +122,9 @@
 
     // Start listening to vehicles
     if (typeof listenVehicles === 'function') listenVehicles();
+
+    // Start listening to sequential Booking ID settings
+    if (typeof listenBookingIdConfig === 'function') listenBookingIdConfig();
   });
 
   // ============================================================
@@ -609,6 +612,17 @@
         const ka = `${ba.start} ${a.startTime || '00:00'}`;
         const kb = `${bb.start} ${b.startTime || '00:00'}`;
         if (ka !== kb) return ka.localeCompare(kb);
+        return getCreatedAtMs(b) - getCreatedAtMs(a);
+      });
+    } else if (sortMode === 'ref_asc' || sortMode === 'ref_desc') {
+      sorted.sort((a, b) => {
+        const ra = String(a.referenceId || '').trim();
+        const rb = String(b.referenceId || '').trim();
+        if (!ra && !rb) return getCreatedAtMs(b) - getCreatedAtMs(a);
+        if (!ra) return 1;
+        if (!rb) return -1;
+        const cmp = ra.localeCompare(rb, undefined, { numeric: true, sensitivity: 'base' });
+        if (cmp !== 0) return sortMode === 'ref_asc' ? cmp : -cmp;
         return getCreatedAtMs(b) - getCreatedAtMs(a);
       });
     }
@@ -1160,16 +1174,19 @@
   // For now, clicking a sidebar link on mobile will just filter.
 
   // ============================================================
-  // VIEW SWITCHING (Dashboard vs Facilities)
+  // VIEW SWITCHING (Dashboard vs Facilities / Vehicles / Reports / ID Settings)
   // ============================================================
-  const bookingsView     = document.querySelector('.dashboard-topbar')?.parentElement ? null : null;
+  const bookingsView      = document.querySelector('.dashboard-topbar')?.parentElement ? null : null;
   const facilitiesSection = document.getElementById('facilitiesSection');
   const vehiclesSection   = document.getElementById('vehiclesSection');
   const reportsSection    = document.getElementById('reportsSection');
+  const idSettingsSection = document.getElementById('idSettingsSection');
   const sidebarFacilities = document.getElementById('sidebarFacilities');
   const sidebarVehicles   = document.getElementById('sidebarVehicles');
   const sidebarReports    = document.getElementById('sidebarReports');
-  let currentView = 'bookings'; // 'bookings', 'facilities', 'vehicles', or 'reports'
+  const sidebarIdSettings = document.getElementById('sidebarIdSettings');
+  const openIdSettingsBtn = document.getElementById('openIdSettingsBtn');
+  let currentView = 'bookings'; // 'bookings', 'facilities', 'vehicles', 'reports', or 'idSettings'
 
   // Elements that belong to bookings view
   const bookingsViewElements = [
@@ -1197,12 +1214,14 @@
     if (facilitiesSection) facilitiesSection.style.display = 'none';
     if (vehiclesSection) vehiclesSection.style.display = 'none';
     if (reportsSection) reportsSection.style.display = 'none';
+    if (idSettingsSection) idSettingsSection.style.display = 'none';
     
     // Remove active state from sidebar links
     sidebarLinks.forEach(l => l.classList.remove('active'));
     if (sidebarFacilities) sidebarFacilities.classList.remove('active');
     if (sidebarVehicles) sidebarVehicles.classList.remove('active');
     if (sidebarReports) sidebarReports.classList.remove('active');
+    if (sidebarIdSettings) sidebarIdSettings.classList.remove('active');
 
     if (view === 'facilities') {
       if (facilitiesSection) facilitiesSection.style.display = 'block';
@@ -1215,6 +1234,10 @@
       if (sidebarReports) sidebarReports.classList.add('active');
       // Initialize reports module if available
       if (typeof window.initReportsView === 'function') window.initReportsView();
+    } else if (view === 'idSettings') {
+      if (idSettingsSection) idSettingsSection.style.display = 'block';
+      if (sidebarIdSettings) sidebarIdSettings.classList.add('active');
+      if (typeof syncBookingIdFormFromState === 'function') syncBookingIdFormFromState(false);
     } else {
       // Show booking elements
       bookingsViewElements.forEach(el => {
@@ -1247,6 +1270,21 @@
     sidebarReports.addEventListener('click', (e) => {
       e.preventDefault();
       switchView('reports');
+    });
+  }
+
+  // Sidebar "Booking ID Settings" click
+  if (sidebarIdSettings) {
+    sidebarIdSettings.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchView('idSettings');
+    });
+  }
+
+  // Topbar quick "Next ID" button click
+  if (openIdSettingsBtn) {
+    openIdSettingsBtn.addEventListener('click', () => {
+      switchView('idSettings');
     });
   }
 
@@ -2143,16 +2181,8 @@
       btn.classList.add('loading');
       btn.disabled = true;
 
-      const generateRefId = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let id = 'SIC-';
-        for (let i = 0; i < 8; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
-        return id;
-      };
-
       try {
-        const refId = generateRefId();
-        await db.collection('bookings').add({
+        const refId = await createAdminBookingWithSequentialId({
           userType: 'Internal', 
           name: name,
           department: finalDepartment,
@@ -2173,12 +2203,11 @@
           purpose: purpose,
           considerations: considerations,
           status: 'Approved',
-          referenceId: refId,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
         specialBookingModal.classList.remove('visible');
-        showToast('success', 'Special Booking Created', 'The reservation has been automatically approved.');
+        showToast('success', 'Special Booking Created', `Reservation ${refId} has been created and automatically approved.`);
         specialBookingForm.reset();
         updateSbVehicleVisibility();
         updateSbCollegeSchoolVisibility();
@@ -2187,11 +2216,379 @@
         document.querySelectorAll('#specialBookingForm .eq-qty').forEach(q => q.style.display = 'none');
       } catch (err) {
         console.error('Special booking error:', err);
-        showToast('error', 'Error', 'Failed to create special booking.');
+        if (err && err.code === 'permission-denied') {
+          showToast('error', 'Permission Denied', 'Please publish the updated firestore.rules (settings/bookingId) in Firebase Console.');
+        } else {
+          showToast('error', 'Error', 'Failed to create special booking.');
+        }
       } finally {
         btn.innerHTML = 'Submit Special Booking';
         btn.classList.remove('loading');
         btn.disabled = false;
+      }
+    });
+  }
+
+  // ============================================================
+  // SEQUENTIAL BOOKING ID SETTINGS & COUNTER MANAGEMENT
+  // ============================================================
+  const BOOKING_ID_SETTINGS_COLLECTION = 'settings';
+  const BOOKING_ID_SETTINGS_DOC        = 'bookingId';
+  const DEFAULT_BOOKING_ID_PREFIX      = 'SIC';
+  const DEFAULT_BOOKING_ID_YEAR        = '2026';
+
+  let bookingIdConfigState = {
+    prefix: DEFAULT_BOOKING_ID_PREFIX,
+    year: DEFAULT_BOOKING_ID_YEAR,
+    nextSequence: 1
+  };
+  let idConfigFormDirty = false;
+  let pendingResetTarget = null;
+
+  // DOM References for Booking ID Settings
+  const topbarNextBookingId         = document.getElementById('topbarNextBookingId');
+  const activeNextBookingIdDisplay  = document.getElementById('activeNextBookingIdDisplay');
+  const idSequencePreviewPills      = document.getElementById('idSequencePreviewPills');
+  const resetCardTargetPreview      = document.getElementById('resetCardTargetPreview');
+  const bookingIdConfigForm         = document.getElementById('bookingIdConfigForm');
+  const idConfigPrefixInput         = document.getElementById('idConfigPrefix');
+  const idConfigYearInput           = document.getElementById('idConfigYear');
+  const idConfigNextSeqInput        = document.getElementById('idConfigNextSeq');
+  const useCurrentYearBtn           = document.getElementById('useCurrentYearBtn');
+  const revertIdConfigBtn           = document.getElementById('revertIdConfigBtn');
+  const saveIdConfigBtn             = document.getElementById('saveIdConfigBtn');
+  const resetCounterToOneBtn        = document.getElementById('resetCounterToOneBtn');
+  const resetBookingIdModal         = document.getElementById('resetBookingIdModal');
+  const resetPreviewIdText          = document.getElementById('resetPreviewIdText');
+  const resetExistingSeriesWarning  = document.getElementById('resetExistingSeriesWarning');
+  const confirmResetBookingIdBtn    = document.getElementById('confirmResetBookingIdBtn');
+
+  function formatSequentialBookingId(prefix, year, seq) {
+    const cleanPrefix = String(prefix || DEFAULT_BOOKING_ID_PREFIX).trim().toUpperCase() || DEFAULT_BOOKING_ID_PREFIX;
+    const cleanYear   = String(year || DEFAULT_BOOKING_ID_YEAR).trim() || DEFAULT_BOOKING_ID_YEAR;
+    const parsedSeq   = Number(seq);
+    const cleanSeq    = (Number.isFinite(parsedSeq) && parsedSeq >= 1) ? Math.floor(parsedSeq) : 1;
+    return `${cleanPrefix}-${cleanYear}-${String(cleanSeq).padStart(3, '0')}`;
+  }
+
+  function sanitizeIdSegment(raw) {
+    return String(raw || '')
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9-]+/g, '')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  // Atomically allocate the next sequential Booking ID and create the booking document
+  async function createAdminBookingWithSequentialId(bookingPayload) {
+    const configRef = db.collection(BOOKING_ID_SETTINGS_COLLECTION).doc(BOOKING_ID_SETTINGS_DOC);
+    const newBookingRef = db.collection('bookings').doc();
+
+    return db.runTransaction(async (transaction) => {
+      const configSnap = await transaction.get(configRef);
+      let prefix = DEFAULT_BOOKING_ID_PREFIX;
+      let year   = String(new Date().getFullYear() || DEFAULT_BOOKING_ID_YEAR);
+      let seq    = 1;
+
+      if (configSnap.exists) {
+        const cfg = configSnap.data() || {};
+        prefix = String(cfg.prefix || DEFAULT_BOOKING_ID_PREFIX).trim().toUpperCase() || DEFAULT_BOOKING_ID_PREFIX;
+        year   = String(cfg.year || year).trim() || year;
+        const parsedSeq = Number(cfg.nextSequence);
+        seq = (Number.isFinite(parsedSeq) && parsedSeq >= 1) ? Math.floor(parsedSeq) : 1;
+
+        transaction.update(configRef, {
+          nextSequence: seq + 1,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } else {
+        transaction.set(configRef, {
+          prefix: prefix,
+          year: year,
+          nextSequence: 2,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+
+      const refId = formatSequentialBookingId(prefix, year, seq);
+      transaction.set(newBookingRef, {
+        ...bookingPayload,
+        referenceId: refId
+      });
+
+      return refId;
+    });
+  }
+
+  function updateActiveBookingIdBadges() {
+    const activeNextId = formatSequentialBookingId(
+      bookingIdConfigState.prefix,
+      bookingIdConfigState.year,
+      bookingIdConfigState.nextSequence
+    );
+    if (topbarNextBookingId) topbarNextBookingId.textContent = activeNextId;
+    if (activeNextBookingIdDisplay) activeNextBookingIdDisplay.textContent = activeNextId;
+  }
+
+  function updateBookingIdDraftPreview() {
+    const draftPrefix = sanitizeIdSegment(idConfigPrefixInput ? idConfigPrefixInput.value : '') || bookingIdConfigState.prefix;
+    const draftYear   = sanitizeIdSegment(idConfigYearInput ? idConfigYearInput.value : '') || bookingIdConfigState.year;
+    const rawSeq      = idConfigNextSeqInput ? parseInt(idConfigNextSeqInput.value, 10) : bookingIdConfigState.nextSequence;
+    const draftSeq    = (Number.isFinite(rawSeq) && rawSeq >= 1) ? rawSeq : 1;
+
+    if (idSequencePreviewPills) {
+      const id1 = escapeHtml(formatSequentialBookingId(draftPrefix, draftYear, draftSeq));
+      const id2 = escapeHtml(formatSequentialBookingId(draftPrefix, draftYear, draftSeq + 1));
+      const id3 = escapeHtml(formatSequentialBookingId(draftPrefix, draftYear, draftSeq + 2));
+      idSequencePreviewPills.innerHTML = `
+        <span class="id-seq-pill primary">${id1}</span>
+        <span class="id-seq-arrow">&rarr;</span>
+        <span class="id-seq-pill">${id2}</span>
+        <span class="id-seq-arrow">&rarr;</span>
+        <span class="id-seq-pill">${id3}</span>
+      `;
+    }
+
+    if (resetCardTargetPreview) {
+      resetCardTargetPreview.textContent = formatSequentialBookingId(draftPrefix, draftYear, 1);
+    }
+  }
+
+  function syncBookingIdFormFromState(forceOverwrite = false) {
+    if (idConfigFormDirty && !forceOverwrite) {
+      updateBookingIdDraftPreview();
+      return;
+    }
+    if (idConfigPrefixInput) idConfigPrefixInput.value = bookingIdConfigState.prefix;
+    if (idConfigYearInput)   idConfigYearInput.value   = bookingIdConfigState.year;
+    if (idConfigNextSeqInput) idConfigNextSeqInput.value = String(bookingIdConfigState.nextSequence);
+    idConfigFormDirty = false;
+    updateBookingIdDraftPreview();
+  }
+
+  function listenBookingIdConfig() {
+    const configRef = db.collection(BOOKING_ID_SETTINGS_COLLECTION).doc(BOOKING_ID_SETTINGS_DOC);
+
+    configRef.onSnapshot(async (docSnap) => {
+      if (!docSnap.exists) {
+        const seedYear = String(new Date().getFullYear() || DEFAULT_BOOKING_ID_YEAR);
+        try {
+          await configRef.set({
+            prefix: DEFAULT_BOOKING_ID_PREFIX,
+            year: seedYear,
+            nextSequence: 1,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          return;
+        } catch (seedErr) {
+          console.warn('Could not seed settings/bookingId yet (check firestore.rules):', seedErr);
+        }
+      } else {
+        const data = docSnap.data() || {};
+        const parsedSeq = Number(data.nextSequence);
+        bookingIdConfigState = {
+          prefix: sanitizeIdSegment(data.prefix) || DEFAULT_BOOKING_ID_PREFIX,
+          year: sanitizeIdSegment(data.year) || DEFAULT_BOOKING_ID_YEAR,
+          nextSequence: (Number.isFinite(parsedSeq) && parsedSeq >= 1) ? Math.floor(parsedSeq) : 1
+        };
+      }
+
+      updateActiveBookingIdBadges();
+      syncBookingIdFormFromState(false);
+    }, (err) => {
+      console.warn('Booking ID config listener error (publish updated firestore.rules if permission-denied):', err);
+      updateActiveBookingIdBadges();
+      syncBookingIdFormFromState(false);
+    });
+  }
+
+  // Input listeners for live preview & uppercase formatting
+  if (idConfigPrefixInput) {
+    idConfigPrefixInput.addEventListener('input', () => {
+      const cleaned = idConfigPrefixInput.value.toUpperCase().replace(/[^A-Z0-9-]+/g, '');
+      if (idConfigPrefixInput.value !== cleaned) idConfigPrefixInput.value = cleaned;
+      idConfigFormDirty = true;
+      updateBookingIdDraftPreview();
+    });
+  }
+
+  if (idConfigYearInput) {
+    idConfigYearInput.addEventListener('input', () => {
+      const cleaned = idConfigYearInput.value.toUpperCase().replace(/[^A-Z0-9-]+/g, '');
+      if (idConfigYearInput.value !== cleaned) idConfigYearInput.value = cleaned;
+      idConfigFormDirty = true;
+      updateBookingIdDraftPreview();
+    });
+  }
+
+  if (idConfigNextSeqInput) {
+    idConfigNextSeqInput.addEventListener('keydown', (e) => {
+      if (['+', '-', 'e', 'E', '.', ','].includes(e.key)) e.preventDefault();
+    });
+    idConfigNextSeqInput.addEventListener('input', () => {
+      idConfigFormDirty = true;
+      updateBookingIdDraftPreview();
+    });
+  }
+
+  if (useCurrentYearBtn && idConfigYearInput) {
+    useCurrentYearBtn.addEventListener('click', () => {
+      idConfigYearInput.value = String(new Date().getFullYear());
+      idConfigFormDirty = true;
+      updateBookingIdDraftPreview();
+    });
+  }
+
+  if (revertIdConfigBtn) {
+    revertIdConfigBtn.addEventListener('click', () => {
+      syncBookingIdFormFromState(true);
+      showToast('info', 'Edits Reverted', 'Form restored to the active Booking ID settings.');
+    });
+  }
+
+  // Save customized Booking ID settings
+  if (bookingIdConfigForm) {
+    bookingIdConfigForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const prefix = sanitizeIdSegment(idConfigPrefixInput ? idConfigPrefixInput.value : '');
+      const year   = sanitizeIdSegment(idConfigYearInput ? idConfigYearInput.value : '');
+      const rawSeq = idConfigNextSeqInput ? parseInt(idConfigNextSeqInput.value, 10) : NaN;
+
+      if (!prefix) {
+        alert('Please enter a valid ID Prefix (e.g. SIC).');
+        if (idConfigPrefixInput) idConfigPrefixInput.focus();
+        return;
+      }
+      if (!year) {
+        alert('Please enter a valid Year / Segment (e.g. 2026 or 2027).');
+        if (idConfigYearInput) idConfigYearInput.focus();
+        return;
+      }
+      if (!Number.isFinite(rawSeq) || rawSeq < 1) {
+        alert('Next Sequence Number must be a whole number starting from 1 (001) or higher.');
+        if (idConfigNextSeqInput) idConfigNextSeqInput.focus();
+        return;
+      }
+
+      const nextSequence = Math.floor(rawSeq);
+      if (saveIdConfigBtn) {
+        saveIdConfigBtn.innerHTML = '<span class="spinner"></span> Saving...';
+        saveIdConfigBtn.classList.add('loading');
+        saveIdConfigBtn.disabled = true;
+      }
+
+      try {
+        await db.collection(BOOKING_ID_SETTINGS_COLLECTION).doc(BOOKING_ID_SETTINGS_DOC).set({
+          prefix: prefix,
+          year: year,
+          nextSequence: nextSequence,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        bookingIdConfigState = { prefix, year, nextSequence };
+        idConfigFormDirty = false;
+        updateActiveBookingIdBadges();
+        syncBookingIdFormFromState(true);
+
+        const nextFormatted = formatSequentialBookingId(prefix, year, nextSequence);
+        showToast('success', 'Booking ID Settings Saved', `Upcoming reservations will start at ${nextFormatted}.`);
+      } catch (err) {
+        console.error('Failed to save Booking ID settings:', err);
+        if (err && err.code === 'permission-denied') {
+          showToast('error', 'Firestore Rules Needed', 'Publish the updated firestore.rules (settings/bookingId) in Firebase Console, then try again.');
+        } else {
+          showToast('error', 'Error', 'Failed to save Booking ID settings.');
+        }
+      } finally {
+        if (saveIdConfigBtn) {
+          saveIdConfigBtn.innerHTML = 'Save ID Settings';
+          saveIdConfigBtn.classList.remove('loading');
+          saveIdConfigBtn.disabled = false;
+        }
+      }
+    });
+  }
+
+  // Open Reset-to-001 Confirmation Modal
+  if (resetCounterToOneBtn) {
+    resetCounterToOneBtn.addEventListener('click', () => {
+      const targetPrefix = sanitizeIdSegment(idConfigPrefixInput ? idConfigPrefixInput.value : '') || bookingIdConfigState.prefix;
+      const targetYear   = sanitizeIdSegment(idConfigYearInput ? idConfigYearInput.value : '') || bookingIdConfigState.year;
+      const previewFirst = formatSequentialBookingId(targetPrefix, targetYear, 1);
+      const seriesPrefix = `${targetPrefix}-${targetYear}-`;
+
+      pendingResetTarget = { prefix: targetPrefix, year: targetYear };
+      if (resetPreviewIdText) resetPreviewIdText.textContent = previewFirst;
+
+      if (resetExistingSeriesWarning) {
+        const matchingCount = allBookings.filter(b =>
+          String(b.referenceId || '').toUpperCase().startsWith(seriesPrefix)
+        ).length;
+
+        if (matchingCount > 0) {
+          resetExistingSeriesWarning.textContent = `Note: ${matchingCount} existing reservation${matchingCount === 1 ? '' : 's'} already use "${seriesPrefix}...". Their issued IDs will remain unchanged.`;
+          resetExistingSeriesWarning.style.display = 'block';
+        } else {
+          resetExistingSeriesWarning.style.display = 'none';
+        }
+      }
+
+      if (resetBookingIdModal) resetBookingIdModal.classList.add('visible');
+    });
+  }
+
+  window.closeResetBookingIdModal = function () {
+    if (resetBookingIdModal) resetBookingIdModal.classList.remove('visible');
+    pendingResetTarget = null;
+  };
+
+  if (resetBookingIdModal) {
+    resetBookingIdModal.addEventListener('click', (e) => {
+      if (e.target === resetBookingIdModal) window.closeResetBookingIdModal();
+    });
+  }
+
+  if (confirmResetBookingIdBtn) {
+    confirmResetBookingIdBtn.addEventListener('click', async () => {
+      const targetPrefix = (pendingResetTarget && pendingResetTarget.prefix) || bookingIdConfigState.prefix;
+      const targetYear   = (pendingResetTarget && pendingResetTarget.year) || bookingIdConfigState.year;
+
+      confirmResetBookingIdBtn.innerHTML = '<span class="spinner"></span> Resetting...';
+      confirmResetBookingIdBtn.classList.add('loading');
+      confirmResetBookingIdBtn.disabled = true;
+
+      try {
+        await db.collection(BOOKING_ID_SETTINGS_COLLECTION).doc(BOOKING_ID_SETTINGS_DOC).set({
+          prefix: targetPrefix,
+          year: targetYear,
+          nextSequence: 1,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        bookingIdConfigState = {
+          prefix: targetPrefix,
+          year: targetYear,
+          nextSequence: 1
+        };
+        idConfigFormDirty = false;
+        updateActiveBookingIdBadges();
+        syncBookingIdFormFromState(true);
+
+        const resetId = formatSequentialBookingId(targetPrefix, targetYear, 1);
+        window.closeResetBookingIdModal();
+        showToast('success', 'Counter Reset to 001', `The next reservation submitted will be assigned ${resetId}.`);
+      } catch (err) {
+        console.error('Failed to reset Booking ID counter:', err);
+        if (err && err.code === 'permission-denied') {
+          showToast('error', 'Firestore Rules Needed', 'Publish the updated firestore.rules (settings/bookingId) in Firebase Console, then try again.');
+        } else {
+          showToast('error', 'Error', 'Failed to reset Booking ID counter.');
+        }
+      } finally {
+        confirmResetBookingIdBtn.innerHTML = 'Reset to 001';
+        confirmResetBookingIdBtn.classList.remove('loading');
+        confirmResetBookingIdBtn.disabled = false;
       }
     });
   }

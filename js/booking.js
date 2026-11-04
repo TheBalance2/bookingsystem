@@ -30,8 +30,11 @@
     console.warn('EmailJS not loaded or not configured:', e);
   }
 
-  // Store last generated PDF for download button
-  let lastGeneratedPdf = null;
+  // Store last generated PDFs and booking payloads for reliable re-download
+  let lastExternalPdfDoc  = null;
+  let lastExternalPdfData = null;
+  let lastInternalPdfDoc  = null;
+  let lastInternalPdfData = null;
 
   // Value of the special "Vehicle" choice in the internal Facility dropdown
   const VEHICLE_OPTION = 'Vehicle';
@@ -250,11 +253,79 @@
     if (parts.length < 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return NaN;
     return parts[0] * 60 + parts[1];
   }
-  function generateRefId() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let id = 'SIC-';
-    for (let i = 0; i < 8; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
-    return id;
+  // ============================================================
+  // SEQUENTIAL BOOKING ID CONFIGURATION & TRANSACTION
+  // ============================================================
+  const BOOKING_ID_SETTINGS_COLLECTION = 'settings';
+  const BOOKING_ID_SETTINGS_DOC        = 'bookingId';
+  const DEFAULT_BOOKING_ID_PREFIX      = 'SIC';
+  const DEFAULT_BOOKING_ID_YEAR        = '2026';
+
+  function formatSequentialBookingId(prefix, year, seq) {
+    const cleanPrefix = String(prefix || DEFAULT_BOOKING_ID_PREFIX).trim().toUpperCase() || DEFAULT_BOOKING_ID_PREFIX;
+    const cleanYear   = String(year || DEFAULT_BOOKING_ID_YEAR).trim() || DEFAULT_BOOKING_ID_YEAR;
+    const parsedSeq   = Number(seq);
+    const cleanSeq    = (Number.isFinite(parsedSeq) && parsedSeq >= 1) ? Math.floor(parsedSeq) : 1;
+    return `${cleanPrefix}-${cleanYear}-${String(cleanSeq).padStart(3, '0')}`;
+  }
+
+  // Keep receipt upload Reference ID placeholder synced with current admin ID format
+  function syncReceiptRefPlaceholder() {
+    const receiptRefInput = document.getElementById('receiptRefId');
+    if (!receiptRefInput) return;
+    db.collection(BOOKING_ID_SETTINGS_COLLECTION)
+      .doc(BOOKING_ID_SETTINGS_DOC)
+      .get()
+      .then(docSnap => {
+        if (!docSnap.exists) return;
+        const cfg = docSnap.data() || {};
+        receiptRefInput.placeholder = `e.g. ${formatSequentialBookingId(cfg.prefix, cfg.year, 1)}`;
+      })
+      .catch(() => {
+        // Keep static HTML placeholder as fallback
+      });
+  }
+  syncReceiptRefPlaceholder();
+
+  // Atomically allocate the next sequential ID (e.g. SIC-2026-001) and create the booking doc
+  async function createBookingWithSequentialId(bookingPayload) {
+    const configRef = db.collection(BOOKING_ID_SETTINGS_COLLECTION).doc(BOOKING_ID_SETTINGS_DOC);
+    const newBookingRef = db.collection('bookings').doc();
+
+    return db.runTransaction(async (transaction) => {
+      const configSnap = await transaction.get(configRef);
+      let prefix = DEFAULT_BOOKING_ID_PREFIX;
+      let year   = String(new Date().getFullYear() || DEFAULT_BOOKING_ID_YEAR);
+      let seq    = 1;
+
+      if (configSnap.exists) {
+        const cfg = configSnap.data() || {};
+        prefix = String(cfg.prefix || DEFAULT_BOOKING_ID_PREFIX).trim().toUpperCase() || DEFAULT_BOOKING_ID_PREFIX;
+        year   = String(cfg.year || year).trim() || year;
+        const parsedSeq = Number(cfg.nextSequence);
+        seq = (Number.isFinite(parsedSeq) && parsedSeq >= 1) ? Math.floor(parsedSeq) : 1;
+
+        transaction.update(configRef, {
+          nextSequence: seq + 1,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } else {
+        transaction.set(configRef, {
+          prefix: prefix,
+          year: year,
+          nextSequence: 2,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+
+      const refId = formatSequentialBookingId(prefix, year, seq);
+      transaction.set(newBookingRef, {
+        ...bookingPayload,
+        referenceId: refId
+      });
+
+      return refId;
+    });
   }
 
   function isValidEmail(email) {
@@ -649,8 +720,8 @@
     stripNonDigitsInput(el);
   });
 
-  // Automatically uppercase name inputs as the user types (keeps caret position)
-  ['intFirstName', 'intLastName', 'intMiddleInitial', 'extFirstName', 'extLastName', 'extMiddleInitial'].forEach(id => {
+  // Automatically uppercase name and reference ID inputs as the user types (keeps caret position)
+  ['intFirstName', 'intLastName', 'intMiddleInitial', 'extFirstName', 'extLastName', 'extMiddleInitial', 'receiptRefId'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', () => {
@@ -1068,12 +1139,11 @@
       btn.innerHTML = '<span class="spinner"></span> Submitting...';
       btn.classList.add('loading');
 
-      const refId = generateRefId();
       const combinedName = formatCombinedName(lastName, firstName, middleInitial);
       const filingDateStr = formatFilingDate(new Date());
 
       try {
-        await db.collection('bookings').add({
+        const refId = await createBookingWithSequentialId({
           userType:         'Internal',
           firstName:        firstName,
           lastName:         lastName,
@@ -1098,7 +1168,6 @@
           considerations:   considerations,
           dateSubmitted:    filingDateStr,
           status:           'Pending',
-          referenceId:      refId,
           createdAt:        firebase.firestore.FieldValue.serverTimestamp()
         });
 
@@ -1134,7 +1203,11 @@
         intForm.reset();
       } catch (err) {
         console.error('Submission error:', err);
-        alert('Failed to submit reservation. Please make sure Firebase is configured correctly.');
+        if (err && err.code === 'permission-denied') {
+          alert('Failed to submit reservation due to Firestore permissions. Please make sure the updated firestore.rules (settings/bookingId) has been published in Firebase Console.');
+        } else {
+          alert('Failed to submit reservation. Please make sure Firebase is configured correctly.');
+        }
       } finally {
         btn.innerHTML = 'Submit Reservation';
         btn.classList.remove('loading');
@@ -1209,13 +1282,12 @@
       btn.innerHTML = '<span class="spinner"></span> Submitting...';
       btn.classList.add('loading');
 
-      const refId = generateRefId();
       const combinedName = formatCombinedName(lastName, firstName, middleInitial);
       const combinedOrg = `${agencyName} - ${officeName}`;
       const filingDateStr = formatFilingDate(new Date());
 
       try {
-        await db.collection('bookings').add({
+        const refId = await createBookingWithSequentialId({
           userType:      'External',
           firstName:     firstName,
           lastName:      lastName,
@@ -1244,7 +1316,6 @@
           considerations:considerations,
           dateSubmitted: filingDateStr,
           status:        'Pending Payment',
-          referenceId:   refId,
           createdAt:     firebase.firestore.FieldValue.serverTimestamp()
         });
 
@@ -1279,7 +1350,11 @@
         extForm.reset();
       } catch (err) {
         console.error('Submission error:', err);
-        alert('Failed to submit reservation. Please make sure Firebase is configured correctly.');
+        if (err && err.code === 'permission-denied') {
+          alert('Failed to submit reservation due to Firestore permissions. Please make sure the updated firestore.rules (settings/bookingId) has been published in Firebase Console.');
+        } else {
+          alert('Failed to submit reservation. Please make sure Firebase is configured correctly.');
+        }
       } finally {
         btn.innerHTML = 'Submit Reservation';
         btn.classList.remove('loading');
@@ -1291,6 +1366,8 @@
   // PDF GENERATION (jsPDF)
   // ============================================================
   function generateBookingPDF(data) {
+    lastExternalPdfDoc  = null;
+    lastExternalPdfData = data;
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
 
@@ -1327,7 +1404,7 @@
     doc.setFont('helvetica', 'normal');
     doc.text('City of Malaybalay', 105, startY + 7, { align: 'center' });
     
-    doc.text('RUF-EU Control No.: ' + data.referenceId, 140, startY);
+    doc.text('RUF-EU Control No.: ' + (data.referenceId || ''), 195, startY, { align: 'right' });
     
     let y = startY + 25;
     
@@ -1504,16 +1581,19 @@
     const noteLines = doc.splitTextToSize(noteText, 170);
     doc.text(noteLines, 20, 34);
     
-    lastGeneratedPdf = doc;
+    lastExternalPdfDoc = doc;
     doc.save('SIC_Booking_' + data.referenceId + '.pdf');
   }
 
   // Download PDF button handler
   if (downloadPdfBtn) {
     downloadPdfBtn.addEventListener('click', () => {
-      if (lastGeneratedPdf) {
-        const refId = extBookingRefId ? extBookingRefId.textContent : 'booking';
-        lastGeneratedPdf.save('SIC_Booking_' + refId + '.pdf');
+      const refId = (lastExternalPdfData && lastExternalPdfData.referenceId)
+        || (extBookingRefId ? extBookingRefId.textContent : 'booking');
+      if (lastExternalPdfDoc) {
+        lastExternalPdfDoc.save('SIC_Booking_' + refId + '.pdf');
+      } else if (lastExternalPdfData) {
+        generateBookingPDF(lastExternalPdfData);
       }
     });
   }
@@ -1521,9 +1601,12 @@
   const downloadInternalPdfBtn = document.getElementById('downloadInternalPdfBtn');
   if (downloadInternalPdfBtn) {
     downloadInternalPdfBtn.addEventListener('click', () => {
-      if (lastGeneratedPdf) {
-        const refId = bookingRefId ? bookingRefId.textContent : 'booking';
-        lastGeneratedPdf.save('SIC_Internal_Booking_' + refId + '.pdf');
+      const refId = (lastInternalPdfData && lastInternalPdfData.referenceId)
+        || (bookingRefId ? bookingRefId.textContent : 'booking');
+      if (lastInternalPdfDoc) {
+        lastInternalPdfDoc.save('SIC_Internal_Booking_' + refId + '.pdf');
+      } else if (lastInternalPdfData) {
+        generateInternalBookingPDF(lastInternalPdfData);
       }
     });
   }
@@ -1532,6 +1615,8 @@
   // INTERNAL PDF GENERATION (jsPDF)
   // ============================================================
   function generateInternalBookingPDF(data) {
+    lastInternalPdfDoc  = null;
+    lastInternalPdfData = data;
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     
@@ -1562,7 +1647,7 @@
     
     drawInternalFormCopy(doc, data, logoImg, 155);
     
-    lastGeneratedPdf = doc;
+    lastInternalPdfDoc = doc;
     doc.save('SIC_Internal_Booking_' + data.referenceId + '.pdf');
   }
 
@@ -1576,7 +1661,7 @@
     doc.setFont('helvetica', 'normal');
     doc.text('City of Malaybalay', 105, startY + 9, { align: 'center' });
     
-    doc.text('RFUFVE Control No. ' + data.referenceId, 150, startY + 7);
+    doc.text('RFUFVE Control No.: ' + (data.referenceId || ''), 195, startY + 7, { align: 'right' });
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
@@ -1775,7 +1860,7 @@
         if (el) el.classList.remove('visible');
       });
 
-      const refId = document.getElementById('receiptRefId').value.trim();
+      const refId = document.getElementById('receiptRefId').value.trim().toUpperCase();
       const email = document.getElementById('receiptEmail').value.trim();
       const file  = receiptFileInput ? receiptFileInput.files[0] : null;
 
@@ -1812,7 +1897,25 @@
           return;
         }
 
-        const bookingDoc = snapshot.docs[0];
+        // If counter was reset and multiple records share (referenceId, email),
+        // prefer a booking awaiting payment ("Pending Payment"), then newest createdAt.
+        const getDocCreatedMs = (docSnap) => {
+          const ts = docSnap.data()?.createdAt;
+          if (!ts) return 0;
+          if (typeof ts.toMillis === 'function') return ts.toMillis();
+          if (typeof ts.seconds === 'number') return ts.seconds * 1000;
+          const parsed = new Date(ts).getTime();
+          return Number.isNaN(parsed) ? 0 : parsed;
+        };
+
+        const sortedDocs = snapshot.docs.slice().sort((a, b) => {
+          const aPending = a.data()?.status === 'Pending Payment' ? 1 : 0;
+          const bPending = b.data()?.status === 'Pending Payment' ? 1 : 0;
+          if (aPending !== bPending) return bPending - aPending;
+          return getDocCreatedMs(b) - getDocCreatedMs(a);
+        });
+
+        const bookingDoc = sortedDocs[0];
         const bookingData = bookingDoc.data();
 
         if (bookingData.status !== 'Pending Payment') {

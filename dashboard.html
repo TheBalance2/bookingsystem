@@ -7,7 +7,7 @@
   <title>Admin Dashboard — San Isidro College</title>
   <link rel="stylesheet" href="css/core.css?v=2">
   <link rel="stylesheet" href="css/components.css?v=2">
-  <link rel="stylesheet" href="css/admin.css?v=3">
+  <link rel="stylesheet" href="css/admin.css?v=4">
   <link rel="stylesheet" href="css/responsive.css?v=3">
 </head>
 <body>
@@ -62,6 +62,10 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             Reports
           </a>
+          <a href="#" class="sidebar-link" id="sidebarIdSettings" data-view="idSettings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+            Booking ID Settings
+          </a>
         </div>
       </nav>
 
@@ -92,6 +96,12 @@
           </div>
         </div>
         <div class="admin-info" style="display: flex; gap: 15px; align-items: center;">
+          <button type="button" class="btn-topbar-id-settings" id="openIdSettingsBtn" title="Customize or reset sequential Booking IDs">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+            <span class="id-btn-label">Next ID:</span>
+            <strong id="topbarNextBookingId">SIC-2026-001</strong>
+          </button>
+
           <button class="btn btn-primary btn-sm" id="specialBookingBtn" style="background-color: var(--warning); color: #fff; border: none; font-weight: 500;">
             Special Booking
           </button>
@@ -254,6 +264,8 @@
               <option value="submitted_asc">Oldest Submitted</option>
               <option value="event_asc">Upcoming Event Date</option>
               <option value="event_desc">Latest Event Date</option>
+              <option value="ref_asc">Booking ID (001 &rarr; 999)</option>
+              <option value="ref_desc">Booking ID (999 &rarr; 001)</option>
             </select>
           </div>
         </div>
@@ -453,6 +465,109 @@
           <div class="empty-state" id="reportEmptyState" style="display:none;">
             <h3>No approved bookings found</h3>
             <p>There are no approved bookings matching the selected filters.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           BOOKING ID SETTINGS SECTION (hidden by default)
+           ============================================================ -->
+      <div id="idSettingsSection" style="display:none;">
+        <div class="facility-mgmt-header">
+          <div>
+            <h2 class="facility-mgmt-title">Booking ID Settings</h2>
+            <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Customize the sequential reservation ID format or reset the counter back to 001</p>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" onclick="switchToBookingsView()">
+            &larr; Back to Bookings
+          </button>
+        </div>
+
+        <!-- Live Next ID Banner -->
+        <div class="id-settings-banner">
+          <div class="id-settings-banner-main">
+            <span class="id-settings-eyebrow">Active Next Booking ID</span>
+            <div class="id-settings-current-code" id="activeNextBookingIdDisplay">SIC-2026-001</div>
+            <p class="id-settings-banner-sub">
+              Assigned sequentially across all new <strong>Internal</strong>, <strong>External</strong>, and <strong>Special</strong> bookings (001, 002, 003&hellip;). Downloadable PDF <em>Control Numbers</em> automatically match this ID.
+            </p>
+          </div>
+          <div class="id-settings-banner-preview" id="draftPreviewBox">
+            <span class="id-settings-preview-label">Form Preview (Next 3 IDs)</span>
+            <div class="id-settings-sequence-pills" id="idSequencePreviewPills">
+              <span class="id-seq-pill primary">SIC-2026-001</span>
+              <span class="id-seq-arrow">&rarr;</span>
+              <span class="id-seq-pill">SIC-2026-002</span>
+              <span class="id-seq-arrow">&rarr;</span>
+              <span class="id-seq-pill">SIC-2026-003</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Two-Column Settings Cards -->
+        <div class="id-settings-grid">
+          <!-- Card 1: Customize Prefix, Year & Sequence -->
+          <div class="id-settings-card">
+            <div class="id-settings-card-header">
+              <h3>Customize ID Format</h3>
+              <p>Update the prefix, year (e.g., for 2027), or starting number for upcoming reservations.</p>
+            </div>
+
+            <form id="bookingIdConfigForm" novalidate>
+              <div class="form-grid" style="gap:var(--space-md);">
+                <div class="form-group">
+                  <label for="idConfigPrefix">ID Prefix <span class="required">*</span></label>
+                  <input type="text" id="idConfigPrefix" class="input-uppercase" autocapitalize="characters" maxlength="12" placeholder="e.g. SIC" value="SIC" required>
+                  <small class="id-field-hint">Uppercase letters/numbers before the year (default: SIC)</small>
+                </div>
+
+                <div class="form-group">
+                  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <label for="idConfigYear" style="margin-bottom:0;">Year / Segment <span class="required">*</span></label>
+                    <button type="button" class="id-inline-link-btn" id="useCurrentYearBtn">Use Current Year</button>
+                  </div>
+                  <input type="text" id="idConfigYear" maxlength="10" placeholder="e.g. 2026" value="2026" required>
+                  <small class="id-field-hint">Change this when transitioning to a new year (e.g., 2027)</small>
+                </div>
+
+                <div class="form-group full-width">
+                  <label for="idConfigNextSeq">Next Sequence Number <span class="required">*</span></label>
+                  <input type="number" id="idConfigNextSeq" min="1" step="1" placeholder="e.g. 1" value="1" required>
+                  <small class="id-field-hint">Numbers from 1–999 are zero-padded to 3 digits (1 &rarr; 001, 2 &rarr; 002). Existing bookings keep their already-issued IDs.</small>
+                </div>
+              </div>
+
+              <div class="form-actions" style="margin-top:var(--space-lg); display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="submit" class="btn btn-primary btn-sm" id="saveIdConfigBtn">
+                  Save ID Settings
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" id="revertIdConfigBtn">
+                  Revert Edits
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Card 2: Quick Reset to 001 -->
+          <div class="id-settings-card id-reset-card">
+            <div class="id-settings-card-header">
+              <h3>Reset Counter to 001</h3>
+              <p>Start numbering back from the first booking (<strong>001</strong>) at any time.</p>
+            </div>
+
+            <div class="id-reset-info-box">
+              <ul class="id-reset-list">
+                <li>Resets the next booking number back to <strong>001</strong> using the Prefix and Year in the form (<strong id="resetCardTargetPreview">SIC-2026-001</strong>).</li>
+                <li>Existing bookings in Firestore keep their already-issued Reference IDs untouched.</li>
+                <li>All subsequent Internal, External, and Special bookings will continue from <strong>001</strong>, <strong>002</strong>, <strong>003</strong>, and so on.</li>
+              </ul>
+            </div>
+
+            <div class="id-reset-actions">
+              <button type="button" class="btn btn-danger btn-sm" id="resetCounterToOneBtn">
+                Reset Counter to 001
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -789,6 +904,22 @@
   </div>
 
   <!-- ============================================================
+       CONFIRM RESET BOOKING ID MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="resetBookingIdModal">
+    <div class="modal" style="max-width:460px;">
+      <h2>Reset Booking Counter to 001?</h2>
+      <p>The next reservation submitted will be assigned <strong id="resetPreviewIdText">SIC-2026-001</strong>, followed by 002, 003, and so on.</p>
+      <p style="font-size:0.84rem; color:var(--gray-400); margin-top:var(--space-xs);">Existing reservations in the database will keep their already-issued IDs.</p>
+      <div id="resetExistingSeriesWarning" class="id-reset-modal-warning" style="display:none;"></div>
+      <div style="display:flex; gap:var(--space-sm); justify-content:center; margin-top:var(--space-md);">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeResetBookingIdModal()">Cancel</button>
+        <button type="button" class="btn btn-danger btn-sm" id="confirmResetBookingIdBtn">Reset to 001</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        TOAST CONTAINER
        ============================================================ -->
   <div class="toast-container" id="toastContainer"></div>
@@ -808,7 +939,7 @@
 
   <script src="js/firebase-config.js"></script>
   <script src="js/notifications.js?v=1"></script>
-  <script src="js/admin.js?v=5"></script>
+  <script src="js/admin.js?v=6"></script>
   <script src="js/reports.js?v=2"></script>
 </body>
 </html>

@@ -83,5 +83,35 @@ service cloud.firestore {
                     && request.resource.data.imageData is string;
       allow update, delete: if isAdmin();
     }
+
+    // ============================================================
+    // SETTINGS — Sequential Booking ID Configuration & Counter
+    // ============================================================
+    match /settings/bookingId {
+      allow read: if true;
+
+      // Admin can initialize anytime; first public booking during working
+      // hours can auto-seed default config (SIC-<year>, nextSequence = 2).
+      allow create: if isAdmin()
+                    || (
+                      isWorkingHours()
+                      && request.resource.data.keys().hasOnly(['prefix', 'year', 'nextSequence', 'updatedAt'])
+                      && request.resource.data.prefix == 'SIC'
+                      && request.resource.data.year is string
+                      && request.resource.data.nextSequence == 2
+                    );
+
+      // Admin can customize prefix/year or reset counter anytime.
+      // Public users during working hours can ONLY increment nextSequence by +1.
+      allow update: if isAdmin()
+                    || (
+                      isWorkingHours()
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['nextSequence', 'updatedAt'])
+                      && request.resource.data.nextSequence == resource.data.nextSequence + 1
+                    );
+
+      allow delete: if isAdmin();
+    }
   }
 }

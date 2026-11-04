@@ -1311,6 +1311,241 @@
 }
 
 /* ============================================================
+   BOOKING ID SETTINGS — TOPBAR PILL, BANNER & CARDS
+   ============================================================ */
+.btn-topbar-id-settings {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.42rem 0.85rem;
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--navy);
+  border: 1.5px solid var(--gray-200);
+  font-size: 0.82rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-topbar-id-settings svg {
+  color: var(--gold-dark);
+  flex-shrink: 0;
+}
+
+.btn-topbar-id-settings .id-btn-label {
+  color: var(--gray-400);
+}
+
+.btn-topbar-id-settings strong {
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: 0.3px;
+}
+
+.btn-topbar-id-settings:hover {
+  border-color: var(--gold);
+  background: rgba(212, 168, 67, 0.08);
+  transform: translateY(-1px);
+}
+
+.id-settings-banner {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+  color: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xl);
+  box-shadow: var(--shadow-md);
+  flex-wrap: wrap;
+}
+
+.id-settings-banner-main {
+  flex: 1 1 320px;
+}
+
+.id-settings-eyebrow {
+  display: inline-block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--gold-light);
+  margin-bottom: 4px;
+}
+
+.id-settings-current-code {
+  font-family: var(--font-body);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--white);
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.id-settings-banner-sub {
+  font-size: 0.86rem;
+  color: rgba(255, 255, 255, 0.78);
+  max-width: 560px;
+  line-height: 1.5;
+}
+
+.id-settings-banner-preview {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  min-width: 280px;
+}
+
+.id-settings-preview-label {
+  display: block;
+  font-size: 0.73rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+}
+
+.id-settings-sequence-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.id-seq-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 0.83rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.4px;
+}
+
+.id-seq-pill.primary {
+  background: var(--gold);
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.id-seq-arrow {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+}
+
+.id-settings-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.id-settings-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-100);
+}
+
+.id-settings-card-header {
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.id-settings-card-header h3 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+
+.id-settings-card-header p {
+  font-size: 0.86rem;
+  color: var(--gray-400);
+}
+
+.id-field-hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.78rem;
+  color: var(--gray-400);
+  line-height: 1.4;
+}
+
+.id-inline-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--gold-dark);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.id-inline-link-btn:hover {
+  color: var(--navy);
+}
+
+.id-reset-info-box {
+  background: var(--off-white);
+  border: 1px solid var(--gray-100);
+  border-left: 4px solid var(--gold);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.id-reset-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  font-size: 0.85rem;
+  color: var(--gray-500);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.id-reset-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.id-reset-modal-warning {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--warning-light);
+  border: 1px solid rgba(243, 156, 18, 0.35);
+  color: #8a5a00;
+  font-size: 0.82rem;
+  text-align: left;
+  line-height: 1.45;
+}
+
+@media (max-width: 992px) {
+  .id-settings-grid {
+    grid-template-columns: 1fr;
+  }
+  .btn-topbar-id-settings .id-btn-label {
+    display: none;
+  }
+}
+
+/* ============================================================
    RESPONSIVE — DASHBOARD
    ============================================================ */
 @media (max-width: 992px) {
