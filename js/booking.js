@@ -6,6 +6,8 @@
 (function () {
   'use strict';
 
+  const TESTING_MODE = Boolean(window.SIC_TESTING_MODE);
+
   // ---- DOM References ----
   const toggleBtns     = document.querySelectorAll('.toggle-btn');
   const internalForm   = document.getElementById('internalForm');
@@ -369,10 +371,15 @@
   }
 
   function isAllowedDate(dateStr) {
+    if (!dateStr) return false;
+    const parsed = new Date(dateStr + 'T00:00:00');
+    if (Number.isNaN(parsed.getTime())) return false;
+    if (TESTING_MODE) return true;
+
     const minDate = new Date();
     minDate.setDate(minDate.getDate() + 3);
     minDate.setHours(0, 0, 0, 0);
-    return new Date(dateStr) >= minDate;
+    return parsed >= minDate;
   }
 
   // Positive whole number (no +, -, e, decimals)
@@ -516,7 +523,13 @@
   //  - Multi-day bookings: end time is on the end date, so any time is fine
   function validateSchedule(prefix, startDate, endDate, startTime, endTime) {
     let ok = true;
-    if (!startDate || !isAllowedDate(startDate)) { showError(prefix + 'StartDateError'); ok = false; }
+    if (!startDate) {
+      showError(prefix + 'StartDateError', TESTING_MODE ? 'Please select a start date' : undefined);
+      ok = false;
+    } else if (!isAllowedDate(startDate)) {
+      showError(prefix + 'StartDateError');
+      ok = false;
+    }
 
     if (!endDate) {
       showError(prefix + 'EndDateError', 'Please select an end date');
@@ -630,18 +643,41 @@
     const endEl   = document.getElementById(endId);
     if (!startEl || !endEl) return;
 
-    startEl.setAttribute('min', minDateStr);
-    endEl.setAttribute('min', minDateStr);
+    if (TESTING_MODE) {
+      startEl.removeAttribute('min');
+      if (startEl.value) {
+        endEl.min = startEl.value;
+      } else {
+        endEl.removeAttribute('min');
+      }
+    } else {
+      startEl.setAttribute('min', minDateStr);
+      endEl.setAttribute('min', minDateStr);
+    }
 
     startEl.addEventListener('change', () => {
       if (startEl.value) {
         endEl.min = startEl.value;
         // Default to a same-day booking; never allow end before start
         if (!endEl.value || endEl.value < startEl.value) endEl.value = startEl.value;
+      } else if (TESTING_MODE) {
+        endEl.removeAttribute('min');
       } else {
         endEl.min = minDateStr;
       }
     });
+
+    if (startEl.form) {
+      startEl.form.addEventListener('reset', () => {
+        setTimeout(() => {
+          if (TESTING_MODE) {
+            endEl.removeAttribute('min');
+          } else {
+            endEl.min = minDateStr;
+          }
+        }, 0);
+      });
+    }
   }
   linkDateRange('intStartDate', 'intEndDate');
   linkDateRange('extStartDate', 'extEndDate');
@@ -1064,9 +1100,9 @@
     intForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Form submission time restriction (8 AM - 5 PM)
+      // Form submission time restriction (8 AM - 5 PM), bypassed in testing mode
       const currentHour = new Date().getHours();
-      if (currentHour < 8 || currentHour >= 17) {
+      if (!TESTING_MODE && (currentHour < 8 || currentHour >= 17)) {
         alert('Bookings can only be submitted during working hours (8:00 AM - 5:00 PM).');
         return;
       }
@@ -1222,9 +1258,9 @@
     extForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Form submission time restriction (8 AM - 5 PM)
+      // Form submission time restriction (8 AM - 5 PM), bypassed in testing mode
       const currentHour = new Date().getHours();
-      if (currentHour < 8 || currentHour >= 17) {
+      if (!TESTING_MODE && (currentHour < 8 || currentHour >= 17)) {
         alert('Bookings can only be submitted during working hours (8:00 AM - 5:00 PM).');
         return;
       }

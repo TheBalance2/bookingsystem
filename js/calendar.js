@@ -7,6 +7,8 @@
 (function () {
   'use strict';
 
+  const TESTING_MODE = Boolean(window.SIC_TESTING_MODE);
+
   // Color map for facilities (default, extended dynamically)
   const FACILITY_COLORS_DEFAULT = {
     'Gymnasium':               '#3498db',
@@ -222,14 +224,15 @@
     title.textContent = formattedDate;
 
     // Check if date is in the past or within the 3-day notice period
+    // (bypassed when TESTING_MODE is enabled for seeding/testing)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const isPast = dateObj < today;
+    const isPast = !TESTING_MODE && (dateObj < today);
 
     const minDate = new Date();
     minDate.setDate(minDate.getDate() + 3);
     minDate.setHours(0, 0, 0, 0);
-    const isTooClose = dateObj >= today && dateObj < minDate;
+    const isTooClose = !TESTING_MODE && (dateObj >= today && dateObj < minDate);
 
     // Find bookings on this date (including multi-day ranges)
     const dayBookings = allApprovedBookings.filter(b => {

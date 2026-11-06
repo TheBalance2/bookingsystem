@@ -22,6 +22,13 @@ service cloud.firestore {
       return utcHour >= 0 && utcHour < 9;
     }
 
+    // Testing / Backdate Mode bypass for 24/7 public submissions.
+    // Set to false (and publish rules) after capstone testing/seeding
+    // to restore the 8:00 AM – 5:00 PM PHT submission window.
+    function isTestingMode() {
+      return true;
+    }
+
     // ============================================================
     // FACILITIES
     // ============================================================
@@ -52,10 +59,10 @@ service cloud.firestore {
       allow read: if true;
 
       // Admin can create bookings anytime (Special Booking).
-      // Public can create bookings during working hours with a
-      // valid initial status only.
+      // Public can create bookings during working hours (or when
+      // isTestingMode() is enabled) with a valid initial status only.
       allow create: if isAdmin() 
-                    || (isWorkingHours()
+                    || ((isWorkingHours() || isTestingMode())
                         && request.resource.data.status in ['Pending', 'Pending Payment']);
 
       // Update rules:
@@ -91,10 +98,10 @@ service cloud.firestore {
       allow read: if true;
 
       // Admin can initialize anytime; first public booking during working
-      // hours can auto-seed default config (SIC-<year>, nextSequence = 2).
+      // hours (or testing mode) can auto-seed default config (SIC-<year>, nextSequence = 2).
       allow create: if isAdmin()
                     || (
-                      isWorkingHours()
+                      (isWorkingHours() || isTestingMode())
                       && request.resource.data.keys().hasOnly(['prefix', 'year', 'nextSequence', 'updatedAt'])
                       && request.resource.data.prefix == 'SIC'
                       && request.resource.data.year is string
@@ -102,10 +109,10 @@ service cloud.firestore {
                     );
 
       // Admin can customize prefix/year or reset counter anytime.
-      // Public users during working hours can ONLY increment nextSequence by +1.
+      // Public users during working hours (or testing mode) can ONLY increment nextSequence by +1.
       allow update: if isAdmin()
                     || (
-                      isWorkingHours()
+                      (isWorkingHours() || isTestingMode())
                       && request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['nextSequence', 'updatedAt'])
                       && request.resource.data.nextSequence == resource.data.nextSequence + 1
