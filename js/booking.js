@@ -1365,6 +1365,21 @@
   // ============================================================
   // PDF GENERATION (jsPDF)
   // ============================================================
+  function extractBookingNumber(referenceId) {
+    const cleaned = String(referenceId || '').trim();
+    if (!cleaned || cleaned === '—' || cleaned.toLowerCase() === 'booking') {
+      return '001';
+    }
+    const parts = cleaned.split('-').filter(Boolean);
+    const idPart = parts.length > 0 ? parts[parts.length - 1] : cleaned;
+    return idPart.replace(/[\\/:*?"<>|]+/g, '') || '001';
+  }
+
+  function getBookingPdfFilename(userType, referenceId) {
+    const prefix = userType === 'Internal' ? 'Internal-SIC-' : 'External-SIC-';
+    return `${prefix}${extractBookingNumber(referenceId)}.pdf`;
+  }
+
   function generateBookingPDF(data) {
     lastExternalPdfDoc  = null;
     lastExternalPdfData = data;
@@ -1582,7 +1597,7 @@
     doc.text(noteLines, 20, 34);
     
     lastExternalPdfDoc = doc;
-    doc.save('SIC_Booking_' + data.referenceId + '.pdf');
+    doc.save(getBookingPdfFilename('External', data.referenceId));
   }
 
   // Download PDF button handler
@@ -1591,7 +1606,7 @@
       const refId = (lastExternalPdfData && lastExternalPdfData.referenceId)
         || (extBookingRefId ? extBookingRefId.textContent : 'booking');
       if (lastExternalPdfDoc) {
-        lastExternalPdfDoc.save('SIC_Booking_' + refId + '.pdf');
+        lastExternalPdfDoc.save(getBookingPdfFilename('External', refId));
       } else if (lastExternalPdfData) {
         generateBookingPDF(lastExternalPdfData);
       }
@@ -1604,7 +1619,7 @@
       const refId = (lastInternalPdfData && lastInternalPdfData.referenceId)
         || (bookingRefId ? bookingRefId.textContent : 'booking');
       if (lastInternalPdfDoc) {
-        lastInternalPdfDoc.save('SIC_Internal_Booking_' + refId + '.pdf');
+        lastInternalPdfDoc.save(getBookingPdfFilename('Internal', refId));
       } else if (lastInternalPdfData) {
         generateInternalBookingPDF(lastInternalPdfData);
       }
@@ -1648,7 +1663,7 @@
     drawInternalFormCopy(doc, data, logoImg, 155);
     
     lastInternalPdfDoc = doc;
-    doc.save('SIC_Internal_Booking_' + data.referenceId + '.pdf');
+    doc.save(getBookingPdfFilename('Internal', data.referenceId));
   }
 
   function drawInternalFormCopy(doc, data, logoImg, startY) {
