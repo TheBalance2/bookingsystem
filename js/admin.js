@@ -125,6 +125,9 @@
 
     // Start listening to sequential Booking ID settings
     if (typeof listenBookingIdConfig === 'function') listenBookingIdConfig();
+
+    // Start listening to Internal PDF Signatories settings
+    if (typeof listenSignatoriesConfig === 'function') listenSignatoriesConfig();
   });
 
   // ============================================================
@@ -1179,14 +1182,16 @@
   const bookingsView      = document.querySelector('.dashboard-topbar')?.parentElement ? null : null;
   const facilitiesSection = document.getElementById('facilitiesSection');
   const vehiclesSection   = document.getElementById('vehiclesSection');
-  const reportsSection    = document.getElementById('reportsSection');
-  const idSettingsSection = document.getElementById('idSettingsSection');
-  const sidebarFacilities = document.getElementById('sidebarFacilities');
-  const sidebarVehicles   = document.getElementById('sidebarVehicles');
-  const sidebarReports    = document.getElementById('sidebarReports');
-  const sidebarIdSettings = document.getElementById('sidebarIdSettings');
-  const openIdSettingsBtn = document.getElementById('openIdSettingsBtn');
-  let currentView = 'bookings'; // 'bookings', 'facilities', 'vehicles', 'reports', or 'idSettings'
+  const reportsSection     = document.getElementById('reportsSection');
+  const idSettingsSection  = document.getElementById('idSettingsSection');
+  const signatoriesSection = document.getElementById('signatoriesSection');
+  const sidebarFacilities  = document.getElementById('sidebarFacilities');
+  const sidebarVehicles    = document.getElementById('sidebarVehicles');
+  const sidebarReports     = document.getElementById('sidebarReports');
+  const sidebarIdSettings  = document.getElementById('sidebarIdSettings');
+  const sidebarSignatories = document.getElementById('sidebarSignatories');
+  const openIdSettingsBtn  = document.getElementById('openIdSettingsBtn');
+  let currentView = 'bookings'; // 'bookings', 'facilities', 'vehicles', 'reports', 'idSettings', or 'signatories'
 
   // Elements that belong to bookings view
   const bookingsViewElements = [
@@ -1215,6 +1220,7 @@
     if (vehiclesSection) vehiclesSection.style.display = 'none';
     if (reportsSection) reportsSection.style.display = 'none';
     if (idSettingsSection) idSettingsSection.style.display = 'none';
+    if (signatoriesSection) signatoriesSection.style.display = 'none';
     
     // Remove active state from sidebar links
     sidebarLinks.forEach(l => l.classList.remove('active'));
@@ -1222,6 +1228,7 @@
     if (sidebarVehicles) sidebarVehicles.classList.remove('active');
     if (sidebarReports) sidebarReports.classList.remove('active');
     if (sidebarIdSettings) sidebarIdSettings.classList.remove('active');
+    if (sidebarSignatories) sidebarSignatories.classList.remove('active');
 
     if (view === 'facilities') {
       if (facilitiesSection) facilitiesSection.style.display = 'block';
@@ -1238,6 +1245,10 @@
       if (idSettingsSection) idSettingsSection.style.display = 'block';
       if (sidebarIdSettings) sidebarIdSettings.classList.add('active');
       if (typeof syncBookingIdFormFromState === 'function') syncBookingIdFormFromState(false);
+    } else if (view === 'signatories') {
+      if (signatoriesSection) signatoriesSection.style.display = 'block';
+      if (sidebarSignatories) sidebarSignatories.classList.add('active');
+      if (typeof syncSignatoriesFormFromState === 'function') syncSignatoriesFormFromState(false);
     } else {
       // Show booking elements
       bookingsViewElements.forEach(el => {
@@ -1278,6 +1289,14 @@
     sidebarIdSettings.addEventListener('click', (e) => {
       e.preventDefault();
       switchView('idSettings');
+    });
+  }
+
+  // Sidebar "PDF Signatories" click
+  if (sidebarSignatories) {
+    sidebarSignatories.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchView('signatories');
     });
   }
 
@@ -2589,6 +2608,157 @@
         confirmResetBookingIdBtn.innerHTML = 'Reset to 001';
         confirmResetBookingIdBtn.classList.remove('loading');
         confirmResetBookingIdBtn.disabled = false;
+      }
+    });
+  }
+
+  // ============================================================
+  // INTERNAL PDF SIGNATORIES MANAGEMENT
+  // ============================================================
+  const SIGNATORIES_SETTINGS_DOC = 'signatories';
+
+  let signatoriesState = {
+    facilitiesInCharge: '',
+    comptroller: '',
+    generalAdminCoordinator: ''
+  };
+  let signatoriesFormDirty = false;
+
+  const signatoriesForm             = document.getElementById('signatoriesForm');
+  const sigFacilitiesInChargeInput  = document.getElementById('sigFacilitiesInCharge');
+  const sigComptrollerInput         = document.getElementById('sigComptroller');
+  const sigGeneralAdminInput        = document.getElementById('sigGeneralAdmin');
+  const saveSignatoriesBtn          = document.getElementById('saveSignatoriesBtn');
+  const revertSignatoriesBtn        = document.getElementById('revertSignatoriesBtn');
+  const clearSignatoriesBtn         = document.getElementById('clearSignatoriesBtn');
+  const previewSigFacilitiesEl      = document.getElementById('previewSigFacilitiesInCharge');
+  const previewSigComptrollerEl     = document.getElementById('previewSigComptroller');
+  const previewSigGeneralAdminEl    = document.getElementById('previewSigGeneralAdmin');
+
+  function renderPreviewSignatorySlot(el, value) {
+    if (!el) return;
+    const trimmed = String(value || '').trim();
+    if (trimmed) {
+      el.textContent = trimmed;
+      el.classList.remove('is-placeholder');
+    } else {
+      el.textContent = '(Blank line)';
+      el.classList.add('is-placeholder');
+    }
+  }
+
+  function updateSignatoriesPreview() {
+    const facVal  = sigFacilitiesInChargeInput ? sigFacilitiesInChargeInput.value : signatoriesState.facilitiesInCharge;
+    const compVal = sigComptrollerInput ? sigComptrollerInput.value : signatoriesState.comptroller;
+    const genVal  = sigGeneralAdminInput ? sigGeneralAdminInput.value : signatoriesState.generalAdminCoordinator;
+
+    renderPreviewSignatorySlot(previewSigFacilitiesEl, facVal);
+    renderPreviewSignatorySlot(previewSigComptrollerEl, compVal);
+    renderPreviewSignatorySlot(previewSigGeneralAdminEl, genVal);
+  }
+
+  function syncSignatoriesFormFromState(forceOverwrite = false) {
+    if (signatoriesFormDirty && !forceOverwrite) {
+      updateSignatoriesPreview();
+      return;
+    }
+    if (sigFacilitiesInChargeInput) sigFacilitiesInChargeInput.value = signatoriesState.facilitiesInCharge;
+    if (sigComptrollerInput)        sigComptrollerInput.value        = signatoriesState.comptroller;
+    if (sigGeneralAdminInput)       sigGeneralAdminInput.value       = signatoriesState.generalAdminCoordinator;
+    signatoriesFormDirty = false;
+    updateSignatoriesPreview();
+  }
+
+  function listenSignatoriesConfig() {
+    const sigRef = db.collection(BOOKING_ID_SETTINGS_COLLECTION).doc(SIGNATORIES_SETTINGS_DOC);
+
+    sigRef.onSnapshot((docSnap) => {
+      if (docSnap.exists) {
+        const data = docSnap.data() || {};
+        signatoriesState = {
+          facilitiesInCharge:      String(data.facilitiesInCharge || '').trim(),
+          comptroller:             String(data.comptroller || '').trim(),
+          generalAdminCoordinator: String(data.generalAdminCoordinator || '').trim()
+        };
+      } else {
+        signatoriesState = {
+          facilitiesInCharge: '',
+          comptroller: '',
+          generalAdminCoordinator: ''
+        };
+      }
+      syncSignatoriesFormFromState(false);
+    }, (err) => {
+      console.warn('Signatories config listener error (publish updated firestore.rules if permission-denied):', err);
+      syncSignatoriesFormFromState(false);
+    });
+  }
+
+  [sigFacilitiesInChargeInput, sigComptrollerInput, sigGeneralAdminInput].forEach(inp => {
+    if (!inp) return;
+    inp.addEventListener('input', () => {
+      signatoriesFormDirty = true;
+      updateSignatoriesPreview();
+    });
+  });
+
+  if (revertSignatoriesBtn) {
+    revertSignatoriesBtn.addEventListener('click', () => {
+      syncSignatoriesFormFromState(true);
+      showToast('info', 'Edits Reverted', 'Form restored to the saved PDF signatory names.');
+    });
+  }
+
+  if (clearSignatoriesBtn) {
+    clearSignatoriesBtn.addEventListener('click', () => {
+      if (sigFacilitiesInChargeInput) sigFacilitiesInChargeInput.value = '';
+      if (sigComptrollerInput)        sigComptrollerInput.value        = '';
+      if (sigGeneralAdminInput)       sigGeneralAdminInput.value       = '';
+      signatoriesFormDirty = true;
+      updateSignatoriesPreview();
+      showToast('info', 'Fields Cleared', 'Click "Save Signatories" to apply blank lines to future PDFs.');
+    });
+  }
+
+  if (signatoriesForm) {
+    signatoriesForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const facilitiesInCharge      = String(sigFacilitiesInChargeInput ? sigFacilitiesInChargeInput.value : '').trim();
+      const comptroller             = String(sigComptrollerInput ? sigComptrollerInput.value : '').trim();
+      const generalAdminCoordinator = String(sigGeneralAdminInput ? sigGeneralAdminInput.value : '').trim();
+
+      if (saveSignatoriesBtn) {
+        saveSignatoriesBtn.innerHTML = '<span class="spinner"></span> Saving...';
+        saveSignatoriesBtn.classList.add('loading');
+        saveSignatoriesBtn.disabled = true;
+      }
+
+      try {
+        await db.collection(BOOKING_ID_SETTINGS_COLLECTION).doc(SIGNATORIES_SETTINGS_DOC).set({
+          facilitiesInCharge,
+          comptroller,
+          generalAdminCoordinator,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        signatoriesState = { facilitiesInCharge, comptroller, generalAdminCoordinator };
+        signatoriesFormDirty = false;
+        syncSignatoriesFormFromState(true);
+        showToast('success', 'Signatories Saved', 'Internal Booking PDFs will now print the updated signatory names.');
+      } catch (err) {
+        console.error('Failed to save PDF signatories:', err);
+        if (err && err.code === 'permission-denied') {
+          showToast('error', 'Firestore Rules Needed', 'Publish the updated firestore.rules (settings/signatories) in Firebase Console, then try again.');
+        } else {
+          showToast('error', 'Error', 'Failed to save PDF signatories. Please try again.');
+        }
+      } finally {
+        if (saveSignatoriesBtn) {
+          saveSignatoriesBtn.innerHTML = 'Save Signatories';
+          saveSignatoriesBtn.classList.remove('loading');
+          saveSignatoriesBtn.disabled = false;
+        }
       }
     });
   }

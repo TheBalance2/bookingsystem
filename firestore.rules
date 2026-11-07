@@ -120,5 +120,13 @@ service cloud.firestore {
 
       allow delete: if isAdmin();
     }
+
+    // ============================================================
+    // SETTINGS — Internal Booking PDF Signatories
+    // ============================================================
+    match /settings/signatories {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
   }
 }

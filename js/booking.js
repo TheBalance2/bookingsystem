@@ -289,6 +289,65 @@
   }
   syncReceiptRefPlaceholder();
 
+  // ============================================================
+  // INTERNAL PDF SIGNATORIES CONFIGURATION
+  // ============================================================
+  const SIGNATORIES_SETTINGS_DOC = 'signatories';
+  let internalSignatories = {
+    facilitiesInCharge: '',
+    comptroller: '',
+    generalAdminCoordinator: ''
+  };
+  let signatoriesLoaded = false;
+
+  function applySignatoriesData(raw) {
+    const d = raw || {};
+    internalSignatories = {
+      facilitiesInCharge:      String(d.facilitiesInCharge || '').trim(),
+      comptroller:             String(d.comptroller || '').trim(),
+      generalAdminCoordinator: String(d.generalAdminCoordinator || '').trim()
+    };
+    signatoriesLoaded = true;
+
+    if (lastInternalPdfData) {
+      lastInternalPdfData = {
+        ...lastInternalPdfData,
+        signatories: { ...internalSignatories }
+      };
+      lastInternalPdfDoc = null;
+    }
+  }
+
+  function listenInternalSignatories() {
+    try {
+      db.collection(BOOKING_ID_SETTINGS_COLLECTION)
+        .doc(SIGNATORIES_SETTINGS_DOC)
+        .onSnapshot(
+          (docSnap) => {
+            applySignatoriesData(docSnap.exists ? docSnap.data() : {});
+          },
+          () => {
+            // Keep blank fallback if rules not yet published or offline
+          }
+        );
+    } catch (_) {
+      // Ignore listener setup errors when offline/unconfigured
+    }
+  }
+  listenInternalSignatories();
+
+  function ensureInternalSignatoriesLoaded() {
+    if (signatoriesLoaded) return Promise.resolve(internalSignatories);
+    return db.collection(BOOKING_ID_SETTINGS_COLLECTION)
+      .doc(SIGNATORIES_SETTINGS_DOC)
+      .get()
+      .then((docSnap) => {
+        applySignatoriesData(docSnap.exists ? docSnap.data() : {});
+        return internalSignatories;
+      })
+      .catch(() => internalSignatories);
+  }
+
   // Atomically allocate the next sequential ID (e.g. SIC-2026-001) and create the booking doc
   async function createBookingWithSequentialId(bookingPayload) {
     const configRef = db.collection(BOOKING_ID_SETTINGS_COLLECTION).doc(BOOKING_ID_SETTINGS_DOC);
@@ -1665,9 +1724,7 @@
   // ============================================================
   // INTERNAL PDF GENERATION (jsPDF)
   // ============================================================
-  function generateInternalBookingPDF(data) {
-    lastInternalPdfDoc  = null;
-    lastInternalPdfData = data;
+  function startInternalPdfRender(pdfData) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     
@@ -1677,15 +1734,33 @@
       logoImg.src = 'images/logo.jpg';
 
       logoImg.onload = function() {
-        buildInternalPdfContent(doc, data, logoImg);
+        buildInternalPdfContent(doc, pdfData, logoImg);
       };
       logoImg.onerror = function() {
-        buildInternalPdfContent(doc, data, null);
+        buildInternalPdfContent(doc, pdfData, null);
       };
     } catch (e) {
       console.warn('Could not load logo for PDF:', e);
-      buildInternalPdfContent(doc, data, null);
+      buildInternalPdfContent(doc, pdfData, null);
     }
+  }
+
+  function generateInternalBookingPDF(data) {
+    lastInternalPdfDoc = null;
+
+    if (signatoriesLoaded || (data && data.signatories)) {
+      const pdfData = { ...data, signatories: (data && data.signatories) ? data.signatories : { ...internalSignatories } };
+      lastInternalPdfData = pdfData;
+      startInternalPdfRender(pdfData);
+      return;
+    }
+
+    lastInternalPdfData = data;
+    ensureInternalSignatoriesLoaded().then((sigs) => {
+      const pdfData = { ...data, signatories: { ...sigs } };
+      lastInternalPdfData = pdfData;
+      startInternalPdfRender(pdfData);
+    });
   }
 
   function buildInternalPdfContent(doc, data, logoImg) {
@@ -1700,6 +1775,22 @@
     
     lastInternalPdfDoc = doc;
     doc.save(getBookingPdfFilename('Internal', data.referenceId));
+  }
+
+  function drawSignatoryNameAboveLine(doc, rawName, centerX, lineY, maxWidth) {
+    const name = String(rawName || '').trim();
+    if (!name) return;
+
+    doc.setFont('helvetica', 'bold');
+    let fontSize = 8;
+    doc.setFontSize(fontSize);
+    while (doc.getTextWidth(name) > maxWidth && fontSize > 6) {
+      fontSize -= 0.5;
+      doc.setFontSize(fontSize);
+    }
+    doc.text(name, centerX, lineY - 1.2, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
   }
 
   function drawInternalFormCopy(doc, data, logoImg, startY) {
@@ -1800,6 +1891,8 @@
     doc.text('Other Considerations', 17, y + 40);
     doc.text(doc.splitTextToSize(data.considerations || 'None', 125), 67, y + 40);
     
+    const sigs = (data && data.signatories) ? data.signatories : internalSignatories;
+
     y += 50;
     doc.text('Noted:', 15, y);
     doc.line(25, y + 1, 75, y + 1);
@@ -1809,15 +1902,18 @@
     doc.text('Name & Signature of the Requesting Personnel', 157.5, y + 4, { align: 'center' });
     
     y += 10;
+    drawSignatoryNameAboveLine(doc, sigs.facilitiesInCharge, 157.5, y + 1, 64);
     doc.line(125, y + 1, 190, y + 1);
     doc.text('Facilities In-charge', 157.5, y + 4, { align: 'center' });
     
     y += 10;
     doc.text('Verified:', 15, y);
+    drawSignatoryNameAboveLine(doc, sigs.comptroller, 51.5, y + 1, 46);
     doc.line(28, y + 1, 75, y + 1);
     doc.text('Comptroller', 51.5, y + 4, { align: 'center' });
     
     doc.text('Approved:', 90, y);
+    drawSignatoryNameAboveLine(doc, sigs.generalAdminCoordinator, 140, y + 1, 69);
     doc.line(105, y + 1, 175, y + 1);
     doc.text('General Admin Services Coordinator', 140, y + 4, { align: 'center' });
     
