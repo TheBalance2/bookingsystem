@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Admin Dashboard — Manage facility and equipment reservations at San Isidro College.">
   <title>Admin Dashboard — San Isidro College</title>
+  <!-- Bootstrap 5 Grid & Utilities -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap-grid.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap-utilities.min.css">
+  <!-- Custom Styles -->
   <link rel="stylesheet" href="css/core.css?v=2">
   <link rel="stylesheet" href="css/components.css?v=2">
   <link rel="stylesheet" href="css/admin.css?v=5">
@@ -89,8 +93,8 @@
     <main class="dashboard-main" id="dashboardMain">
 
       <!-- Topbar -->
-      <div class="dashboard-topbar">
-        <div style="display: flex; align-items: center; gap: var(--space-md);">
+      <div class="dashboard-topbar d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center" style="gap: var(--space-md);">
           <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu" style="padding: 0; background: transparent; border: none; cursor: pointer; color: var(--navy);">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
@@ -99,7 +103,7 @@
             <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Manage all facility reservations</p>
           </div>
         </div>
-        <div class="admin-info" style="display: flex; gap: 15px; align-items: center;">
+        <div class="admin-info d-flex align-items-center" style="gap: 15px;">
           <button type="button" class="btn-topbar-id-settings" id="openIdSettingsBtn" title="Customize or reset sequential Booking IDs">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
             <span class="id-btn-label">Next ID:</span>
@@ -145,42 +149,50 @@
         </div>
       </div>
 
-      <!-- Stats -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon pending" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-          <div class="stat-info">
-            <h3 id="statPending">0</h3>
-            <p>Pending</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon approved" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          </div>
-          <div class="stat-info">
-            <h3 id="statApproved">0</h3>
-            <p>Approved</p>
+      <!-- Stats (Bootstrap 5 Responsive Grid) -->
+      <div class="stats-grid row g-3">
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="stat-card h-100">
+            <div class="stat-icon pending" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-info">
+              <h3 id="statPending">0</h3>
+              <p>Pending</p>
+            </div>
           </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-icon rejected" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          </div>
-          <div class="stat-info">
-            <h3 id="statRejected">0</h3>
-            <p>Rejected</p>
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="stat-card h-100">
+            <div class="stat-icon approved" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div class="stat-info">
+              <h3 id="statApproved">0</h3>
+              <p>Approved</p>
+            </div>
           </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-icon total" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="stat-card h-100">
+            <div class="stat-icon rejected" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+            <div class="stat-info">
+              <h3 id="statRejected">0</h3>
+              <p>Rejected</p>
+            </div>
           </div>
-          <div class="stat-info">
-            <h3 id="statTotal">0</h3>
-            <p>Total</p>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="stat-card h-100">
+            <div class="stat-icon total" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <div class="stat-info">
+              <h3 id="statTotal">0</h3>
+              <p>Total</p>
+            </div>
           </div>
         </div>
       </div>
@@ -384,10 +396,10 @@
       </div>
 
       <!-- ============================================================
-           REPORTS SECTION (hidden by default)
+           REPORTS SECTION (Vue.js 3 Reactive App — hidden by default)
            ============================================================ -->
-      <div id="reportsSection" style="display:none;">
-        <div class="facility-mgmt-header">
+      <div id="reportsSection" style="display:none;" v-cloak>
+        <div class="facility-mgmt-header d-flex align-items-center justify-content-between">
           <div>
             <h2 class="facility-mgmt-title">Generate Reports</h2>
             <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Export approved booking records as an Excel report</p>
@@ -399,36 +411,26 @@
           <div class="report-filters-grid">
             <div class="report-filter-group">
               <label for="reportFacility">Facility</label>
-              <select id="reportFacility">
+              <select id="reportFacility" v-model="selectedFacility">
                 <option value="all">All Facilities</option>
-                <!-- Populated dynamically -->
+                <option v-for="f in facilities" :key="f.id" :value="f.name">{{ f.name }}</option>
+                <option value="Vehicle">Vehicle (All)</option>
               </select>
             </div>
             <div class="report-filter-group">
               <label for="reportMonth">Month</label>
-              <select id="reportMonth">
-                <option value="0">January</option>
-                <option value="1">February</option>
-                <option value="2">March</option>
-                <option value="3">April</option>
-                <option value="4">May</option>
-                <option value="5">June</option>
-                <option value="6">July</option>
-                <option value="7">August</option>
-                <option value="8">September</option>
-                <option value="9">October</option>
-                <option value="10">November</option>
-                <option value="11">December</option>
+              <select id="reportMonth" v-model.number="selectedMonth">
+                <option v-for="(m, idx) in MONTHS" :key="idx" :value="idx">{{ m }}</option>
               </select>
             </div>
             <div class="report-filter-group">
               <label for="reportYear">Year</label>
-              <select id="reportYear">
-                <!-- Populated dynamically -->
+              <select id="reportYear" v-model.number="selectedYear">
+                <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
               </select>
             </div>
             <div class="report-filter-group report-filter-action">
-              <button class="btn btn-primary btn-sm" id="generateReportBtn">
+              <button class="btn btn-primary btn-sm" id="generateReportBtn" @click="exportToExcel">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="7 10 12 15 17 10"/>
@@ -441,12 +443,12 @@
         </div>
 
         <!-- Report Preview -->
-        <div class="table-card" id="reportPreviewCard" style="display:none;">
-          <div class="report-preview-header">
-            <h3 id="reportPreviewTitle">Report Preview</h3>
-            <span class="report-record-count" id="reportRecordCount">0 records</span>
+        <div class="table-card" id="reportPreviewCard">
+          <div class="report-preview-header d-flex align-items-center justify-content-between">
+            <h3 id="reportPreviewTitle">{{ previewTitle }}</h3>
+            <span class="report-record-count" id="reportRecordCount">{{ recordCountText }}</span>
           </div>
-          <div class="table-responsive">
+          <div class="table-responsive" v-if="filteredBookings.length > 0">
             <table class="bookings-table" id="reportPreviewTable">
               <thead>
                 <tr>
@@ -462,11 +464,21 @@
                 </tr>
               </thead>
               <tbody id="reportPreviewBody">
-                <!-- Rows inserted dynamically -->
+                <tr v-for="b in filteredBookings" :key="b.id">
+                  <td><strong>{{ b.referenceId || b.id }}</strong></td>
+                  <td>{{ formatDateCell(b) }}</td>
+                  <td>{{ formatFacilityCell(b) }}</td>
+                  <td>{{ b.fullName || '—' }}</td>
+                  <td><span class="type-badge" :class="b.userType === 'Internal' ? 'internal' : 'external'">{{ b.userType }}</span></td>
+                  <td>{{ formatDeptOrg(b) }}</td>
+                  <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ b.purpose || '—' }}</td>
+                  <td>{{ b.numPersons || '—' }}</td>
+                  <td>{{ formatTimeCell(b) }}</td>
+                </tr>
               </tbody>
             </table>
           </div>
-          <div class="empty-state" id="reportEmptyState" style="display:none;">
+          <div class="empty-state" id="reportEmptyState" v-else>
             <h3>No approved bookings found</h3>
             <p>There are no approved bookings matching the selected filters.</p>
           </div>
@@ -1062,7 +1074,7 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- ============================================================
-       SCRIPTS
+       SCRIPTS (Firebase + EmailJS + SheetJS + Vue 3 + MVC Modules)
        ============================================================ -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -1074,9 +1086,38 @@
   <!-- SheetJS for Excel export -->
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
-  <script src="js/firebase-config.js?v=2"></script>
-  <script src="js/notifications.js?v=1"></script>
-  <script src="js/admin.js?v=7"></script>
-  <script src="js/reports.js?v=2"></script>
+  <!-- Vue.js 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
+
+  <!-- MVC Core -->
+  <script src="js/core/firebase-config.js"></script>
+  <script src="js/core/logger.js"></script>
+  <script src="js/core/utils.js"></script>
+
+  <!-- MVC Models -->
+  <script src="js/models/auth-model.js"></script>
+  <script src="js/models/facility-model.js"></script>
+  <script src="js/models/vehicle-model.js"></script>
+  <script src="js/models/settings-model.js"></script>
+  <script src="js/models/booking-model.js"></script>
+
+  <!-- MVC Services -->
+  <script src="js/services/email-service.js"></script>
+  <script src="js/services/notification-service.js"></script>
+
+  <!-- MVC Views -->
+  <script src="js/views/ui-view.js"></script>
+  <script src="js/views/dashboard-view.js"></script>
+  <script src="js/views/admin-crud-view.js"></script>
+
+  <!-- MVC Controllers -->
+  <script src="js/controllers/facility-controller.js"></script>
+  <script src="js/controllers/vehicle-controller.js"></script>
+  <script src="js/controllers/special-booking-controller.js"></script>
+  <script src="js/controllers/settings-controller.js"></script>
+  <script src="js/controllers/dashboard-controller.js"></script>
+
+  <!-- Vue 3 Reports App -->
+  <script src="js/vue-apps/reports-app.js"></script>
 </body>
 </html>

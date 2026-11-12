@@ -259,7 +259,7 @@
 /* ============================================================
    FACILITIES GRID  (Landing Page)
    ============================================================ */
-.facilities-grid {
+.facilities-grid:not(.row) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: var(--space-xl);

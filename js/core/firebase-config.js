@@ -1,5 +1,6 @@
 /* ============================================================
    Firebase Configuration — San Isidro College Reservation System
+   Core Layer (js/core/firebase-config.js)
    ============================================================
 */
 
@@ -18,17 +19,17 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 // Export references
-const db      = firebase.firestore();
-const auth    = typeof firebase.auth === 'function' ? firebase.auth() : null;
+const db   = firebase.firestore();
+const auth = typeof firebase.auth === 'function' ? firebase.auth() : null;
 
 /* ============================================================
    EmailJS Configuration
    ============================================================
 */
-const EMAILJS_SERVICE_ID  = 'service_pmf8j3d';
+const EMAILJS_SERVICE_ID       = 'service_pmf8j3d';
 const EMAILJS_TEMPLATE_APPROVE = 'template_ic20gzn';
 const EMAILJS_TEMPLATE_REJECT  = 'template_yvtx6w1';
-const EMAILJS_PUBLIC_KEY  = 'F8JH_3_axvY590HuC';
+const EMAILJS_PUBLIC_KEY       = 'F8JH_3_axvY590HuC';
 
 /* ============================================================
    Testing / Backdate Mode Flag
@@ -41,3 +42,4 @@ const EMAILJS_PUBLIC_KEY  = 'F8JH_3_axvY590HuC';
    ============================================================
 */
 window.SIC_TESTING_MODE = true;
+

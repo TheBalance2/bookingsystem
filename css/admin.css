@@ -382,10 +382,13 @@
 
 /* Stats cards */
 .stats-grid {
+  margin-bottom: var(--space-xl);
+}
+
+.stats-grid:not(.row) {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--space-lg);
-  margin-bottom: var(--space-xl);
 }
 
 .stat-card {

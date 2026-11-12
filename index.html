@@ -6,14 +6,15 @@
   <meta name="description" content="San Isidro College Digital Reservation System — Book school facilities and equipment online. View real-time availability on our interactive calendar.">
   <title>Digital Reservation System — San Isidro College</title>
 
+  <!-- Bootstrap 5 Grid & Utilities -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap-grid.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap-utilities.min.css">
+
   <!-- Styles -->
   <link rel="stylesheet" href="css/core.css?v=2">
   <link rel="stylesheet" href="css/layout.css?v=2">
   <link rel="stylesheet" href="css/components.css?v=2">
   <link rel="stylesheet" href="css/landing.css?v=2">
-
-  <!-- FullCalendar CDN -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
   <link rel="stylesheet" href="css/responsive.css?v=2">
 </head>
 <body>
@@ -22,8 +23,8 @@
        NAVIGATION
        ============================================================ -->
   <nav class="navbar" id="navbar">
-    <div class="nav-content">
-      <a href="index.html" class="nav-brand">
+    <div class="nav-content d-flex align-items-center justify-content-between">
+      <a href="index.html" class="nav-brand d-flex align-items-center">
         <img src="images/logo.jpg" alt="SIC Logo" class="nav-logo" style="background: transparent; object-fit: contain;">
         <div class="nav-brand-text">
           <span class="nav-brand-name">San Isidro College</span>
@@ -74,7 +75,7 @@
       </div>
       <h1>Reserve School <span class="highlight">Facilities &amp; Equipment</span> with Ease</h1>
       <p>Browse availability in real-time, submit your reservation request, and receive instant confirmation — all without creating an account.</p>
-      <div class="hero-actions">
+      <div class="hero-actions d-flex justify-content-center flex-wrap">
         <a href="booking.html" class="btn btn-primary">
           Make a Reservation
         </a>
@@ -93,54 +94,109 @@
   </section>
 
   <!-- ============================================================
-       FACILITIES SECTION
+       FACILITIES SHOWCASE & DETAIL MODAL (Vue.js 3 Reactive App)
        ============================================================ -->
-  <section class="section" id="facilities-section">
-    <div class="container">
-      <div class="section-header">
-        <h2>Available Facilities &amp; Equipment</h2>
-        <p>Explore our campus resources available for reservation by students, faculty, and external organizations.</p>
-        <span class="accent-line"></span>
-      </div>
-
-      <div class="facilities-grid" id="facilitiesGrid">
-        <!-- Cards are populated dynamically from Firestore -->
-        <!-- Fallback static cards shown until JS loads -->
-      </div>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       FACILITY DETAIL MODAL
-       ============================================================ -->
-  <div class="modal-overlay" id="facilityDetailModal">
-    <div class="modal facility-detail-modal">
-      <!-- Gallery -->
-      <div class="fac-detail-gallery" id="facDetailGallery">
-        <button class="fac-detail-close" onclick="closeFacilityDetailModal()">✕</button>
-        <span class="fac-gallery-counter" id="facGalleryCounter"></span>
-      </div>
-      <!-- Thumbnails -->
-      <div class="fac-detail-thumbs" id="facDetailThumbs"></div>
-      <!-- Body -->
-      <div class="fac-detail-body">
-        <h2 class="fac-detail-title" id="facDetailTitle">—</h2>
-        <div class="fac-detail-status"><span class="dot"></span> Available</div>
-        <p class="fac-detail-desc" id="facDetailDesc">—</p>
-
-        <!-- Specs -->
-        <div class="fac-detail-specs" id="facDetailSpecs"></div>
-
-        <!-- Amenities -->
-        <div id="facDetailAmenitiesSection" style="display:none;">
-          <div class="fac-detail-amenities-title">Amenities & Features</div>
-          <div class="fac-detail-amenities-grid" id="facDetailAmenities"></div>
+  <div id="facilitiesApp" v-cloak>
+    <section class="section" id="facilities-section">
+      <div class="container">
+        <div class="section-header text-center">
+          <h2>Available Facilities &amp; Equipment</h2>
+          <p>Explore our campus resources available for reservation by students, faculty, and external organizations.</p>
+          <span class="accent-line"></span>
         </div>
 
-        <!-- Actions -->
-        <div class="fac-detail-actions">
-          <a href="booking.html" class="btn btn-primary" id="facDetailBookBtn">Book This Facility</a>
-          <button class="btn btn-outline" onclick="closeFacilityDetailModal()">Close</button>
+        <div class="facilities-grid row g-4" id="facilitiesGrid">
+          <div class="col-12 col-md-6 col-lg-4 d-flex" v-for="f in facilities" :key="f.id">
+            <div class="facility-card w-100 h-100" @click="openFacilityDetail(f)">
+              <div class="facility-card-img">
+                <img v-if="getFirstImage(f)" :src="getFirstImage(f)" :alt="f.name" loading="lazy">
+                <div v-else class="fac-img-fallback">No image available</div>
+                <div class="facility-card-name">
+                  <h3>{{ f.name }}</h3>
+                  <span v-if="f.capacity" class="facility-card-capacity">{{ f.capacity }}</span>
+                </div>
+              </div>
+              <div class="facility-card-body">
+                <p>{{ f.description || '' }}</p>
+                <div v-if="f.amenities && f.amenities.length > 0" class="facility-card-amenities">
+                  <span v-for="a in f.amenities.slice(0, 3)" :key="a" class="amenity-chip">{{ a }}</span>
+                  <span v-if="f.amenities.length > 3" class="amenity-chip-more">+{{ f.amenities.length - 3 }}</span>
+                </div>
+              </div>
+              <div class="facility-card-footer">
+                <span class="facility-card-view">View Details</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         FACILITY DETAIL MODAL
+         ============================================================ -->
+    <div class="modal-overlay" id="facilityDetailModal" :class="{ visible: modalVisible }" @click.self="closeFacilityDetailModal">
+      <div class="modal facility-detail-modal" v-if="selectedFacility">
+        <!-- Gallery -->
+        <div class="fac-detail-gallery" id="facDetailGallery">
+          <img v-if="currentImage" class="fac-detail-main-img" :src="currentImage" :alt="selectedFacility.name">
+          <div v-else class="fac-gallery-fallback">No image available</div>
+          <button class="fac-detail-close" @click="closeFacilityDetailModal">✕</button>
+          <span v-if="galleryImages.length > 0" class="fac-gallery-counter" id="facGalleryCounter">{{ counterText }}</span>
+        </div>
+
+        <!-- Thumbnails -->
+        <div class="fac-detail-thumbs" id="facDetailThumbs" v-if="galleryImages.length > 1">
+          <div
+            v-for="(imgUrl, i) in galleryImages"
+            :key="i"
+            class="fac-thumb"
+            :class="{ active: i === galleryIndex }"
+            @click="switchGalleryImage(i)"
+          >
+            <img :src="imgUrl" :alt="'Photo ' + (i + 1)">
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="fac-detail-body">
+          <h2 class="fac-detail-title" id="facDetailTitle">{{ selectedFacility.name }}</h2>
+          <div class="fac-detail-status"><span class="dot"></span> Available</div>
+          <p class="fac-detail-desc" id="facDetailDesc">{{ selectedFacility.description || 'No description available.' }}</p>
+
+          <!-- Specs -->
+          <div class="fac-detail-specs" id="facDetailSpecs">
+            <div class="fac-spec-item" v-if="selectedFacility.capacity">
+              <span class="spec-label">Capacity</span>
+              <span class="spec-value">{{ selectedFacility.capacity }}</span>
+            </div>
+            <div class="fac-spec-item">
+              <span class="spec-label">Status</span>
+              <span class="spec-value">{{ selectedFacility.status }}</span>
+            </div>
+            <div class="fac-spec-item" v-if="galleryImages.length > 0">
+              <span class="spec-label">Photos</span>
+              <span class="spec-value">{{ galleryImages.length }}</span>
+            </div>
+            <div class="fac-spec-item" v-if="selectedFacility.amenities && selectedFacility.amenities.length > 0">
+              <span class="spec-label">Amenities</span>
+              <span class="spec-value">{{ selectedFacility.amenities.length }}</span>
+            </div>
+          </div>
+
+          <!-- Amenities -->
+          <div id="facDetailAmenitiesSection" v-if="selectedFacility.amenities && selectedFacility.amenities.length > 0">
+            <div class="fac-detail-amenities-title">Amenities &amp; Features</div>
+            <div class="fac-detail-amenities-grid" id="facDetailAmenities">
+              <div class="fac-amenity-tag" v-for="a in selectedFacility.amenities" :key="a">{{ a }}</div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="fac-detail-actions d-flex align-items-center">
+            <a :href="bookUrl" class="btn btn-primary" id="facDetailBookBtn">Book This Facility</a>
+            <button class="btn btn-outline" @click="closeFacilityDetailModal">Close</button>
+          </div>
         </div>
       </div>
     </div>
@@ -151,7 +207,7 @@
        ============================================================ -->
   <section class="section calendar-section" id="calendar-section">
     <div class="container">
-      <div class="section-header">
+      <div class="section-header text-center">
         <h2>Availability Calendar</h2>
         <p>View current reservations across all facilities. Click on any event for details.</p>
         <span class="accent-line"></span>
@@ -160,7 +216,7 @@
       <div class="calendar-wrapper">
         <div id="calendar"></div>
 
-        <div class="calendar-legend">
+        <div class="calendar-legend d-flex flex-wrap">
           <div class="legend-item">
             <span class="legend-dot" style="background:#3498db"></span>
             Gymnasium
@@ -249,7 +305,7 @@
   </footer>
 
   <!-- ============================================================
-       SCRIPTS
+       SCRIPTS (Firebase + FullCalendar + Vue 3 + MVC Modules)
        ============================================================ -->
   <!-- Firebase SDKs (v9 compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -258,271 +314,21 @@
   <!-- FullCalendar -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 
-  <!-- App Scripts -->
-  <script src="js/firebase-config.js?v=2"></script>
-  <script src="js/calendar.js?v=3"></script>
+  <!-- Vue.js 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
 
-  <script>
-    // --- Navbar scroll effect ---
-    window.addEventListener('scroll', () => {
-      document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50);
-    });
+  <!-- MVC Core & Models -->
+  <script src="js/core/firebase-config.js"></script>
+  <script src="js/core/logger.js"></script>
+  <script src="js/core/utils.js"></script>
+  <script src="js/models/facility-model.js"></script>
+  <script src="js/models/booking-model.js"></script>
 
-    // --- Mobile nav toggle ---
-    document.getElementById('navToggle').addEventListener('click', () => {
-      document.getElementById('navLinks').classList.toggle('open');
-    });
+  <!-- MVC Views & Controllers -->
+  <script src="js/views/calendar-view.js"></script>
+  <script src="js/controllers/calendar-controller.js"></script>
 
-    // --- Event modal helpers ---
-    function closeEventModal() {
-      document.getElementById('eventModal').classList.remove('visible');
-    }
-
-    document.getElementById('eventModal').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) closeEventModal();
-    });
-
-    // --- Date availability modal helpers ---
-    function closeDateAvailModal() {
-      document.getElementById('dateAvailModal').classList.remove('visible');
-    }
-    // Make it globally accessible for the onclick attribute
-    window.closeDateAvailModal = closeDateAvailModal;
-
-    document.getElementById('dateAvailModal').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) closeDateAvailModal();
-    });
-
-    // --- Dynamically load facilities from Firestore ---
-    let landingFacilities = []; // Store for detail modal use
-
-    // Simple sanitizer to prevent XSS when inserting Firestore data
-    function escapeHtml(str) {
-      if (str === undefined || str === null) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/\"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-
-    function sanitizeUrl(url) {
-      if (!url) return '';
-      const s = String(url).trim();
-      if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('data:image/')) return s;
-      return '';
-    }
-
-    (function loadLandingFacilities() {
-
-      const facilitiesGrid = document.getElementById('facilitiesGrid');
-      const calendarLegend = document.querySelector('.calendar-legend');
-      const legendColors = ['#3498db', '#9b59b6', '#27ae60', '#e67e22', '#e74c3c', '#1abc9c', '#f39c12', '#2c3e50'];
-
-      db.collection('facilities')
-        .orderBy('order', 'asc')
-        .get()
-        .then(snapshot => {
-          if (snapshot.empty) return;
-
-          if (facilitiesGrid) facilitiesGrid.innerHTML = '';
-          if (calendarLegend) calendarLegend.innerHTML = '';
-
-          let index = 0;
-          snapshot.forEach(doc => {
-            const f = { id: doc.id, ...doc.data() };
-            if (f.status !== 'Active') return;
-
-            landingFacilities.push(f);
-
-            // Build image-based facility card
-            if (facilitiesGrid) {
-              const images = f.images || [];
-              const amenities = f.amenities || [];
-              const firstImg = f.thumbnail ? sanitizeUrl(f.thumbnail) :
-                             (images.length > 0 ? sanitizeUrl(images[0]) : null);
-
-              // Image or fallback
-              const imgHTML = firstImg
-                ? `<img src="${firstImg}" alt="${escapeHtml(f.name)}" loading="lazy">`
-                : `<div class="fac-img-fallback">No image available</div>`;
-
-              // Amenity chips (show max 3)
-              let amenityChips = '';
-              if (amenities.length > 0) {
-                const shown = amenities.slice(0, 3);
-                amenityChips = shown.map(a => `<span class="amenity-chip">${escapeHtml(a)}</span>`).join('');
-                if (amenities.length > 3) {
-                  amenityChips += `<span class="amenity-chip-more">+${escapeHtml(amenities.length - 3)}</span>`;
-                }
-              }
-
-              facilitiesGrid.innerHTML += `
-                <div class="facility-card" onclick="openFacilityDetail('${f.id}')">
-                  <div class="facility-card-img">
-                    ${imgHTML}
-                    <div class="facility-card-name">
-                      <h3>${escapeHtml(f.name)}</h3>
-                      ${f.capacity ? `<span class="facility-card-capacity">${escapeHtml(f.capacity)}</span>` : ''}
-                    </div>
-                  </div>
-                  <div class="facility-card-body">
-                    <p>${escapeHtml(f.description || '')}</p>
-                    ${amenityChips ? `<div class="facility-card-amenities">${amenityChips}</div>` : ''}
-                  </div>
-                  <div class="facility-card-footer">
-                    <span class="facility-card-view">View Details</span>
-                  </div>
-                </div>
-              `;
-            }
-
-            // Calendar legend
-            if (calendarLegend) {
-              const color = legendColors[index % legendColors.length];
-              calendarLegend.innerHTML += `
-                <div class="legend-item">
-                  <span class="legend-dot" style="background:${color}"></span>
-                  ${escapeHtml(f.name)}
-                </div>
-              `;
-            }
-            index++;
-          });
-        })
-        .catch(err => {
-          console.warn('Could not load facilities for landing page:', err);
-        });
-    })();
-
-    // --- Facility Detail Modal ---
-    let currentGalleryIndex = 0;
-    let currentGalleryImages = [];
-
-    window.openFacilityDetail = async function (facId) {
-      const fac = landingFacilities.find(f => f.id === facId);
-      if (!fac) return;
-
-      const gallery = document.getElementById('facDetailGallery');
-      const thumbs = document.getElementById('facDetailThumbs');
-      const counter = document.getElementById('facGalleryCounter');
-
-      // Fetch full images from separate facility_images collection
-      let images = [];
-      try {
-        const imgDoc = await db.collection('facility_images').doc(facId).get();
-        if (imgDoc.exists) {
-          images = imgDoc.data().images || [];
-        } else {
-          // Fallback to inline images (for facilities created before migration)
-          images = fac.images || [];
-        }
-      } catch (e) {
-        console.warn('Could not load facility images:', e);
-        images = fac.images || [];
-      }
-
-      // sanitize image URLs
-      currentGalleryImages = images.map(sanitizeUrl);
-      currentGalleryIndex = 0;
-
-      // Gallery image
-      const existingImg = gallery.querySelector('.fac-detail-main-img, .fac-gallery-fallback');
-      if (existingImg) existingImg.remove();
-
-      if (currentGalleryImages.length > 0) {
-        const img = document.createElement('img');
-        img.className = 'fac-detail-main-img';
-        img.src = currentGalleryImages[0];
-        img.alt = escapeHtml(fac.name);
-        gallery.prepend(img);
-        counter.textContent = `Photo 1 of ${currentGalleryImages.length}`;
-        counter.style.display = '';
-      } else {
-        const fallback = document.createElement('div');
-        fallback.className = 'fac-gallery-fallback';
-        fallback.textContent = 'No image available';
-        gallery.prepend(fallback);
-        counter.style.display = 'none';
-      }
-
-      // Thumbnails
-      thumbs.innerHTML = '';
-      if (currentGalleryImages.length > 1) {
-        currentGalleryImages.forEach((s, i) => {
-          const thumb = document.createElement('div');
-          thumb.className = `fac-thumb${i === 0 ? ' active' : ''}`;
-          const tImg = document.createElement('img');
-          tImg.src = s;
-          tImg.alt = `Photo ${i + 1}`;
-          thumb.appendChild(tImg);
-          thumb.onclick = () => switchGalleryImage(i, fac.name);
-          thumbs.appendChild(thumb);
-        });
-      }
-
-      // Title & description
-      document.getElementById('facDetailTitle').textContent = fac.name;
-      document.getElementById('facDetailDesc').textContent = fac.description || 'No description available.';
-
-      // Specs
-      const specsEl = document.getElementById('facDetailSpecs');
-      let specsHTML = '';
-      if (fac.capacity) specsHTML += `<div class="fac-spec-item"><span class="spec-label">Capacity</span><span class="spec-value">${fac.capacity}</span></div>`;
-      specsHTML += `<div class="fac-spec-item"><span class="spec-label">Status</span><span class="spec-value">${fac.status}</span></div>`;
-      if (images.length > 0) specsHTML += `<div class="fac-spec-item"><span class="spec-label">Photos</span><span class="spec-value">${images.length}</span></div>`;
-      if (fac.amenities && fac.amenities.length > 0) specsHTML += `<div class="fac-spec-item"><span class="spec-label">Amenities</span><span class="spec-value">${fac.amenities.length}</span></div>`;
-      specsEl.innerHTML = specsHTML;
-
-      // Amenities
-      const amenSection = document.getElementById('facDetailAmenitiesSection');
-      const amenGrid = document.getElementById('facDetailAmenities');
-      if (fac.amenities && fac.amenities.length > 0) {
-        amenSection.style.display = 'block';
-        amenGrid.innerHTML = fac.amenities.map(a => `<div class="fac-amenity-tag">${a}</div>`).join('');
-      } else {
-        amenSection.style.display = 'none';
-      }
-
-      // Book button link with pre-filled facility
-      document.getElementById('facDetailBookBtn').href = `booking.html?facility=${encodeURIComponent(fac.name)}`;
-
-      // Show modal
-      document.getElementById('facilityDetailModal').classList.add('visible');
-    };
-
-    function switchGalleryImage(index, altText) {
-      if (index < 0 || index >= currentGalleryImages.length) return;
-      currentGalleryIndex = index;
-
-      const gallery = document.getElementById('facDetailGallery');
-      const img = gallery.querySelector('.fac-detail-main-img');
-      if (img) {
-        img.style.opacity = '0';
-        setTimeout(() => {
-          img.src = currentGalleryImages[index];
-          img.alt = altText || '';
-          img.style.opacity = '1';
-        }, 200);
-      }
-
-      // Update counter
-      document.getElementById('facGalleryCounter').textContent = `Photo ${index + 1} of ${currentGalleryImages.length}`;
-
-      // Update active thumbnail
-      document.querySelectorAll('.fac-thumb').forEach((t, i) => {
-        t.classList.toggle('active', i === index);
-      });
-    }
-
-    window.closeFacilityDetailModal = function () {
-      document.getElementById('facilityDetailModal').classList.remove('visible');
-    };
-
-    document.getElementById('facilityDetailModal').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) closeFacilityDetailModal();
-    });
-  </script>
+  <!-- Vue 3 Facilities App -->
+  <script src="js/vue-apps/facilities-app.js"></script>
 </body>
 </html>

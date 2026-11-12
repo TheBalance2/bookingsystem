@@ -1,5 +1,6 @@
 /* ============================================================
-   Booking Notifications Module — San Isidro College Reservation System
+   Booking Notifications Service — San Isidro College Reservation System
+   Service Layer (js/services/notification-service.js)
    Real-time desktop (OS) notifications, Web Audio chime, tab-title
    unread counter, and topbar notification center.
    ============================================================ */
@@ -7,6 +8,7 @@
 (function () {
   'use strict';
 
+  const LAYER = 'NotificationService';
   const STORAGE_MUTE_KEY    = 'sic_notif_muted';
   const STORAGE_HISTORY_KEY = 'sic_notif_history_v1';
   const MAX_HISTORY_ITEMS   = 10;
@@ -14,11 +16,11 @@
   // ---- Internal State ----
   let initialized       = false;
   let isInitialSnapshot = true;
-  const knownStatuses   = new Map(); // docId -> last seen status
-  const notifiedEvents  = new Set(); // `${docId}:${status}` deduplication
+  const knownStatuses    = new Map(); // docId -> last seen status
+  const notifiedEvents   = new Set(); // `${docId}:${status}` deduplication
   const unreadBookingIds = new Set(); // docIds highlighted in table until viewed
 
-  let historyItems     = []; // [{ id, bookingId, refId, kind, title, body, createdAt, unread }]
+  let historyItems     = [];
   let hiddenAlertCount = 0;
   let isMuted          = false;
   let audioCtx         = null;
@@ -35,17 +37,6 @@
   let clearBtn     = null;
   let listEl       = null;
 
-  // ---------- Helpers ----------
-  function escapeHtml(str) {
-    if (str === undefined || str === null) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
   function isNotificationSupported() {
     return typeof window !== 'undefined' && 'Notification' in window && window.isSecureContext !== false;
   }
@@ -53,33 +44,7 @@
   function getPermissionState() {
     if (!('Notification' in window)) return 'unsupported';
     if (window.isSecureContext === false) return 'insecure';
-    return Notification.permission; // 'default' | 'granted' | 'denied'
-  }
-
-  function formatVehicleList(vehicleValue) {
-    if (!vehicleValue) return '';
-    if (Array.isArray(vehicleValue)) return vehicleValue.filter(Boolean).join(', ');
-    return String(vehicleValue);
-  }
-
-  function getRequesterName(b) {
-    if (!b) return 'Someone';
-    if (b.name) return b.name;
-    if (b.lastName || b.firstName) {
-      const mi = b.middleInitial
-        ? (b.middleInitial.endsWith('.') ? b.middleInitial : b.middleInitial + '.')
-        : '';
-      const firstMi = [b.firstName, mi].filter(Boolean).join(' ');
-      return b.lastName ? `${b.lastName}, ${firstMi}` : firstMi;
-    }
-    return b.contactPerson || 'Someone';
-  }
-
-  function getBookingLocation(b) {
-    if (!b) return 'a facility';
-    if (b.facility) return b.facility;
-    const veh = formatVehicleList(b.vehicle);
-    return veh || 'a facility';
+    return Notification.permission;
   }
 
   function getBookingDateLabel(b) {
@@ -88,18 +53,6 @@
       return `${b.startDate} to ${b.endDate}`;
     }
     return b.startDate || b.date || '';
-  }
-
-  function formatRelativeTime(ts) {
-    if (!ts) return '';
-    const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-    if (diffSec < 45) return 'Just now';
-    const diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr}h ago`;
-    const d = new Date(ts);
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   // ---------- Persistence ----------
@@ -131,18 +84,14 @@
   function saveHistory() {
     try {
       sessionStorage.setItem(STORAGE_HISTORY_KEY, JSON.stringify(historyItems.slice(0, MAX_HISTORY_ITEMS)));
-    } catch (_) {
-      // Ignore storage quota errors
-    }
+    } catch (_) {}
   }
 
   function setMuted(muted) {
     isMuted = Boolean(muted);
     try {
       localStorage.setItem(STORAGE_MUTE_KEY, isMuted ? 'true' : 'false');
-    } catch (_) {
-      // Ignore storage errors
-    }
+    } catch (_) {}
     renderMuteState();
   }
 
@@ -201,9 +150,7 @@
           osc.start(now + n.start);
           osc.stop(now + n.start + n.duration + 0.02);
         });
-      } catch (_) {
-        // Ignore audio errors when autoplay is blocked
-      }
+      } catch (_) {}
     };
 
     if (ctx.state === 'suspended') {
@@ -244,7 +191,7 @@
       }
       return result;
     } catch (err) {
-      console.warn('Notification permission request failed:', err);
+      Logger.warn(LAYER, 'Notification permission request failed:', err);
       renderPermissionState();
       return getPermissionState();
     }
@@ -327,7 +274,6 @@
         `;
       }
     } else {
-      // 'insecure' or 'unsupported'
       bellBtn.classList.add('perm-denied');
       const reason = perm === 'insecure'
         ? 'Desktop pop-ups require HTTPS or localhost.'
@@ -340,7 +286,7 @@
         permBannerEl.innerHTML = `
           <div class="notif-perm-text">
             <strong>Desktop pop-ups unavailable</strong>
-            <span>${escapeHtml(reason)} In-page alerts and sound still work.</span>
+            <span>${Utils.escapeHtml(reason)} In-page alerts and sound still work.</span>
           </div>
         `;
       }
@@ -372,14 +318,14 @@
           : 'internal';
 
       return `
-        <button type="button" class="notif-item ${unreadClass}" data-notif-id="${escapeHtml(item.id)}" data-booking-id="${escapeHtml(item.bookingId)}">
+        <button type="button" class="notif-item ${unreadClass}" data-notif-id="${Utils.escapeHtml(item.id)}" data-booking-id="${Utils.escapeHtml(item.bookingId)}">
           <span class="notif-item-indicator ${kindBadgeClass}"></span>
           <div class="notif-item-content">
             <div class="notif-item-top">
-              <span class="notif-item-title">${escapeHtml(item.title)}</span>
-              <span class="notif-item-time">${escapeHtml(formatRelativeTime(item.createdAt))}</span>
+              <span class="notif-item-title">${Utils.escapeHtml(item.title)}</span>
+              <span class="notif-item-time">${Utils.escapeHtml(Utils.formatRelativeTime(item.createdAt))}</span>
             </div>
-            <p class="notif-item-body">${escapeHtml(item.body)}</p>
+            <p class="notif-item-body">${Utils.escapeHtml(item.body)}</p>
           </div>
         </button>
       `;
@@ -417,7 +363,6 @@
       renderHistoryList();
     }
 
-    // Remove highlight class from rendered row if present
     const row = document.querySelector(`tr[data-booking-id="${CSS && CSS.escape ? CSS.escape(bookingId) : bookingId}"]`);
     if (row) row.classList.remove('booking-row-new');
   }
@@ -469,8 +414,8 @@
 
   // ---------- Notification Dispatch ----------
   function buildNotificationPayload(booking, kind) {
-    const requester = getRequesterName(booking);
-    const location  = getBookingLocation(booking);
+    const requester = Utils.getBookingRequesterName(booking, 'Someone');
+    const location  = Utils.getBookingLocation(booking, 'a facility');
     const dateLabel = getBookingDateLabel(booking);
     const ref       = booking.referenceId ? `${booking.referenceId}` : '';
     const datePart  = dateLabel ? ` for ${dateLabel}` : '';
@@ -491,7 +436,6 @@
       };
     }
 
-    // Default: 'new_internal'
     return {
       title: ref ? `New Internal Booking • ${ref}` : 'New Internal Booking',
       body: `${requester} booked ${location}${datePart} (Pending Approval).`,
@@ -522,7 +466,7 @@
 
       return true;
     } catch (err) {
-      console.warn('Could not display desktop notification:', err);
+      Logger.warn(LAYER, 'Could not display desktop notification:', err);
       return false;
     }
   }
@@ -532,7 +476,6 @@
 
     const payload = buildNotificationPayload(booking, kind);
 
-    // 1. Record in history + unread state
     unreadBookingIds.add(booking.id);
     historyItems.unshift({
       id: `${booking.id}-${Date.now()}`,
@@ -553,12 +496,10 @@
       renderHistoryList();
     }
 
-    // 2. Sound alert
     playChime();
 
-    // 3. Determine foreground vs background / unfocused state
-    const isHidden    = Boolean(document.hidden);
-    const isUnfocused = typeof document.hasFocus === 'function' ? !document.hasFocus() : isHidden;
+    const isHidden     = Boolean(document.hidden);
+    const isUnfocused  = typeof document.hasFocus === 'function' ? !document.hasFocus() : isHidden;
     const inBackground = isHidden || isUnfocused;
 
     if (inBackground) {
@@ -567,7 +508,6 @@
 
       const shownDesktop = showDesktopNotification(booking, payload.title, payload.body);
 
-      // If window is visible behind another app or desktop pop-ups aren't granted, also show toast
       if (!isHidden || !shownDesktop) {
         if (typeof window.showAdminToast === 'function') {
           window.showAdminToast(payload.toastType, payload.title, payload.body, () => {
@@ -576,7 +516,6 @@
         }
       }
     } else {
-      // Tab is actively viewed: show clickable in-app toast
       if (typeof window.showAdminToast === 'function') {
         window.showAdminToast(payload.toastType, payload.title, payload.body, () => {
           openBookingFromAlert(booking.id);
@@ -589,7 +528,6 @@
   function processSnapshot(snapshot) {
     if (!snapshot) return;
 
-    // Seed initial document statuses without firing notifications
     if (isInitialSnapshot) {
       snapshot.docs.forEach(doc => {
         const data = doc.data() || {};
@@ -644,7 +582,6 @@
     });
   }
 
-  // ---------- Initialization ----------
   function init() {
     if (initialized) return;
     initialized = true;
@@ -671,7 +608,6 @@
     if (bellBtn) {
       bellBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        // If permission has not been requested yet, request immediately on user click
         if (getPermissionState() === 'default') {
           requestDesktopPermission();
         }
@@ -704,7 +640,6 @@
       });
     }
 
-    // Close dropdown on outside click or Escape key
     document.addEventListener('click', (e) => {
       if (wrapperEl && !wrapperEl.contains(e.target)) {
         closeDropdown();
@@ -715,7 +650,6 @@
       if (e.key === 'Escape') closeDropdown();
     });
 
-    // Clear tab-title unread counter when admin returns to the tab
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         resetTitleCounter();
@@ -728,14 +662,13 @@
     });
   }
 
-  // Expose public API
   window.BookingNotifier = {
-    init:            init,
-    processSnapshot: processSnapshot,
-    notify:          notify,
+    init,
+    processSnapshot,
+    notify,
     isUnreadBooking: (docId) => unreadBookingIds.has(docId),
-    markBookingRead: markBookingRead,
-    markAllRead:     markAllRead
+    markBookingRead,
+    markAllRead
   };
 })();
 
