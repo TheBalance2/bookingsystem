@@ -10,8 +10,8 @@
   const LAYER = 'VehicleModel';
 
   const DEFAULT_VEHICLES = [
-    { name: 'Toyota Grandia Van', description: 'Air-conditioned passenger van. Great for small groups.', capacity: '15 seats', driver: 'Juan Dela Cruz', status: 'Active', order: 0 },
-    { name: 'KIA Utility Van',     description: 'Utility van for small group trips and transport needs.', capacity: '15 seats', driver: 'Pedro Penduko', status: 'Active', order: 1 }
+    { name: 'Toyota Grandia Van', description: 'Air-conditioned passenger van. Great for small groups.', capacity: '15 seats', status: 'Active', order: 0 },
+    { name: 'KIA Utility Van',     description: 'Utility van for small group trips and transport needs.', capacity: '15 seats', status: 'Active', order: 1 }
   ];
 
   const VehicleModel = {
@@ -72,7 +72,6 @@
           name:        payload.name,
           description: payload.description,
           capacity:    payload.capacity,
-          driver:      payload.driver,
           status:      payload.status,
           updatedAt:   firebase.firestore.FieldValue.serverTimestamp()
         };

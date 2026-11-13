@@ -12,6 +12,7 @@
       return {
         email: '',
         password: '',
+        showPassword: false,
         loading: false,
         errorMessage: ''
       };

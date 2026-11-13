@@ -27,6 +27,7 @@
     if (!activeFacilities || activeFacilities.length === 0) return;
 
     const prevIntChoice = intFacilitySelect ? intFacilitySelect.value : '';
+    const prevExtChoice = extFacilitySelect ? extFacilitySelect.value : '';
 
     [intFacilitySelect, extFacilitySelect].forEach(select => {
       if (!select) return;
@@ -36,19 +37,82 @@
     });
 
     activeFacilities.forEach(f => {
-      [intFacilitySelect, extFacilitySelect].forEach(select => {
-        if (!select) return;
+      const vis = Utils.normalizeFacilityVisibility(f.visibility);
+      if (intFacilitySelect && (vis === 'both' || vis === 'internal')) {
         const option = document.createElement('option');
         option.value = f.name;
         option.textContent = f.name;
-        select.appendChild(option);
-      });
+        intFacilitySelect.appendChild(option);
+      }
+      if (extFacilitySelect && (vis === 'both' || vis === 'external')) {
+        const option = document.createElement('option');
+        option.value = f.name;
+        option.textContent = f.name;
+        extFacilitySelect.appendChild(option);
+      }
     });
 
     appendVehicleOption(intFacilitySelect);
     if (intFacilitySelect && prevIntChoice &&
         Array.from(intFacilitySelect.options).some(o => o.value === prevIntChoice)) {
       intFacilitySelect.value = prevIntChoice;
+    }
+    if (extFacilitySelect && prevExtChoice &&
+        Array.from(extFacilitySelect.options).some(o => o.value === prevExtChoice)) {
+      extFacilitySelect.value = prevExtChoice;
+    }
+  }
+
+  function populateClassroomSelects(activeClassrooms) {
+    const selects = [
+      document.getElementById('intClassroom'),
+      document.getElementById('extClassroom'),
+      document.getElementById('sbClassroom')
+    ];
+
+    selects.forEach(select => {
+      if (!select) return;
+      const prev = select.value;
+      while (select.options.length > 1) {
+        select.remove(1);
+      }
+      (activeClassrooms || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = c.capacity ? `${c.name} (${c.capacity})` : c.name;
+        select.appendChild(opt);
+      });
+      if (prev && Array.from(select.options).some(o => o.value === prev)) {
+        select.value = prev;
+      }
+    });
+  }
+
+  function updateClassroomVisibility(prefix) {
+    const facEl   = document.getElementById(prefix + 'Facility');
+    const groupEl = document.getElementById(prefix + 'ClassroomGroup');
+    const selEl   = document.getElementById(prefix + 'Classroom');
+    if (!facEl || !groupEl) return;
+
+    const isClassroom = Utils.isClassroomFacilityName(facEl.value);
+    const wasHidden = groupEl.style.display === 'none';
+    groupEl.style.display = isClassroom ? '' : 'none';
+
+    if (isClassroom) {
+      if (selEl) selEl.required = true;
+      if (wasHidden) {
+        groupEl.classList.remove('revealed');
+        void groupEl.offsetWidth;
+        groupEl.classList.add('revealed');
+      }
+    } else {
+      if (selEl) {
+        selEl.required = false;
+        selEl.value = '';
+        selEl.classList.remove('error');
+      }
+      const errEl = document.getElementById(prefix + 'ClassroomError');
+      if (errEl) errEl.classList.remove('visible');
     }
   }
 
@@ -181,18 +245,59 @@
     }
   }
 
+  let cachedDepartments = [];
+
+  function setDepartmentsData(departments) {
+    cachedDepartments = Array.isArray(departments) ? departments : [];
+    updateIntDepartmentSchoolVisibility();
+  }
+
   function updateIntDepartmentSchoolVisibility() {
     const intDepartmentEl = document.getElementById('intDepartment');
     const intCollegeSchoolGroup = document.getElementById('intCollegeSchoolGroup');
     const intCollegeSchoolEl = document.getElementById('intCollegeSchool');
     if (!intDepartmentEl || !intCollegeSchoolGroup) return;
 
-    const isCollege = intDepartmentEl.value === 'College';
+    const selectedCategory = intDepartmentEl.value;
+    const hasCategory = Boolean(selectedCategory);
     const wasHidden = intCollegeSchoolGroup.style.display === 'none';
-    intCollegeSchoolGroup.style.display = isCollege ? '' : 'none';
+    intCollegeSchoolGroup.style.display = hasCategory ? '' : 'none';
 
-    if (isCollege) {
-      if (intCollegeSchoolEl) intCollegeSchoolEl.required = true;
+    if (hasCategory && intCollegeSchoolEl) {
+      const prevVal = intCollegeSchoolEl.value;
+      const matching = cachedDepartments.filter(
+        d => d.status === 'Active' && d.category === selectedCategory && d.name
+      );
+
+      intCollegeSchoolEl.innerHTML = '';
+      if (matching.length > 0) {
+        intCollegeSchoolEl.dataset.hasOffices = '1';
+        intCollegeSchoolEl.required = true;
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select Office / School';
+        intCollegeSchoolEl.appendChild(placeholder);
+
+        matching.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.name;
+          opt.textContent = d.name;
+          opt.dataset.headName = d.headName || '';
+          intCollegeSchoolEl.appendChild(opt);
+        });
+
+        if (prevVal && matching.some(d => d.name === prevVal)) {
+          intCollegeSchoolEl.value = prevVal;
+        }
+      } else {
+        intCollegeSchoolEl.dataset.hasOffices = '0';
+        intCollegeSchoolEl.required = false;
+        const emptyOpt = document.createElement('option');
+        emptyOpt.value = '';
+        emptyOpt.textContent = `No offices configured for ${selectedCategory} yet`;
+        intCollegeSchoolEl.appendChild(emptyOpt);
+      }
+
       if (wasHidden) {
         intCollegeSchoolGroup.classList.remove('revealed');
         void intCollegeSchoolGroup.offsetWidth;
@@ -200,6 +305,7 @@
       }
     } else {
       if (intCollegeSchoolEl) {
+        intCollegeSchoolEl.dataset.hasOffices = '0';
         intCollegeSchoolEl.required = false;
         intCollegeSchoolEl.value = '';
         intCollegeSchoolEl.classList.remove('error');
@@ -213,7 +319,9 @@
     VEHICLE_OPTION,
     appendVehicleOption,
     populateFacilitySelects,
+    populateClassroomSelects,
     populateVehicleCheckboxes,
+    setDepartmentsData,
     findVisibleField,
     showError,
     clearErrors,
@@ -221,6 +329,7 @@
     renderConflictWarning,
     updateExtAgencyOtherVisibility,
     updateVehicleVisibility,
+    updateClassroomVisibility,
     updateIntDepartmentSchoolVisibility
   };
 })();

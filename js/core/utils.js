@@ -125,10 +125,37 @@
     return String(raw).split(',').map(v => v.trim()).filter(Boolean);
   }
 
+  function isVehicleBooking(booking) {
+    if (!booking) return false;
+    return booking.facility === 'Vehicle' || getBookingVehicleArray(booking).length > 0;
+  }
+
+  function isClassroomFacilityName(name) {
+    return /^class\s*rooms?$/i.test(String(name || '').trim());
+  }
+
+  function normalizeFacilityVisibility(val) {
+    const v = String(val || '').trim().toLowerCase();
+    if (v === 'internal' || v === 'external') return v;
+    return 'both';
+  }
+
+  function formatFacilityVisibilityLabel(val) {
+    const v = normalizeFacilityVisibility(val);
+    if (v === 'internal') return 'Internal Only';
+    if (v === 'external') return 'External Only';
+    return 'Both Forms';
+  }
+
   function getBookingLocation(booking, fallback = '—') {
     if (!booking) return fallback;
-    if (booking.facility) return booking.facility;
-    return formatVehicleList(booking.vehicle) || fallback;
+    if (booking.facility && booking.facility !== 'Vehicle') {
+      if (booking.classroom) {
+        return `${booking.facility} (${booking.classroom})`;
+      }
+      return booking.facility;
+    }
+    return formatVehicleList(booking.vehicle) || booking.facility || fallback;
   }
 
   // Combine name parts into "LastName, FirstName M.I." format
@@ -228,6 +255,10 @@
     getFilingDate,
     formatVehicleList,
     getBookingVehicleArray,
+    isVehicleBooking,
+    isClassroomFacilityName,
+    normalizeFacilityVisibility,
+    formatFacilityVisibilityLabel,
     getBookingLocation,
     formatCombinedName,
     getBookingRequesterName,

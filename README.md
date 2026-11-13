@@ -89,7 +89,9 @@ bookingsystem/
     ├── models/
     │   ├── auth-model.js                   # Firebase Auth login, logout, session observer
     │   ├── booking-model.js                # Bookings CRUD, conflict queries, sequential ID transactions
-    │   ├── facility-model.js               # Facilities & facility_images Firestore operations
+    │   ├── classroom-model.js              # Classrooms Firestore CRUD (Room No., Capacity, Status)
+    │   ├── driver-model.js                 # Drivers Firestore CRUD (Driver Name, Phone Number, Status)
+    │   ├── facility-model.js               # Facilities & facility_images Firestore operations + Form Visibility
     │   ├── vehicle-model.js                # Vehicles Firestore CRUD
     │   └── settings-model.js               # Counter config & Internal PDF signatories
     ├── services/
@@ -126,8 +128,9 @@ Every module logs to the browser console with a scoped prefix (e.g. `[BookingMod
 | Symptom / Bug | MVC Layer | Exact File to Inspect |
 | :--- | :--- | :--- |
 | Booking not saving, conflict check wrong, or sequential ID (`SIC-2026-001`) not incrementing | **Model** | `js/models/booking-model.js` |
-| Facilities or facility gallery photos not loading/saving in Firestore | **Model** | `js/models/facility-model.js` |
-| Vehicles not loading/saving in Firestore | **Model** | `js/models/vehicle-model.js` |
+| Facilities, form visibility (`Internal` / `External` / `Both`), or gallery photos not saving | **Model** | `js/models/facility-model.js` |
+| Classrooms not loading or saving in Manage Classrooms / Booking dropdown | **Model / Controller** | `js/models/classroom-model.js`, `js/controllers/facility-controller.js` |
+| Vehicles or Drivers not loading/saving in Manage Vehicles & Drivers | **Model / Controller** | `js/models/vehicle-model.js`, `js/models/driver-model.js`, `js/controllers/vehicle-controller.js` |
 | Booking ID settings or PDF Signatory names not persisting | **Model** | `js/models/settings-model.js` |
 | Admin login credentials or session state failing | **Model / Vue App** | `js/models/auth-model.js`, `js/vue-apps/login-app.js` |
 | Form validation error or submit button behavior on `booking.html` | **Controller / View** | `js/controllers/booking-controller.js`, `js/views/booking-form-view.js` |

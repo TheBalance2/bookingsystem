@@ -90,13 +90,18 @@
       }
     },
 
-    // Check if facility has overlapping Pending or Approved bookings
-    async hasScheduleConflict(facility, startDate, endDate, startTime, endTime) {
+    // Check if facility (and specific classroom if Classroom is chosen) has overlapping Pending or Approved bookings
+    async hasScheduleConflict(facility, startDate, endDate, startTime, endTime, classroom = '') {
       const effectiveEnd = endDate || startDate;
       const newStart = Utils.toDateTimeMs(startDate, startTime);
       const newEnd   = Utils.toDateTimeMs(effectiveEnd, endTime);
 
       if (!facility || Number.isNaN(newStart) || Number.isNaN(newEnd) || newEnd <= newStart) {
+        return false;
+      }
+
+      const isClassroom = Utils.isClassroomFacilityName(facility);
+      if (isClassroom && !classroom) {
         return false;
       }
 
@@ -109,6 +114,9 @@
         let hasConflict = false;
         snapshot.forEach(doc => {
           const d = doc.data();
+          if (isClassroom && classroom && d.classroom !== classroom) {
+            return;
+          }
           const exStartDate = d.startDate || d.date;
           const exEndDate   = d.endDate || exStartDate;
           const existingStart = Utils.toDateTimeMs(exStartDate, d.startTime);
@@ -127,10 +135,10 @@
       }
     },
 
-    async updateStatus(docId, newStatus) {
+    async updateStatus(docId, newStatus, extraFields = {}) {
       try {
         const docRef = db.collection('bookings').doc(docId);
-        await docRef.update({ status: newStatus });
+        await docRef.update({ status: newStatus, ...extraFields });
         const doc = await docRef.get();
         return doc.exists ? { id: doc.id, ...doc.data() } : null;
       } catch (err) {

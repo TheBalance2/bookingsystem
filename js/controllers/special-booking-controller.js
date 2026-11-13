@@ -14,16 +14,23 @@
   const specialBookingModal  = document.getElementById('specialBookingModal');
   const specialBookingForm   = document.getElementById('specialBookingForm');
   const sbFacilitySelect     = document.getElementById('sbFacility');
+  const sbClassroomGroup     = document.getElementById('sbClassroomGroup');
+  const sbClassroomSelect    = document.getElementById('sbClassroom');
   const sbVehicleOptions     = document.getElementById('sbVehicleOptions');
   const sbVehicleGroup       = document.getElementById('sbVehicleGroup');
   const sbDestinationGroup   = document.getElementById('sbDestinationGroup');
   const sbDepartmentSelect   = document.getElementById('sbDepartment');
   const sbCollegeSchoolGroup = document.getElementById('sbCollegeSchoolGroup');
   const sbCollegeSchoolSelect = document.getElementById('sbCollegeSchool');
-  const sbNameInput          = document.getElementById('sbName');
-  const sbNumPersonsInput    = document.getElementById('sbNumPersons');
-  const sbStartDateInput     = document.getElementById('sbStartDate');
-  const sbEndDateInput       = document.getElementById('sbEndDate');
+  const sbNameInput           = document.getElementById('sbName');
+  const sbContactInput        = document.getElementById('sbContact');
+  const sbNumPersonsInput     = document.getElementById('sbNumPersons');
+  const sbStartDateInput      = document.getElementById('sbStartDate');
+  const sbEndDateInput        = document.getElementById('sbEndDate');
+
+  if (sbContactInput && window.Utils && typeof Utils.stripNonDigitsInput === 'function') {
+    Utils.stripNonDigitsInput(sbContactInput);
+  }
 
   // Equipment quantity toggle
   document.querySelectorAll('#specialBookingForm .eq-checkbox').forEach(cb => {
@@ -36,20 +43,66 @@
   });
 
   function updateSbVehicleVisibility() {
-    const isVehicle = sbFacilitySelect && sbFacilitySelect.value === 'Vehicle';
+    const val = sbFacilitySelect ? sbFacilitySelect.value : '';
+    const isVehicle = val === 'Vehicle';
+    const isClassroom = Utils.isClassroomFacilityName(val);
+
     if (sbVehicleGroup) sbVehicleGroup.style.display = isVehicle ? '' : 'none';
     if (sbDestinationGroup) sbDestinationGroup.style.display = isVehicle ? '' : 'none';
+    if (sbClassroomGroup) sbClassroomGroup.style.display = isClassroom ? '' : 'none';
+
     if (!isVehicle) {
       document.querySelectorAll('input[name="sbVehicle"]:checked').forEach(cb => { cb.checked = false; });
       const dest = document.getElementById('sbDestination');
       if (dest) dest.value = '';
     }
+    if (!isClassroom && sbClassroomSelect) {
+      sbClassroomSelect.value = '';
+    }
   }
 
   function updateSbCollegeSchoolVisibility() {
-    const isCollege = sbDepartmentSelect && sbDepartmentSelect.value === 'College';
-    if (sbCollegeSchoolGroup) sbCollegeSchoolGroup.style.display = isCollege ? '' : 'none';
-    if (!isCollege && sbCollegeSchoolSelect) {
+    const selectedCategory = sbDepartmentSelect ? sbDepartmentSelect.value : '';
+    const hasCategory = Boolean(selectedCategory);
+    if (sbCollegeSchoolGroup) sbCollegeSchoolGroup.style.display = hasCategory ? '' : 'none';
+
+    if (hasCategory && sbCollegeSchoolSelect) {
+      const prevVal = sbCollegeSchoolSelect.value;
+      const allDepts = Array.isArray(window._allDepartments)
+        ? window._allDepartments
+        : (window.DepartmentModel ? DepartmentModel.DEFAULT_DEPARTMENTS : []);
+      const matching = allDepts.filter(
+        d => d.status === 'Active' && d.category === selectedCategory && d.name
+      );
+
+      sbCollegeSchoolSelect.innerHTML = '';
+      if (matching.length > 0) {
+        sbCollegeSchoolSelect.dataset.hasOffices = '1';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select Office / School';
+        sbCollegeSchoolSelect.appendChild(placeholder);
+
+        matching.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.name;
+          opt.textContent = d.name;
+          opt.dataset.headName = d.headName || '';
+          sbCollegeSchoolSelect.appendChild(opt);
+        });
+
+        if (prevVal && matching.some(d => d.name === prevVal)) {
+          sbCollegeSchoolSelect.value = prevVal;
+        }
+      } else {
+        sbCollegeSchoolSelect.dataset.hasOffices = '0';
+        const emptyOpt = document.createElement('option');
+        emptyOpt.value = '';
+        emptyOpt.textContent = `No offices configured for ${selectedCategory} yet`;
+        sbCollegeSchoolSelect.appendChild(emptyOpt);
+      }
+    } else if (sbCollegeSchoolSelect) {
+      sbCollegeSchoolSelect.dataset.hasOffices = '0';
       sbCollegeSchoolSelect.value = '';
     }
   }
@@ -83,7 +136,8 @@
 
   if (specialBookingBtn && specialBookingModal) {
     specialBookingBtn.addEventListener('click', () => {
-      if (sbFacilitySelect && window._allFacilities && sbFacilitySelect.options.length <= 2) {
+      if (sbFacilitySelect && window._allFacilities) {
+        const prev = sbFacilitySelect.value;
         while (sbFacilitySelect.options.length > 2) {
           sbFacilitySelect.remove(2);
         }
@@ -94,6 +148,22 @@
             option.textContent = f.name;
             sbFacilitySelect.appendChild(option);
           }
+        });
+        if (prev && Array.from(sbFacilitySelect.options).some(o => o.value === prev)) {
+          sbFacilitySelect.value = prev;
+        }
+      }
+
+      if (sbClassroomSelect) {
+        const activeClassrooms = (window._allClassrooms || []).filter(c => c.status === 'Active' && c.name);
+        while (sbClassroomSelect.options.length > 1) {
+          sbClassroomSelect.remove(1);
+        }
+        activeClassrooms.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.name;
+          opt.textContent = c.capacity ? `${c.name} (${c.capacity})` : c.name;
+          sbClassroomSelect.appendChild(opt);
         });
       }
 
@@ -149,12 +219,22 @@
       const name           = (document.getElementById('sbName').value || '').trim().toUpperCase();
       const departmentRaw  = document.getElementById('sbDepartment').value;
       const collegeSchool  = sbCollegeSchoolSelect ? sbCollegeSchoolSelect.value : '';
-      let finalDepartment  = departmentRaw;
-      const employeeId     = document.getElementById('sbEmployeeId').value.trim();
+      const hasOffices     = sbCollegeSchoolSelect && sbCollegeSchoolSelect.dataset.hasOffices === '1';
+      let officeHead       = '';
+      if (sbCollegeSchoolSelect && sbCollegeSchoolSelect.selectedIndex >= 0) {
+        const selOpt = sbCollegeSchoolSelect.options[sbCollegeSchoolSelect.selectedIndex];
+        officeHead = selOpt && selOpt.dataset ? (selOpt.dataset.headName || '') : '';
+      }
+      const finalDepartment = collegeSchool ? collegeSchool : departmentRaw;
+      const position       = (document.getElementById('sbPosition') ? document.getElementById('sbPosition').value : '').trim();
+      const contact        = (document.getElementById('sbContact') ? document.getElementById('sbContact').value : '').trim();
       const email          = document.getElementById('sbEmail').value.trim();
+      const address        = 'San Isidro College Impalambong';
       const facilityChoice = document.getElementById('sbFacility').value;
       const isVehicle      = facilityChoice === 'Vehicle';
       const facility       = isVehicle ? '' : facilityChoice;
+      const isClassroom    = Utils.isClassroomFacilityName(facility);
+      const classroom      = (isClassroom && sbClassroomSelect) ? sbClassroomSelect.value.trim() : '';
       const startDate      = document.getElementById('sbStartDate').value;
       const endDate        = document.getElementById('sbEndDate').value;
       const startTime      = document.getElementById('sbStartTime').value;
@@ -170,19 +250,22 @@
         : [];
       const equipment = getSbEquipmentWithQuantities('sbEquipment');
 
-      if (!name)           { alert('Please enter requester name.'); return; }
+      if (!name)           { alert('Please enter requesting personnel name.'); return; }
       if (!departmentRaw)  { alert('Please select department.'); return; }
-      if (departmentRaw === 'College') {
-        if (!collegeSchool) {
-          alert('Please select course/school of College.');
-          if (sbCollegeSchoolSelect) sbCollegeSchoolSelect.focus();
-          return;
-        }
-        finalDepartment = collegeSchool;
+      if (hasOffices && !collegeSchool) {
+        alert('Please select your Office / School.');
+        if (sbCollegeSchoolSelect) sbCollegeSchoolSelect.focus();
+        return;
       }
-      if (!employeeId)     { alert('Please enter employee ID.'); return; }
+      if (!position)       { alert('Please enter position or designation.'); return; }
+      if (!contact)        { alert('Please enter contact number.'); return; }
       if (!email)          { alert('Please enter email address.'); return; }
       if (!facilityChoice) { alert('Please select a facility or Vehicle.'); return; }
+      if (isClassroom && !classroom) {
+        alert('Please select a classroom.');
+        if (sbClassroomSelect) sbClassroomSelect.focus();
+        return;
+      }
       if (!startDate)      { alert('Please select start date.'); return; }
       if (!endDate)        { alert('Please select end date.'); return; }
       if (endDate < startDate) { alert('End date cannot be earlier than start date.'); return; }
@@ -192,7 +275,7 @@
         alert('For same-day reservations, end time must be after start time.');
         return;
       }
-      if (!numPersons || numPersons < 1)     { alert('Please enter a valid number of persons.'); return; }
+      if (!numPersons || numPersons < 1)     { alert('Please enter a valid number of participants.'); return; }
       if (isVehicle && vehicle.length === 0) { alert('Please select at least one vehicle.'); return; }
       if (isVehicle && !destination)         { alert('Please enter a destination.'); return; }
       if (!purpose)                          { alert('Please describe the purpose.'); return; }
@@ -208,10 +291,14 @@
           name,
           department:       finalDepartment,
           parentDepartment: departmentRaw,
-          collegeSchool:    departmentRaw === 'College' ? collegeSchool : '',
-          employeeId,
+          collegeSchool:    collegeSchool || '',
+          officeHead:       officeHead || '',
+          position,
+          contactNumber:    contact,
+          address,
           email,
           facility,
+          classroom,
           date:             startDate,
           startDate,
           endDate,

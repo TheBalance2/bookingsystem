@@ -37,7 +37,7 @@
       emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_APPROVE, {
         to_email:     data.email,
         to_name:      data.contactPerson,
-        facility:     data.facility,
+        facility:     Utils.getBookingLocation(data, data.facility || '—'),
         date:         data.date,
         start_time:   Utils.formatTime12(data.startTime),
         end_time:     Utils.formatTime12(data.endTime),
@@ -63,8 +63,11 @@
     }
 
     const templateId = status === 'Approved' ? EMAILJS_TEMPLATE_APPROVE : EMAILJS_TEMPLATE_REJECT;
+    const driverInfoText = (status === 'Approved' && bookingData.assignedDriverName)
+      ? ` Assigned Driver: ${bookingData.assignedDriverName}${bookingData.assignedDriverPhone ? ' (Contact: ' + bookingData.assignedDriverPhone + ')' : ''}.`
+      : '';
     const messageText = status === 'Approved'
-      ? 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been APPROVED by the administrator.'
+      ? 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been APPROVED by the administrator.' + driverInfoText
       : 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been REJECTED by the administrator.';
 
     try {
@@ -73,6 +76,8 @@
         to_name:      bookingData.name,
         facility:     Utils.getBookingLocation(bookingData),
         vehicle:      Utils.formatVehicleList(bookingData.vehicle),
+        driver_name:  bookingData.assignedDriverName || '—',
+        driver_phone: bookingData.assignedDriverPhone || '—',
         date:         bookingData.date,
         start_time:   Utils.formatTime12(bookingData.startTime),
         end_time:     Utils.formatTime12(bookingData.endTime),

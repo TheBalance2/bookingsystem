@@ -75,19 +75,19 @@
 
       <form id="internalBookingForm" novalidate>
         <div class="form-grid">
-          <!-- Contact Person -->
+          <!-- I & II.1 Name of Requesting Personnel -->
           <div class="form-group full-width">
-            <label class="form-section-title">Name of Contact Person</label>
+            <label class="form-section-title">Name of Requesting Personnel</label>
             <div class="name-grid">
               <div class="form-group">
                 <label for="intFirstName">First Name <span class="required">*</span></label>
                 <input type="text" id="intFirstName" name="firstName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. JUAN" required>
-                <span class="error-message" id="intFirstNameError">Please enter contact person's first name</span>
+                <span class="error-message" id="intFirstNameError">Please enter requesting personnel's first name</span>
               </div>
               <div class="form-group">
                 <label for="intLastName">Last Name <span class="required">*</span></label>
                 <input type="text" id="intLastName" name="lastName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. DELA CRUZ" required>
-                <span class="error-message" id="intLastNameError">Please enter contact person's last name</span>
+                <span class="error-message" id="intLastNameError">Please enter requesting personnel's last name</span>
               </div>
               <div class="form-group">
                 <label for="intMiddleInitial">Middle Initial <span class="required">*</span></label>
@@ -97,7 +97,7 @@
             </div>
           </div>
 
-          <!-- Department -->
+          <!-- II.2 Department -->
           <div class="form-group">
             <label for="intDepartment">Department <span class="required">*</span></label>
             <select id="intDepartment" name="department" required>
@@ -110,46 +110,83 @@
             <span class="error-message" id="intDepartmentError">Please select your department</span>
           </div>
 
-          <!-- Conditional College School / Course -->
+          <!-- Conditional Office / School (Appears for any selected Department category) -->
           <div class="form-group" id="intCollegeSchoolGroup" style="display: none;">
-            <label for="intCollegeSchool">School / Course <span class="required">*</span></label>
+            <label for="intCollegeSchool">Office / School <span class="required">*</span></label>
             <select id="intCollegeSchool" name="collegeSchool">
-              <option value="">Select School / Course</option>
-              <option value="School of Education">School of Education</option>
-              <option value="School of Business Administration">School of Business Administration</option>
-              <option value="School of Office Administration">School of Office Administration</option>
-              <option value="School of Information Technology">School of Information Technology</option>
-              <option value="School of Accountancy">School of Accountancy</option>
-              <option value="School of Nursing">School of Nursing</option>
-              <option value="School of Midwifery">School of Midwifery</option>
-              <option value="School of Arts & Sciences">School of Arts & Sciences</option>
-              <option value="School of Engineering">School of Engineering</option>
+              <option value="">Select Office / School</option>
             </select>
-            <span class="error-message" id="intCollegeSchoolError">Please select your school or course</span>
+            <span class="error-message" id="intCollegeSchoolError">Please select your office or school</span>
           </div>
 
-          <!-- Employee ID -->
+          <!-- II.3 Position / Designation -->
           <div class="form-group">
-            <label for="intEmployeeId">Employee ID <span class="required">*</span></label>
-            <input type="text" id="intEmployeeId" name="employeeId" placeholder="e.g. SIC-2024-001" required>
-            <span class="error-message" id="intEmployeeIdError">Please enter your Employee ID</span>
+            <label for="intPosition">Position / Designation <span class="required">*</span></label>
+            <input type="text" id="intPosition" name="position" placeholder="e.g. Faculty / Dean / Office Staff" required>
+            <span class="error-message" id="intPositionError">Please enter your position or designation</span>
           </div>
 
-          <!-- Email -->
+          <!-- II.4 Contact Number -->
+          <div class="form-group">
+            <label for="intContact">Contact Number <span class="required">*</span></label>
+            <input type="tel" id="intContact" name="contactNumber" placeholder="e.g. 09171234567" inputmode="numeric" pattern="\d*" maxlength="15" required>
+            <span class="error-message" id="intContactError">Please enter a valid contact number (numbers only)</span>
+          </div>
+
+          <!-- II.5 Email Address -->
           <div class="form-group">
             <label for="intEmail">Email Address <span class="required">*</span></label>
             <input type="email" id="intEmail" name="email" placeholder="e.g. jdelacruz@sic.edu.ph" required>
             <span class="error-message" id="intEmailError">Please enter a valid email address</span>
           </div>
 
-          <!-- Facility -->
+          <!-- II.6 Office / Organization Address (Auto-filled for Internal) -->
           <div class="form-group">
-            <label for="intFacility">Facility / Vehicle <span class="required">*</span></label>
+            <label for="intAddress">Office / Organization Address</label>
+            <input type="text" id="intAddress" name="address" value="San Isidro College Impalambong" readonly style="background:var(--off-white); color:var(--gray-500); cursor:not-allowed;">
+          </div>
+
+          <!-- III.1 & III.2 Facility / Vehicle Requested -->
+          <div class="form-group">
+            <label for="intFacility">Facility / Vehicle Requested <span class="required">*</span></label>
             <select id="intFacility" name="facility" required>
               <option value="">Select Facility or Vehicle</option>
               <option value="Vehicle">Vehicle</option>
             </select>
             <span class="error-message" id="intFacilityError">Please select a facility or a vehicle</span>
+          </div>
+
+          <!-- Conditional Classroom Selection -->
+          <div class="form-group" id="intClassroomGroup" style="display:none;">
+            <label for="intClassroom">Select Classroom <span class="required">*</span></label>
+            <select id="intClassroom" name="classroom">
+              <option value="">Select Classroom</option>
+            </select>
+            <span class="error-message" id="intClassroomError">Please select a classroom</span>
+          </div>
+
+          <!-- Vehicle (shown only when "Vehicle" is chosen in the Facility dropdown) -->
+          <div class="form-group full-width vehicle-field" id="intVehicleGroup" style="display:none;">
+            <label>Vehicle Requested <span class="required">*</span></label>
+            <p class="form-subtitle" style="margin-bottom:var(--space-sm);">Select one or more vehicles.</p>
+            <div class="equipment-grid" id="vehicleOptions">
+              <!-- Vehicles are loaded dynamically from Firestore -->
+            </div>
+            <span class="error-message" id="intFacilityVehicleError">Please select at least one vehicle</span>
+          </div>
+          
+          <!-- Vehicle Destination -->
+          <div class="form-group full-width vehicle-field" id="intDestinationGroup" style="display:none;">
+            <label for="intDestination">Destination <span class="required">*</span></label>
+            <input type="text" id="intDestination" name="destination" placeholder="e.g. Cagayan de Oro City">
+            <span class="error-message" id="intDestinationError">Please enter the destination</span>
+          </div>
+
+          <!-- III.3 Purpose and Schedule -->
+          <div class="form-group full-width">
+            <label for="intPurpose">Purpose of Activity <span class="required">*</span></label>
+            <textarea id="intPurpose" name="purpose" placeholder="Describe the purpose of activity..." required></textarea>
+            <span class="error-message" id="intPurposeError">Please describe the purpose of activity</span>
           </div>
 
           <!-- Start Date -->
@@ -180,32 +217,14 @@
             <span class="error-message" id="intEndTimeError">For same-day bookings, end time must be after start time</span>
           </div>
 
-          <!-- Number of Persons -->
+          <!-- Number of Participants -->
           <div class="form-group">
-            <label for="intNumPersons">Number of Persons <span class="required">*</span></label>
+            <label for="intNumPersons">Number of Participants <span class="required">*</span></label>
             <input type="text" id="intNumPersons" name="numPersons" class="digits-only" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="e.g. 50" required>
-            <span class="error-message" id="intNumPersonsError">Please enter the number of persons</span>
+            <span class="error-message" id="intNumPersonsError">Please enter the number of participants</span>
           </div>
 
-          <!-- Vehicle (shown only when "Vehicle" is chosen in the Facility dropdown) -->
-          <div class="form-group full-width vehicle-field" id="intVehicleGroup" style="display:none;">
-            <label>Vehicle Needed <span class="required">*</span></label>
-            <p class="form-subtitle" style="margin-bottom:var(--space-sm);">Select one or more vehicles.</p>
-            <div class="equipment-grid" id="vehicleOptions">
-              <!-- Vehicles are loaded dynamically from Firestore -->
-            </div>
-            <span class="error-message" id="intFacilityVehicleError">Please select at least one vehicle</span>
-          </div>
-          
-          <!-- Vehicle Destination -->
-          <div class="form-group vehicle-field" id="intDestinationGroup" style="display:none;">
-            <label for="intDestination">Destination <span class="required">*</span></label>
-            <input type="text" id="intDestination" name="destination" placeholder="e.g. Cagayan de Oro City">
-            <span class="error-message" id="intDestinationError">Please enter the destination</span>
-          </div>
-          
-
-          <!-- Equipment -->
+          <!-- III.4 Equipment Needed -->
           <div class="form-group full-width">
             <label>Equipment Needed (optional)</label>
             <div class="equipment-grid">
@@ -244,13 +263,6 @@
             </div>
           </div>
 
-          <!-- Purpose -->
-          <div class="form-group full-width">
-            <label for="intPurpose">Purpose / Activity <span class="required">*</span></label>
-            <textarea id="intPurpose" name="purpose" placeholder="Describe the purpose / activity..." required></textarea>
-            <span class="error-message" id="intPurposeError">Please describe the purpose / activity</span>
-          </div>
-
           <!-- Other Considerations -->
           <div class="form-group full-width">
             <label for="intConsiderations">Other Considerations</label>
@@ -282,19 +294,19 @@
 
       <form id="externalBookingForm" novalidate>
         <div class="form-grid">
-          <!-- Contact Person -->
+          <!-- II.1 Name of Requesting Personnel -->
           <div class="form-group full-width">
-            <label class="form-section-title">Name of Contact Person</label>
+            <label class="form-section-title">Name of Requesting Personnel</label>
             <div class="name-grid">
               <div class="form-group">
                 <label for="extFirstName">First Name <span class="required">*</span></label>
                 <input type="text" id="extFirstName" name="firstName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. JUAN" required>
-                <span class="error-message" id="extFirstNameError">Please enter contact person's first name</span>
+                <span class="error-message" id="extFirstNameError">Please enter requesting personnel's first name</span>
               </div>
               <div class="form-group">
                 <label for="extLastName">Last Name <span class="required">*</span></label>
                 <input type="text" id="extLastName" name="lastName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. DELA CRUZ" required>
-                <span class="error-message" id="extLastNameError">Please enter contact person's last name</span>
+                <span class="error-message" id="extLastNameError">Please enter requesting personnel's last name</span>
               </div>
               <div class="form-group">
                 <label for="extMiddleInitial">Middle Initial <span class="required">*</span></label>
@@ -304,9 +316,9 @@
             </div>
           </div>
 
-          <!-- Agency/Organization Information -->
+          <!-- II.2 Department / Office / Organization -->
           <div class="form-group full-width" id="extAgencyBlock">
-            <label class="form-section-title">Agency / Organization Information</label>
+            <label class="form-section-title">Department / Office / Organization</label>
             <div class="agency-grid">
               <!-- Agency / Organization Type -->
               <div class="form-group agency-type-group">
@@ -359,23 +371,30 @@
             </div>
           </div>
 
-          <!-- Contact Number -->
+          <!-- II.3 Position / Designation -->
+          <div class="form-group">
+            <label for="extPosition">Position / Designation <span class="required">*</span></label>
+            <input type="text" id="extPosition" name="position" placeholder="e.g. Event Coordinator / Director" required>
+            <span class="error-message" id="extPositionError">Please enter your position or designation</span>
+          </div>
+
+          <!-- II.4 Contact Number -->
           <div class="form-group">
             <label for="extContact">Contact Number <span class="required">*</span></label>
-            <input type="tel" id="extContact" name="contactNumber" placeholder="e.g. 09171234567" inputmode="numeric" pattern="\d*" required>
+            <input type="tel" id="extContact" name="contactNumber" placeholder="e.g. 09171234567" inputmode="numeric" pattern="\d*" maxlength="15" required>
             <span class="error-message" id="extContactError">Please enter a valid contact number (numbers only)</span>
           </div>
 
-          <!-- Email -->
-          <div class="form-group">
+          <!-- II.5 Email Address -->
+          <div class="form-group full-width">
             <label for="extEmail">Email Address <span class="required">*</span></label>
             <input type="email" id="extEmail" name="email" placeholder="e.g. contact@org.com" required>
             <span class="error-message" id="extEmailError">Please enter a valid email address</span>
           </div>
 
-          <!-- Address (Philippines — Region > Province > City/Municipality > Barangay > Street) -->
+          <!-- II.6 Office / Organization Address (Philippines — Region > Province > City/Municipality > Barangay > Street) -->
           <div class="form-group full-width" id="extAddressBlock">
-            <label class="form-section-title">Address</label>
+            <label class="form-section-title">Office / Organization Address</label>
             <div class="address-grid">
               <div class="form-group">
                 <label for="extRegion">Region <span class="required">*</span></label>
@@ -415,18 +434,34 @@
             <!-- Fallback when the address service cannot be reached -->
             <div class="form-group" id="extAddressManualGroup" style="display:none;">
               <p class="form-subtitle" style="margin-bottom:var(--space-sm);">The address list could not be loaded. Please type your complete address.</p>
-              <input type="text" id="extAddress" name="address" placeholder="e.g. 123 Fortich St., Brgy. Sumpong, Malaybalay City, Bukidnon">
+              <input type="text" id="extAddress" name="address" placeholder="e.g. 123 Fortich St., Brgy. Sumpong, Malaybalay City">
               <span class="error-message" id="extAddressError">Please enter your address</span>
             </div>
           </div>
 
-          <!-- Facility -->
+          <!-- III.1 Facility Requested -->
           <div class="form-group">
-            <label for="extFacility">Facility <span class="required">*</span></label>
+            <label for="extFacility">Facility Requested <span class="required">*</span></label>
             <select id="extFacility" name="facility" required>
               <option value="">Select Facility</option>
             </select>
             <span class="error-message" id="extFacilityError">Please select a facility</span>
+          </div>
+
+          <!-- Conditional Classroom Selection -->
+          <div class="form-group" id="extClassroomGroup" style="display:none;">
+            <label for="extClassroom">Select Classroom <span class="required">*</span></label>
+            <select id="extClassroom" name="classroom">
+              <option value="">Select Classroom</option>
+            </select>
+            <span class="error-message" id="extClassroomError">Please select a classroom</span>
+          </div>
+
+          <!-- III.3 Purpose and Schedule -->
+          <div class="form-group full-width">
+            <label for="extPurpose">Purpose of Activity <span class="required">*</span></label>
+            <textarea id="extPurpose" name="purpose" placeholder="Describe the purpose of activity..." required></textarea>
+            <span class="error-message" id="extPurposeError">Please describe the purpose of activity</span>
           </div>
 
           <!-- Start Date -->
@@ -457,14 +492,14 @@
             <span class="error-message" id="extEndTimeError">For same-day bookings, end time must be after start time</span>
           </div>
 
-          <!-- Number of Persons -->
+          <!-- Number of Participants -->
           <div class="form-group">
-            <label for="extNumPersons">Number of Persons <span class="required">*</span></label>
+            <label for="extNumPersons">Number of Participants <span class="required">*</span></label>
             <input type="text" id="extNumPersons" name="numPersons" class="digits-only" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="e.g. 50" required>
-            <span class="error-message" id="extNumPersonsError">Please enter the number of persons</span>
+            <span class="error-message" id="extNumPersonsError">Please enter the number of participants</span>
           </div>
 
-          <!-- Equipment -->
+          <!-- III.4 Equipment Needed -->
           <div class="form-group full-width">
             <label>Equipment Needed (optional)</label>
             <div class="equipment-grid">
@@ -499,13 +534,6 @@
           <div class="form-group full-width">
             <label for="extOtherEquipment">Other Equipment / Resources Needed</label>
             <textarea id="extOtherEquipment" name="otherEquipment" placeholder="List any other equipment or resources needed..."></textarea>
-          </div>
-
-          <!-- Purpose -->
-          <div class="form-group full-width">
-            <label for="extPurpose">Purpose / Activity <span class="required">*</span></label>
-            <textarea id="extPurpose" name="purpose" placeholder="Describe the purpose / activity..." required></textarea>
-            <span class="error-message" id="extPurposeError">Please describe the purpose / activity</span>
           </div>
 
           <!-- Other Considerations -->
@@ -609,7 +637,7 @@
       <p style="font-size:0.82rem;color:var(--gray-300);margin-bottom:var(--space-md);">Save this reference ID for your records.</p>
       <div class="ext-success-actions">
         <button class="btn-download-pdf" id="downloadInternalPdfBtn">📥 Download Booking Form</button>
-        <p style="font-size:0.8rem; color:var(--gray-400); max-width:340px; text-align:center; line-height:1.5;">Print this PDF (contains 2 copies), cut it in half, and route it for signatures.</p>
+        <p style="font-size:0.8rem; color:var(--gray-400); max-width:340px; text-align:center; line-height:1.5;">Please print and accomplish <strong>TWO (2) COPIES</strong> of this form (Requesting Person, Facility In-Charge) and secure the necessary approvals before the scheduled use.</p>
         <a href="index.html" class="btn btn-primary" style="margin-top:var(--space-sm);">Back to Home</a>
       </div>
     </div>
@@ -621,12 +649,12 @@
   <div class="modal-overlay" id="extSuccessModal">
     <div class="modal">
       <h2>Booking Submitted Successfully!</h2>
-      <p>Your booking request has been received. A PDF summary has been generated for you.</p>
+      <p>Your booking request has been received. A PDF form has been generated for you.</p>
       <div class="reference-id" id="extBookingRefId">—</div>
       <p style="font-size:0.82rem;color:var(--gray-300);margin-bottom:var(--space-sm);">Save this reference ID for your records.</p>
       <div class="ext-success-actions">
         <button class="btn-download-pdf" id="downloadPdfBtn">📥 Download Booking PDF</button>
-        <p style="font-size:0.8rem; color:var(--gray-400); max-width:340px; text-align:center; line-height:1.5;">Print this PDF and present it to the <strong>Business Office</strong> for payment assessment. After paying, return here to upload your receipt.</p>
+        <p style="font-size:0.8rem; color:var(--gray-400); max-width:340px; text-align:center; line-height:1.5;">Please print and accomplish <strong>FOUR (4) COPIES</strong> of this form, attach the <strong>ORIGINAL COPY of the Letter of Intent</strong>, and present it to the <strong>Business Office</strong> for payment assessment.</p>
         <a href="index.html" class="btn btn-primary" style="margin-top:var(--space-sm);">Back to Home</a>
       </div>
     </div>
@@ -686,7 +714,9 @@
 
   <!-- MVC Models -->
   <script src="js/models/facility-model.js"></script>
+  <script src="js/models/classroom-model.js"></script>
   <script src="js/models/vehicle-model.js"></script>
+  <script src="js/models/department-model.js"></script>
   <script src="js/models/settings-model.js"></script>
   <script src="js/models/booking-model.js"></script>
 

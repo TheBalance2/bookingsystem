@@ -1,7 +1,7 @@
 /* ============================================================
    Vehicle Controller — San Isidro College Reservation System
    Controller Layer (js/controllers/vehicle-controller.js)
-   Manages Vehicle & Driver CRUD on dashboard.html.
+   Manages Vehicle CRUD and Driver CRUD on dashboard.html.
    ============================================================ */
 
 (function () {
@@ -14,6 +14,10 @@
   let deletingVehicleId = null;
   let onVehiclesChange  = null;
 
+  let allDrivers        = [];
+  let editingDriverId   = null;
+  let deletingDriverId  = null;
+
   const vehicleModal              = document.getElementById('vehicleModal');
   const vehicleForm               = document.getElementById('vehicleForm');
   const vehicleModalTitle         = document.getElementById('vehicleModalTitle');
@@ -21,6 +25,19 @@
   const deleteVehicleConfirmModal = document.getElementById('deleteVehicleConfirmModal');
   const deleteVehicleName         = document.getElementById('deleteVehicleName');
   const confirmDeleteVehicleBtn   = document.getElementById('confirmDeleteVehicleBtn');
+
+  const driverModal               = document.getElementById('driverModal');
+  const driverForm                = document.getElementById('driverForm');
+  const driverModalTitle          = document.getElementById('driverModalTitle');
+  const addDriverBtn              = document.getElementById('addDriverBtn');
+  const deleteDriverConfirmModal  = document.getElementById('deleteDriverConfirmModal');
+  const deleteDriverName          = document.getElementById('deleteDriverName');
+  const confirmDeleteDriverBtn    = document.getElementById('confirmDeleteDriverBtn');
+  const drvPhoneInput             = document.getElementById('drvPhone');
+
+  if (drvPhoneInput && window.Utils && typeof Utils.stripNonDigitsInput === 'function') {
+    Utils.stripNonDigitsInput(drvPhoneInput);
+  }
 
   function startListening(onChangeCallback) {
     if (typeof onChangeCallback === 'function') onVehiclesChange = onChangeCallback;
@@ -30,10 +47,19 @@
       if (typeof onVehiclesChange === 'function') onVehiclesChange(allVehicles);
       AdminCrudView.renderVehiclesTable(allVehicles);
     });
+
+    if (window.DriverModel) {
+      DriverModel.listenAll((drivers) => {
+        allDrivers = drivers;
+        window._allDrivers = allDrivers;
+        AdminCrudView.renderDriversTable(allDrivers);
+      });
+    }
   }
 
   window.listenVehicles = startListening;
 
+  // ---- Vehicle Add / Edit / Save / Delete ----
   if (addVehicleBtn) {
     addVehicleBtn.addEventListener('click', () => {
       editingVehicleId = null;
@@ -53,7 +79,6 @@
     document.getElementById('vehName').value        = vehicle.name || '';
     document.getElementById('vehDescription').value = vehicle.description || '';
     document.getElementById('vehCapacity').value    = vehicle.capacity || '';
-    document.getElementById('vehDriver').value      = vehicle.driver || '';
     document.getElementById('vehStatus').value      = vehicle.status || 'Active';
 
     if (vehicleModal) vehicleModal.classList.add('visible');
@@ -66,7 +91,6 @@
       const name        = document.getElementById('vehName').value.trim();
       const description = document.getElementById('vehDescription').value.trim();
       const capacity    = document.getElementById('vehCapacity').value.trim();
-      const driver      = document.getElementById('vehDriver').value.trim();
       const status      = document.getElementById('vehStatus').value;
 
       if (!name) {
@@ -82,7 +106,7 @@
         const wasEditing = Boolean(editingVehicleId);
         await VehicleModel.save(
           editingVehicleId,
-          { name, description, capacity, driver, status },
+          { name, description, capacity, status },
           allVehicles.length
         );
 
@@ -97,7 +121,7 @@
         const errorMessage = err?.message
           ? `Failed to save vehicle: ${err.message}`
           : 'Failed to save vehicle. Please try again.';
-        UiView.showToast('error', 'Error', errorMessage);
+        UiView.showToast('error', 'error', errorMessage);
       } finally {
         submitBtn.innerHTML = 'Save Vehicle';
         submitBtn.classList.remove('loading');
@@ -140,12 +164,118 @@
     deletingVehicleId = null;
   };
 
-  [vehicleModal, deleteVehicleConfirmModal].forEach(modal => {
+  // ---- Driver Add / Edit / Save / Delete ----
+  if (addDriverBtn) {
+    addDriverBtn.addEventListener('click', () => {
+      editingDriverId = null;
+      if (driverModalTitle) driverModalTitle.textContent = 'Add Driver';
+      if (driverForm) driverForm.reset();
+      if (driverModal) driverModal.classList.add('visible');
+    });
+  }
+
+  window.editDriver = function (docId) {
+    const drv = allDrivers.find(d => d.id === docId);
+    if (!drv) return;
+
+    editingDriverId = docId;
+    if (driverModalTitle) driverModalTitle.textContent = 'Edit Driver';
+
+    document.getElementById('drvName').value   = drv.name || '';
+    document.getElementById('drvPhone').value  = drv.phone || '';
+    document.getElementById('drvStatus').value = drv.status || 'Active';
+
+    if (driverModal) driverModal.classList.add('visible');
+  };
+
+  if (driverForm) {
+    driverForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name   = document.getElementById('drvName').value.trim();
+      const phone  = document.getElementById('drvPhone').value.trim();
+      const status = document.getElementById('drvStatus').value;
+
+      if (!name) {
+        alert('Please enter the driver\'s full name.');
+        return;
+      }
+      if (!phone) {
+        alert('Please enter the driver\'s phone number.');
+        return;
+      }
+
+      const submitBtn = document.getElementById('driverSubmitBtn');
+      submitBtn.innerHTML = '<span class="spinner"></span> Saving...';
+      submitBtn.classList.add('loading');
+
+      try {
+        const wasEditing = Boolean(editingDriverId);
+        await DriverModel.save(
+          editingDriverId,
+          { name, phone, status },
+          allDrivers.length
+        );
+
+        UiView.showToast(
+          'success',
+          wasEditing ? 'Driver Updated' : 'Driver Added',
+          `"${name}" has been ${wasEditing ? 'updated' : 'added'} successfully.`
+        );
+        window.closeDriverModal();
+      } catch (err) {
+        Logger.error(LAYER, 'Driver save error:', err);
+        UiView.showToast('error', 'Error', 'Failed to save driver. Please try again.');
+      } finally {
+        submitBtn.innerHTML = 'Save Driver';
+        submitBtn.classList.remove('loading');
+      }
+    });
+  }
+
+  window.deleteDriver = function (docId) {
+    const drv = allDrivers.find(d => d.id === docId);
+    if (!drv) return;
+
+    deletingDriverId = docId;
+    if (deleteDriverName) deleteDriverName.textContent = `"${drv.name}"`;
+    if (deleteDriverConfirmModal) deleteDriverConfirmModal.classList.add('visible');
+  };
+
+  if (confirmDeleteDriverBtn) {
+    confirmDeleteDriverBtn.addEventListener('click', async () => {
+      if (!deletingDriverId) return;
+
+      try {
+        const drv = allDrivers.find(d => d.id === deletingDriverId);
+        await DriverModel.remove(deletingDriverId);
+        UiView.showToast('warning', 'Driver Deleted', `"${drv?.name || 'Driver'}" has been removed.`);
+        window.closeDeleteDriverModal();
+      } catch (err) {
+        Logger.error(LAYER, 'Delete driver error:', err);
+        UiView.showToast('error', 'Error', 'Failed to delete driver.');
+      }
+    });
+  }
+
+  window.closeDriverModal = function () {
+    if (driverModal) driverModal.classList.remove('visible');
+    editingDriverId = null;
+  };
+
+  window.closeDeleteDriverModal = function () {
+    if (deleteDriverConfirmModal) deleteDriverConfirmModal.classList.remove('visible');
+    deletingDriverId = null;
+  };
+
+  [vehicleModal, deleteVehicleConfirmModal, driverModal, deleteDriverConfirmModal].forEach(modal => {
     if (modal) {
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
           if (modal === vehicleModal) window.closeVehicleModal();
-          else window.closeDeleteVehicleModal();
+          else if (modal === deleteVehicleConfirmModal) window.closeDeleteVehicleModal();
+          else if (modal === driverModal) window.closeDriverModal();
+          else if (modal === deleteDriverConfirmModal) window.closeDeleteDriverModal();
         }
       });
     }
@@ -153,7 +283,7 @@
 
   window.VehicleController = {
     startListening,
-    getAll: () => allVehicles
+    getAll: () => allVehicles,
+    getAllDrivers: () => allDrivers
   };
 })();
-

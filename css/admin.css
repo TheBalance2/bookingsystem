@@ -206,6 +206,41 @@
   margin-bottom: var(--space-md);
 }
 
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding-right: 42px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.password-toggle-btn:hover,
+.password-toggle-btn:focus-visible {
+  color: var(--navy);
+  background: rgba(15, 37, 55, 0.06);
+  outline: none;
+}
+
 .login-error {
   background: var(--danger-light);
   color: var(--danger);
@@ -723,7 +758,7 @@
 
 .report-filters-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr 1fr auto;
   gap: var(--space-lg);
   align-items: end;
 }

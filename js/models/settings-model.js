@@ -87,14 +87,16 @@
         return {
           facilitiesInCharge:      String(d.facilitiesInCharge || '').trim(),
           comptroller:             String(d.comptroller || '').trim(),
-          generalAdminCoordinator: String(d.generalAdminCoordinator || '').trim()
+          generalAdminCoordinator: String(d.generalAdminCoordinator || '').trim(),
+          vpAdminFinance:          String(d.vpAdminFinance || '').trim()
         };
       } catch (err) {
         Logger.warn(LAYER, 'Could not fetch signatories:', err);
         return {
           facilitiesInCharge: '',
           comptroller: '',
-          generalAdminCoordinator: ''
+          generalAdminCoordinator: '',
+          vpAdminFinance: ''
         };
       }
     },
@@ -107,7 +109,8 @@
           const state = {
             facilitiesInCharge:      String(d.facilitiesInCharge || '').trim(),
             comptroller:             String(d.comptroller || '').trim(),
-            generalAdminCoordinator: String(d.generalAdminCoordinator || '').trim()
+            generalAdminCoordinator: String(d.generalAdminCoordinator || '').trim(),
+            vpAdminFinance:          String(d.vpAdminFinance || '').trim()
           };
           if (typeof onUpdate === 'function') onUpdate(state);
         }, (err) => {
@@ -120,12 +123,13 @@
       }
     },
 
-    async saveSignatories({ facilitiesInCharge, comptroller, generalAdminCoordinator }) {
+    async saveSignatories({ facilitiesInCharge, comptroller, generalAdminCoordinator, vpAdminFinance }) {
       try {
         await db.collection(SETTINGS_COLLECTION).doc(SIGNATORIES_DOC).set({
           facilitiesInCharge,
           comptroller,
           generalAdminCoordinator,
+          vpAdminFinance: vpAdminFinance || '',
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
       } catch (err) {

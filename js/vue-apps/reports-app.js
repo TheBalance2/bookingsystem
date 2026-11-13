@@ -16,6 +16,7 @@
     data() {
       const now = new Date();
       return {
+        selectedUserType: 'all',
         selectedFacility: 'all',
         selectedMonth: now.getMonth(),
         selectedYear: now.getFullYear(),
@@ -31,10 +32,15 @@
         const month = Number(this.selectedMonth);
         const year = Number(this.selectedYear);
         const facility = this.selectedFacility;
+        const userType = this.selectedUserType;
 
         return this.bookings
           .filter(b => {
             if (b.status !== 'Approved') return false;
+
+            if (userType !== 'all' && b.userType !== userType) {
+              return false;
+            }
 
             if (facility !== 'all') {
               if (facility === 'Vehicle') {
@@ -62,9 +68,10 @@
       },
 
       previewTitle() {
+        const typeLabel = this.selectedUserType === 'all' ? 'All Users' : `${this.selectedUserType} Users`;
         const facilityLabel = this.selectedFacility === 'all' ? 'All Facilities' : this.selectedFacility;
         const monthLabel = this.MONTHS[this.selectedMonth] || '';
-        return `${facilityLabel} — ${monthLabel} ${this.selectedYear}`;
+        return `${typeLabel} • ${facilityLabel} — ${monthLabel} ${this.selectedYear}`;
       },
 
       recordCountText() {
@@ -111,7 +118,7 @@
         if (b.facility === 'Vehicle' && b.vehicle) {
           return `Vehicle (${Utils.formatVehicleList(b.vehicle)})`;
         }
-        return b.facility || '—';
+        return Utils.getBookingLocation(b, b.facility || '—');
       },
 
       formatDateCell(b) {
@@ -141,6 +148,7 @@
           return;
         }
 
+        const userTypeLabel = this.selectedUserType === 'all' ? 'All Users' : `${this.selectedUserType} Users`;
         const facilityLabel = this.selectedFacility === 'all' ? 'All Facilities' : this.selectedFacility;
         const monthName = this.MONTHS[this.selectedMonth];
         const year = this.selectedYear;
@@ -159,20 +167,24 @@
             'Start Time': Utils.formatTime12(b.startTime),
             'End Time': Utils.formatTime12(b.endTime),
             'Facility': b.facility || '',
-            'Requester Name': b.fullName || '',
+            'Classroom': b.classroom || '',
+            'Requester Name': b.fullName || b.name || '',
+            'Position / Designation': b.position || '',
             'Email': b.email || '',
+            'Contact Number': b.contactNumber || '',
             'User Type': b.userType || '',
             'Department / Organization': b.userType === 'Internal' ? (b.department || '') : (b.organization || ''),
-            'School / Course': b.collegeSchool || '',
+            'School / Office': b.collegeSchool || b.officeName || '',
+            'Dean / Office Head': b.officeHead || '',
             'Agency Type': b.agencyType || '',
-            'Office / Division': b.officeName || '',
-            'Employee ID': b.employeeId || '',
-            'Contact Number': b.contactNumber || '',
             'Address': b.address || '',
             'Purpose': b.purpose || '',
             'No. of Persons': b.numPersons || '',
             'Vehicle': Utils.formatVehicleList(b.vehicle, ''),
             'Destination': b.destination || '',
+            'Assigned Driver': b.assignedDriverName
+              ? (b.assignedDriverPhone ? `${b.assignedDriverName} (${b.assignedDriverPhone})` : b.assignedDriverName)
+              : '',
             'Equipment': equipment,
             'Other Equipment': b.otherEquipment || '',
             'Considerations': b.considerations || '',
@@ -183,7 +195,7 @@
         const wb = XLSX.utils.book_new();
         const headerRows = [
           ['San Isidro College — Digital Reservation System'],
-          [`Approved Bookings Report: ${facilityLabel}`],
+          [`Approved Bookings Report: ${userTypeLabel} — ${facilityLabel}`],
           [`Period: ${monthName} ${year}`],
           [`Total Records: ${filtered.length}`],
           [`Generated: ${new Date().toLocaleString()}`],

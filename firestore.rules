@@ -45,9 +45,24 @@ service cloud.firestore {
     }
 
     // ============================================================
-    // VEHICLES
+    // VEHICLES, DRIVERS, CLASSROOMS & DEPARTMENTS
     // ============================================================
     match /vehicles/{vehicleId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
+    match /drivers/{driverId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
+    match /classrooms/{classroomId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
+    match /departments/{departmentId} {
       allow read:  if true;
       allow write: if isAdmin();
     }

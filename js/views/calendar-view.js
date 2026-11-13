@@ -59,12 +59,12 @@
 
       calendar.addEvent({
         id:    d.id,
-        title: (d.facility || 'Vehicle') + ' — ' + d.name,
+        title: Utils.getBookingLocation(d, 'Vehicle') + ' — ' + d.name,
         start: sDate + 'T' + d.startTime,
         end:   eDate + 'T' + d.endTime,
         color: color,
         extendedProps: {
-          facility:    d.facility,
+          facility:    Utils.getBookingLocation(d, 'Vehicle'),
           name:        d.name,
           email:       d.email,
           purpose:     d.purpose,

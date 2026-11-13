@@ -61,16 +61,31 @@
     });
   });
 
-  // ---- Load Dynamic Facilities & Vehicles via Models ----
+  // ---- Load Dynamic Facilities, Classrooms & Vehicles via Models ----
+  let loadedFacilities = [];
+
   function loadFacilities() {
     FacilityModel.getActive()
       .then(activeFacilities => {
         if (activeFacilities && activeFacilities.length > 0) {
+          loadedFacilities = activeFacilities;
           BookingFormView.populateFacilitySelects(activeFacilities);
+          applyPrefillFacilityIfNeeded();
         }
       })
       .catch(err => {
         Logger.warn(LAYER, 'Could not load facilities from Firestore, using hardcoded defaults:', err);
+      });
+  }
+
+  function loadClassrooms() {
+    if (!window.ClassroomModel) return;
+    ClassroomModel.getActive()
+      .then(activeClassrooms => {
+        BookingFormView.populateClassroomSelects(activeClassrooms);
+      })
+      .catch(err => {
+        Logger.warn(LAYER, 'Could not load classrooms from Firestore:', err);
       });
   }
 
@@ -87,6 +102,19 @@
       });
   }
 
+  function loadDepartments() {
+    if (!window.DepartmentModel) return;
+    if (typeof DepartmentModel.listenAll === 'function') {
+      DepartmentModel.listenAll(departments => {
+        BookingFormView.setDepartmentsData(departments);
+      });
+    } else if (typeof DepartmentModel.getAll === 'function') {
+      DepartmentModel.getAll()
+        .then(departments => BookingFormView.setDepartmentsData(departments))
+        .catch(() => {});
+    }
+  }
+
   function syncReceiptRefPlaceholder() {
     const receiptRefInput = document.getElementById('receiptRefId');
     if (!receiptRefInput) return;
@@ -99,15 +127,48 @@
   }
 
   loadFacilities();
+  loadClassrooms();
   loadVehicles();
+  loadDepartments();
   syncReceiptRefPlaceholder();
 
   // ---- Pre-fill from URL Query Params (?date=...&facility=...) ----
-  (function prefillFromURL() {
-    const params          = new URLSearchParams(window.location.search);
-    const prefillDate     = params.get('date');
-    const prefillFacility = params.get('facility');
+  const urlParams       = new URLSearchParams(window.location.search);
+  const prefillDate     = urlParams.get('date');
+  const prefillFacility = urlParams.get('facility');
 
+  function applyPrefillFacilityIfNeeded() {
+    if (!prefillFacility) return;
+    const intFacility = document.getElementById('intFacility');
+    const extFacility = document.getElementById('extFacility');
+
+    const matchedFac = loadedFacilities.find(f => f.name === prefillFacility);
+    const vis = matchedFac ? Utils.normalizeFacilityVisibility(matchedFac.visibility) : 'both';
+
+    if (vis === 'external') {
+      const extBtn = document.getElementById('toggleExternal');
+      if (extBtn) extBtn.click();
+    } else if (vis === 'internal') {
+      const intBtn = document.getElementById('toggleInternal');
+      if (intBtn) intBtn.click();
+    }
+
+    [intFacility, extFacility].forEach(select => {
+      if (!select) return;
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === prefillFacility) {
+          select.value = prefillFacility;
+          break;
+        }
+      }
+    });
+
+    BookingFormView.updateVehicleVisibility();
+    BookingFormView.updateClassroomVisibility('int');
+    BookingFormView.updateClassroomVisibility('ext');
+  }
+
+  (function prefillFromURL() {
     if (!prefillDate && !prefillFacility) return;
 
     if (prefillDate) {
@@ -118,30 +179,15 @@
     }
 
     if (prefillFacility) {
-      function setFacility() {
-        const intFacility = document.getElementById('intFacility');
-        const extFacility = document.getElementById('extFacility');
-
-        [intFacility, extFacility].forEach(select => {
-          if (!select) return;
-          for (let i = 0; i < select.options.length; i++) {
-            if (select.options[i].value === prefillFacility) {
-              select.value = prefillFacility;
-              break;
-            }
-          }
-        });
-      }
-
-      setFacility();
-      setTimeout(setFacility, 800);
-      setTimeout(setFacility, 1500);
+      applyPrefillFacilityIfNeeded();
+      setTimeout(applyPrefillFacilityIfNeeded, 800);
+      setTimeout(applyPrefillFacilityIfNeeded, 1500);
     }
 
     setTimeout(() => {
-      const formCard = document.getElementById('internalForm');
-      if (formCard) formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 300);
+      const activeForm = (externalForm && externalForm.style.display !== 'none') ? externalForm : internalForm;
+      if (activeForm) activeForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 350);
   })();
 
   // ---- Schedule & Input Validation Helpers ----
@@ -261,53 +307,74 @@
   linkDateRange('intStartDate', 'intEndDate');
   linkDateRange('extStartDate', 'extEndDate');
 
-  async function checkConflictAndRender(facility, startDate, endDate, startTime, endTime, warningId, textId) {
-    const hasConflict = await BookingModel.hasScheduleConflict(facility, startDate, endDate, startTime, endTime);
-    BookingFormView.renderConflictWarning(warningId, textId, hasConflict, facility, startDate, endDate, startTime, endTime);
+  async function checkConflictAndRender(facility, startDate, endDate, startTime, endTime, warningId, textId, classroom = '') {
+    const hasConflict = await BookingModel.hasScheduleConflict(facility, startDate, endDate, startTime, endTime, classroom);
+    const displayLabel = (Utils.isClassroomFacilityName(facility) && classroom)
+      ? `${facility} (${classroom})`
+      : facility;
+    BookingFormView.renderConflictWarning(warningId, textId, hasConflict, displayLabel, startDate, endDate, startTime, endTime);
     return hasConflict;
   }
 
   function runIntConflictCheck() {
     const choice = document.getElementById('intFacility').value;
+    const classroom = document.getElementById('intClassroom') ? document.getElementById('intClassroom').value : '';
     checkConflictAndRender(
       choice === VEHICLE_OPTION ? '' : choice,
       document.getElementById('intStartDate').value,
       document.getElementById('intEndDate').value,
       document.getElementById('intStartTime').value,
       document.getElementById('intEndTime').value,
-      'intConflictWarning', 'intConflictText'
+      'intConflictWarning', 'intConflictText',
+      classroom
     );
   }
-  ['intFacility', 'intStartDate', 'intEndDate', 'intStartTime', 'intEndTime'].forEach(id => {
+  ['intFacility', 'intClassroom', 'intStartDate', 'intEndDate', 'intStartTime', 'intEndTime'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('change', runIntConflictCheck);
   });
 
   function runExtConflictCheck() {
+    const fac = document.getElementById('extFacility').value;
+    const classroom = document.getElementById('extClassroom') ? document.getElementById('extClassroom').value : '';
     checkConflictAndRender(
-      document.getElementById('extFacility').value,
+      fac,
       document.getElementById('extStartDate').value,
       document.getElementById('extEndDate').value,
       document.getElementById('extStartTime').value,
       document.getElementById('extEndTime').value,
-      'extConflictWarning', 'extConflictText'
+      'extConflictWarning', 'extConflictText',
+      classroom
     );
   }
-  ['extFacility', 'extStartDate', 'extEndDate', 'extStartTime', 'extEndTime'].forEach(id => {
+  ['extFacility', 'extClassroom', 'extStartDate', 'extEndDate', 'extStartTime', 'extEndTime'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('change', runExtConflictCheck);
   });
 
   // ---- Input Formatting & Conditional Fields ----
-  const extContactEl    = document.getElementById('extContact');
-  const extAgencyTypeEl = document.getElementById('extAgencyType');
-  const intFacilityEl   = document.getElementById('intFacility');
-  const intDepartmentEl = document.getElementById('intDepartment');
+  const intContactEl       = document.getElementById('intContact');
+  const extContactEl       = document.getElementById('extContact');
+  const extAgencyTypeEl    = document.getElementById('extAgencyType');
+  const intFacilityEl      = document.getElementById('intFacility');
+  const extFacilityEl      = document.getElementById('extFacility');
+  const intDepartmentEl    = document.getElementById('intDepartment');
   const intCollegeSchoolEl = document.getElementById('intCollegeSchool');
 
+  if (intContactEl) Utils.stripNonDigitsInput(intContactEl);
   if (extContactEl) Utils.stripNonDigitsInput(extContactEl);
   if (extAgencyTypeEl) extAgencyTypeEl.addEventListener('change', BookingFormView.updateExtAgencyOtherVisibility);
-  if (intFacilityEl)   intFacilityEl.addEventListener('change', BookingFormView.updateVehicleVisibility);
+  if (intFacilityEl) {
+    intFacilityEl.addEventListener('change', () => {
+      BookingFormView.updateVehicleVisibility();
+      BookingFormView.updateClassroomVisibility('int');
+    });
+  }
+  if (extFacilityEl) {
+    extFacilityEl.addEventListener('change', () => {
+      BookingFormView.updateClassroomVisibility('ext');
+    });
+  }
   if (intDepartmentEl) intDepartmentEl.addEventListener('change', BookingFormView.updateIntDepartmentSchoolVisibility);
 
   ['intNumPersons', 'extNumPersons'].forEach(id => {
@@ -336,6 +403,7 @@
     intForm.addEventListener('reset', () => {
       setTimeout(() => {
         BookingFormView.updateVehicleVisibility();
+        BookingFormView.updateClassroomVisibility('int');
         BookingFormView.updateIntDepartmentSchoolVisibility();
         BookingFormView.clearErrors('int');
         document.getElementById('intConflictWarning').classList.remove('visible');
@@ -346,6 +414,7 @@
     extForm.addEventListener('reset', () => {
       setTimeout(() => {
         BookingFormView.updateExtAgencyOtherVisibility();
+        BookingFormView.updateClassroomVisibility('ext');
         BookingFormView.clearErrors('ext');
         document.getElementById('extConflictWarning').classList.remove('visible');
       }, 0);
@@ -370,12 +439,24 @@
       const middleInitial  = document.getElementById('intMiddleInitial').value.trim().toUpperCase();
       const departmentRaw  = document.getElementById('intDepartment').value;
       const collegeSchool  = intCollegeSchoolEl ? intCollegeSchoolEl.value : '';
-      let finalDepartment  = departmentRaw;
-      const employeeId     = document.getElementById('intEmployeeId').value.trim();
+      const hasOffices     = intCollegeSchoolEl && intCollegeSchoolEl.dataset.hasOffices === '1';
+      let officeHead       = '';
+      if (intCollegeSchoolEl && intCollegeSchoolEl.selectedIndex >= 0) {
+        const selOpt = intCollegeSchoolEl.options[intCollegeSchoolEl.selectedIndex];
+        officeHead = selOpt && selOpt.dataset ? (selOpt.dataset.headName || '') : '';
+      }
+      const finalDepartment = collegeSchool ? collegeSchool : departmentRaw;
+      const position       = (document.getElementById('intPosition') ? document.getElementById('intPosition').value : '').trim();
+      const contact        = (document.getElementById('intContact') ? document.getElementById('intContact').value : '').trim();
       const email          = document.getElementById('intEmail').value.trim();
+      const address        = 'San Isidro College Impalambong';
       const facilityChoice = document.getElementById('intFacility').value;
       const isVehicle      = facilityChoice === VEHICLE_OPTION;
       const facility       = isVehicle ? '' : facilityChoice;
+      const isClassroom    = Utils.isClassroomFacilityName(facility);
+      const classroom      = isClassroom && document.getElementById('intClassroom')
+        ? document.getElementById('intClassroom').value.trim()
+        : '';
       const startDate      = document.getElementById('intStartDate').value;
       const endDate        = document.getElementById('intEndDate').value;
       const startTime      = document.getElementById('intStartTime').value;
@@ -400,17 +481,16 @@
       if (!departmentRaw) {
         BookingFormView.showError('intDepartmentError');
         valid = false;
-      } else if (departmentRaw === 'College') {
-        if (!collegeSchool) {
-          BookingFormView.showError('intCollegeSchoolError');
-          valid = false;
-        } else {
-          finalDepartment = collegeSchool;
-        }
+      } else if (hasOffices && !collegeSchool) {
+        BookingFormView.showError('intCollegeSchoolError');
+        valid = false;
       }
-      if (!employeeId)                        { BookingFormView.showError('intEmployeeIdError'); valid = false; }
+      if (!position)                      { BookingFormView.showError('intPositionError');      valid = false; }
+      if (!contact)                       { BookingFormView.showError('intContactError');       valid = false; }
+      else if (!Utils.isDigitsOnly(contact)) { BookingFormView.showError('intContactError', 'Contact must be numbers only.'); valid = false; }
       if (!email || !Utils.isValidEmail(email)) { BookingFormView.showError('intEmailError');     valid = false; }
       if (!facilityChoice)                    { BookingFormView.showError('intFacilityError');   valid = false; }
+      if (isClassroom && !classroom)          { BookingFormView.showError('intClassroomError');  valid = false; }
       if (!validateSchedule('int', startDate, endDate, startTime, endTime)) valid = false;
       if (!Utils.isValidPersonCount(numPersonsRaw)) { BookingFormView.showError('intNumPersonsError'); valid = false; }
       if (isVehicle && vehicle.length === 0)  { BookingFormView.showError('intFacilityVehicleError'); valid = false; }
@@ -438,10 +518,14 @@
           name:             combinedName,
           department:       finalDepartment,
           parentDepartment: departmentRaw,
-          collegeSchool:    departmentRaw === 'College' ? collegeSchool : '',
-          employeeId,
+          collegeSchool:    collegeSchool || '',
+          officeHead:       officeHead || '',
+          position,
+          contactNumber:    contact,
+          address,
           email,
           facility,
+          classroom,
           date:             startDate,
           startDate,
           endDate,
@@ -459,16 +543,22 @@
 
         PdfService.generateInternalBookingPDF({
           referenceId:      refId,
+          userType:         'Internal',
           firstName,
           lastName,
           middleInitial,
           name:             combinedName,
           department:       finalDepartment,
           parentDepartment: departmentRaw,
-          collegeSchool:    departmentRaw === 'College' ? collegeSchool : '',
-          employeeId,
+          collegeSchool:    collegeSchool || '',
+          officeHead:       officeHead || '',
+          position,
+          contactNumber:    contact,
+          contact,
+          address,
           email,
           facility,
+          classroom,
           date:             Utils.formatDateRange(startDate, endDate),
           startDate,
           endDate,
@@ -521,9 +611,14 @@
       const agencyType      = (agencyTypeRaw.startsWith('Other') && agencyTypeOther) ? agencyTypeOther : agencyTypeRaw;
       const agencyName      = document.getElementById('extAgencyName').value.trim();
       const officeName      = document.getElementById('extOfficeName').value.trim();
+      const position        = (document.getElementById('extPosition') ? document.getElementById('extPosition').value : '').trim();
       const contact         = document.getElementById('extContact').value.trim();
       const email           = document.getElementById('extEmail').value.trim();
       const facility        = document.getElementById('extFacility').value;
+      const isClassroom     = Utils.isClassroomFacilityName(facility);
+      const classroom       = isClassroom && document.getElementById('extClassroom')
+        ? document.getElementById('extClassroom').value.trim()
+        : '';
       const startDate       = document.getElementById('extStartDate').value;
       const endDate         = document.getElementById('extEndDate').value;
       const startTime       = document.getElementById('extStartTime').value;
@@ -543,12 +638,14 @@
       if (agencyTypeRaw.startsWith('Other') && !agencyTypeOther) { BookingFormView.showError('extAgencyTypeOtherError'); valid = false; }
       if (!agencyName)                    { BookingFormView.showError('extAgencyNameError');    valid = false; }
       if (!officeName)                    { BookingFormView.showError('extOfficeNameError');    valid = false; }
+      if (!position)                      { BookingFormView.showError('extPositionError');      valid = false; }
       if (!contact)                       { BookingFormView.showError('extContactError');       valid = false; }
       else if (!Utils.isDigitsOnly(contact)) { BookingFormView.showError('extContactError', 'Contact must be numbers only.'); valid = false; }
       const addressInfo = AddressService.collect(BookingFormView.showError);
       if (!addressInfo.valid)             { valid = false; }
       if (!email || !Utils.isValidEmail(email)) { BookingFormView.showError('extEmailError');    valid = false; }
       if (!facility)                      { BookingFormView.showError('extFacilityError');      valid = false; }
+      if (isClassroom && !classroom)      { BookingFormView.showError('extClassroomError');     valid = false; }
       if (!validateSchedule('ext', startDate, endDate, startTime, endTime)) valid = false;
       if (!Utils.isValidPersonCount(numPersonsRaw)) { BookingFormView.showError('extNumPersonsError'); valid = false; }
       if (!purpose)                       { BookingFormView.showError('extPurposeError');       valid = false; }
@@ -558,7 +655,8 @@
         return;
       }
 
-      const address = addressInfo.address;
+      const address      = addressInfo.address;
+      const shortAddress = addressInfo.shortAddress || addressInfo.address;
       const btn = document.getElementById('extSubmitBtn');
       btn.innerHTML = '<span class="spinner"></span> Submitting...';
       btn.classList.add('loading');
@@ -580,11 +678,14 @@
           officeName,
           organization:   combinedOrg,
           agency:         agencyName,
+          position,
           contactNumber:  contact,
           address,
+          shortAddress,
           addressDetails: addressInfo.parts,
           email,
           facility,
+          classroom,
           date:           startDate,
           startDate,
           endDate,
@@ -601,6 +702,7 @@
 
         const bookingData = {
           referenceId:   refId,
+          userType:      'External',
           firstName,
           lastName,
           middleInitial,
@@ -611,10 +713,15 @@
           officeName,
           agency:        agencyName,
           organization:  combinedOrg,
+          position,
+          contactNumber: contact,
           contact,
           address,
+          shortAddress,
+          addressDetails: addressInfo.parts,
           email,
           facility,
+          classroom,
           startTime,
           endTime,
           numPersons,

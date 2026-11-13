@@ -141,9 +141,20 @@
     if (filterDeptOrg) {
       const prevDeptVal      = filterState.deptOrg;
       const parentDeptSet    = new Set(BASE_INTERNAL_DEPTS);
-      const collegeSchoolSet = new Set(KNOWN_COLLEGE_SCHOOLS);
+      const officesByCategory = {
+        'College': new Set(KNOWN_COLLEGE_SCHOOLS),
+        'IBED': new Set(),
+        'Non-teaching Personnel': new Set(),
+        'Administration': new Set()
+      };
       const otherIntDeptSet  = new Set();
       const externalOrgSet   = new Set();
+
+      (window._allDepartments || []).forEach(d => {
+        if (d && d.name && officesByCategory[d.category]) {
+          officesByCategory[d.category].add(d.name);
+        }
+      });
 
       allBookings.forEach(b => {
         const uType = b.userType || 'Internal';
@@ -155,18 +166,24 @@
           const dept  = String(b.department || '').trim();
           const cSch  = String(b.collegeSchool || '').trim();
 
+          if (pDept && officesByCategory[pDept] && cSch) {
+            officesByCategory[pDept].add(cSch);
+          } else if (cSch) {
+            officesByCategory['College'].add(cSch);
+          }
+
           [pDept, dept].forEach(val => {
             if (!val) return;
             if (BASE_INTERNAL_DEPTS.includes(val)) {
               parentDeptSet.add(val);
             } else if (isCollegeSchoolName(val)) {
-              collegeSchoolSet.add(val);
+              officesByCategory['College'].add(val);
+            } else if (pDept && officesByCategory[pDept]) {
+              officesByCategory[pDept].add(val);
             } else {
               otherIntDeptSet.add(val);
             }
           });
-
-          if (cSch) collegeSchoolSet.add(cSch);
         }
       });
 
@@ -175,24 +192,22 @@
       const intGroup = document.createElement('optgroup');
       intGroup.label = 'Internal Departments';
 
-      const sortedSchools = Array.from(collegeSchoolSet)
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-
       Array.from(parentDeptSet).forEach(dept => {
+        const subOffices = Array.from(officesByCategory[dept] || [])
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
         const opt = document.createElement('option');
         opt.value = `int:${dept}`;
-        opt.textContent = dept === 'College' ? 'College (All Schools)' : dept;
+        opt.textContent = subOffices.length > 0 ? `${dept} (All Offices/Schools)` : dept;
         intGroup.appendChild(opt);
 
-        if (dept === 'College') {
-          sortedSchools.forEach(school => {
-            const schoolOpt = document.createElement('option');
-            schoolOpt.value = `int:${school}`;
-            schoolOpt.textContent = `\u00A0\u00A0— ${school}`;
-            intGroup.appendChild(schoolOpt);
-          });
-        }
+        subOffices.forEach(office => {
+          const schoolOpt = document.createElement('option');
+          schoolOpt.value = `int:${office}`;
+          schoolOpt.textContent = `\u00A0\u00A0— ${office}`;
+          intGroup.appendChild(schoolOpt);
+        });
       });
 
       Array.from(otherIntDeptSet)
@@ -271,7 +286,11 @@
       const statusClass = (b.status || '').toLowerCase().replace(/\s+/g, '-');
       const typeClass = (b.userType || 'Internal').toLowerCase();
       const showActions = b.status === 'Pending' || b.status === 'Payment Under Review';
-      const locationText = Utils.escapeHtml(Utils.getBookingLocation(b));
+      const locationBase = Utils.escapeHtml(Utils.getBookingLocation(b));
+      const driverSub = b.assignedDriverName
+        ? `<br><small style="color:var(--gray-400);">Driver: ${Utils.escapeHtml(b.assignedDriverName)}</small>`
+        : '';
+      const locationText = locationBase + driverSub;
       const isNewUnread = Boolean(
         window.BookingNotifier &&
         typeof window.BookingNotifier.isUnreadBooking === 'function' &&
@@ -331,8 +350,23 @@
     ];
 
     if (booking.userType === 'Internal') {
-      rows.push(['Department', booking.department || '—']);
-      rows.push(['Employee ID', booking.employeeId || '—']);
+      const deptDisplay = (booking.parentDepartment && booking.collegeSchool)
+        ? `${booking.parentDepartment} — ${booking.collegeSchool}`
+        : (booking.department || '—');
+      rows.push(['Department / Office', deptDisplay]);
+      if (booking.officeHead) {
+        rows.push(['Dean / Office Head', booking.officeHead]);
+      }
+      if (booking.position) {
+        rows.push(['Position / Designation', booking.position]);
+      }
+      if (booking.contactNumber) {
+        rows.push(['Contact', booking.contactNumber]);
+      }
+      if (booking.employeeId) {
+        rows.push(['Employee ID', booking.employeeId]);
+      }
+      rows.push(['Address', booking.address || 'San Isidro College Impalambong']);
     }
 
     if (booking.userType === 'External') {
@@ -343,17 +377,33 @@
       if (booking.officeName) {
         rows.push(['Office / Department', booking.officeName]);
       }
+      if (booking.position) {
+        rows.push(['Position / Designation', booking.position]);
+      }
       rows.push(['Contact', booking.contactNumber || '—']);
       rows.push(['Address', booking.address || '—']);
     }
 
     rows.push(
       ['Email',        booking.email || '—'],
-      ['Facility',     booking.facility || '—'],
+      ['Facility',     booking.facility || '—']
+    );
+
+    if (booking.classroom) {
+      rows.push(['Classroom', booking.classroom]);
+    }
+
+    rows.push(
       ['Vehicle',      Utils.formatVehicleList(booking.vehicle) || '—']
     );
 
     if (booking.destination) rows.push(['Destination', booking.destination]);
+    if (booking.assignedDriverName) {
+      const driverDisplay = booking.assignedDriverPhone
+        ? `${booking.assignedDriverName} (${booking.assignedDriverPhone})`
+        : booking.assignedDriverName;
+      rows.push(['Assigned Driver', driverDisplay]);
+    }
 
     const dateDisplay = (booking.startDate && booking.endDate && booking.startDate !== booking.endDate)
       ? `${booking.startDate} to ${booking.endDate}`
@@ -401,17 +451,90 @@
       }
     }
 
+    const isPendingActionable = booking.status === 'Pending' || booking.status === 'Payment Under Review';
+    const isVehBooking = Utils.isVehicleBooking(booking);
+
+    if (isVehBooking && isPendingActionable) {
+      const activeDrivers = (window._allDrivers || []).filter(d => d.status === 'Active' && d.name);
+      const bStart = Utils.toDateTimeMs(booking.startDate || booking.date, booking.startTime);
+      const bEnd   = Utils.toDateTimeMs(booking.endDate || booking.startDate || booking.date, booking.endTime);
+
+      const busyDriverIds = new Set();
+      const busyDriverNames = new Set();
+      (window._allBookings || []).forEach(other => {
+        if (other.id === booking.id || other.status !== 'Approved') return;
+        if (!other.assignedDriverId && !other.assignedDriverName) return;
+        const oStart = Utils.toDateTimeMs(other.startDate || other.date, other.startTime);
+        const oEnd   = Utils.toDateTimeMs(other.endDate || other.startDate || other.date, other.endTime);
+        if (!Number.isNaN(bStart) && !Number.isNaN(bEnd) && !Number.isNaN(oStart) && !Number.isNaN(oEnd)) {
+          if (bStart < oEnd && bEnd > oStart) {
+            if (other.assignedDriverId) busyDriverIds.add(other.assignedDriverId);
+            if (other.assignedDriverName) busyDriverNames.add(other.assignedDriverName);
+          }
+        }
+      });
+
+      const driverOptionsHtml = activeDrivers.map(d => {
+        const isBusy = busyDriverIds.has(d.id) || busyDriverNames.has(d.name);
+        const selected = (booking.assignedDriverId === d.id || booking.assignedDriverName === d.name) ? 'selected' : '';
+        const phoneText = d.phone ? ` — ${d.phone}` : '';
+        const busyTag = isBusy ? ' (Already assigned on this date/time)' : '';
+        return `<option value="${Utils.escapeHtml(d.id)}" data-name="${Utils.escapeHtml(d.name)}" data-phone="${Utils.escapeHtml(d.phone || '')}" ${selected}>${Utils.escapeHtml(d.name + phoneText + busyTag)}</option>`;
+      }).join('');
+
+      html += `
+        <div class="gcash-receipt-section" id="driverAssignSection" style="margin-top:var(--space-md); border-color:rgba(212,168,67,0.45); background:rgba(212,168,67,0.06);">
+          <div class="gcash-receipt-header" style="color:var(--navy);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14M5 17a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h4a2 2 0 0 1 2 2v1M5 17l-1 4h16l-1-4"/><circle cx="7.5" cy="17" r="1.5"/><circle cx="16.5" cy="17" r="1.5"/></svg>
+            <span>Assign Driver (Required Before Approval)</span>
+          </div>
+          <div style="padding:var(--space-sm) 0;">
+            <select id="modalDriverSelect" style="width:100%; padding:10px 12px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); background:var(--white); font-size:0.9rem; color:var(--navy);">
+              <option value="">-- Select an Available Driver --</option>
+              ${driverOptionsHtml}
+            </select>
+            ${activeDrivers.length === 0 ? `<p style="font-size:0.8rem; color:var(--warning); margin-top:6px;">No active drivers found. Add drivers in <strong>Manage Vehicles &rarr; Manage Drivers</strong>.</p>` : ''}
+            <p id="modalDriverError" style="display:none; color:var(--danger); font-size:0.82rem; margin-top:6px; font-weight:600;">Please select a driver before approving this vehicle booking.</p>
+          </div>
+        </div>
+      `;
+    }
+
     detailsContent.innerHTML = html;
 
     const approveBtn = document.getElementById('modalApproveBtn');
     const rejectBtn  = document.getElementById('modalRejectBtn');
     const deleteBtn  = document.getElementById('modalDeleteBookingBtn');
 
-    if (booking.status === 'Pending' || booking.status === 'Payment Under Review') {
+    if (isPendingActionable) {
       approveBtn.style.display = 'inline-flex';
       rejectBtn.style.display  = 'inline-flex';
-      approveBtn.onclick = () => { if (onClose) onClose(); if (onApprove) onApprove(booking.id); };
-      rejectBtn.onclick  = () => { if (onClose) onClose(); if (onReject) onReject(booking.id); };
+      approveBtn.onclick = () => {
+        if (isVehBooking) {
+          const driverSelect = document.getElementById('modalDriverSelect');
+          const driverErr    = document.getElementById('modalDriverError');
+          if (!driverSelect || !driverSelect.value) {
+            if (driverErr) driverErr.style.display = 'block';
+            if (driverSelect) {
+              driverSelect.style.borderColor = 'var(--danger)';
+              driverSelect.focus();
+            }
+            return;
+          }
+          const selOpt = driverSelect.options[driverSelect.selectedIndex];
+          const driverPayload = {
+            assignedDriverId:    driverSelect.value,
+            assignedDriverName:  selOpt ? (selOpt.dataset.name || '') : '',
+            assignedDriverPhone: selOpt ? (selOpt.dataset.phone || '') : ''
+          };
+          if (onClose) onClose();
+          if (onApprove) onApprove(booking.id, driverPayload);
+          return;
+        }
+        if (onClose) onClose();
+        if (onApprove) onApprove(booking.id);
+      };
+      rejectBtn.onclick = () => { if (onClose) onClose(); if (onReject) onReject(booking.id); };
     } else {
       approveBtn.style.display = 'none';
       rejectBtn.style.display  = 'none';

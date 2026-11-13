@@ -1,8 +1,8 @@
 /* ============================================================
    Facility Controller — San Isidro College Reservation System
    Controller Layer (js/controllers/facility-controller.js)
-   Manages Facility CRUD, amenity tag input, and facility photo
-   uploads on dashboard.html.
+   Manages Facility CRUD (including form visibility), Classroom CRUD,
+   amenity tag input, and facility photo uploads on dashboard.html.
    ============================================================ */
 
 (function () {
@@ -10,12 +10,16 @@
 
   const LAYER = 'FacilityController';
 
-  let allFacilities      = [];
-  let editingFacilityId  = null;
-  let deletingFacilityId = null;
-  let currentAmenities   = [];
-  let currentImages      = [];
-  let onFacilitiesChange = null;
+  let allFacilities       = [];
+  let editingFacilityId   = null;
+  let deletingFacilityId  = null;
+  let currentAmenities    = [];
+  let currentImages       = [];
+  let onFacilitiesChange  = null;
+
+  let allClassrooms       = [];
+  let editingClassroomId  = null;
+  let deletingClassroomId = null;
 
   const facilityModal      = document.getElementById('facilityModal');
   const facilityForm       = document.getElementById('facilityForm');
@@ -29,6 +33,14 @@
   const facImageFileInput  = document.getElementById('facImageFileInput');
   const facImagesPreview   = document.getElementById('facImagesPreview');
   const facImagesUpload    = document.getElementById('facImagesUpload');
+
+  const classroomModal              = document.getElementById('classroomModal');
+  const classroomForm               = document.getElementById('classroomForm');
+  const classroomModalTitle         = document.getElementById('classroomModalTitle');
+  const addClassroomBtn             = document.getElementById('addClassroomBtn');
+  const deleteClassroomConfirmModal = document.getElementById('deleteClassroomConfirmModal');
+  const deleteClassroomName         = document.getElementById('deleteClassroomName');
+  const confirmDeleteClassroomBtn   = document.getElementById('confirmDeleteClassroomBtn');
 
   function refreshAmenityTags() {
     AdminCrudView.renderAmenityTags(amenitiesWrapper, amenityInput, currentAmenities);
@@ -46,6 +58,14 @@
       if (typeof onFacilitiesChange === 'function') onFacilitiesChange(allFacilities);
       AdminCrudView.renderFacilitiesTable(allFacilities);
     });
+
+    if (window.ClassroomModel) {
+      ClassroomModel.listenAll((classrooms) => {
+        allClassrooms = classrooms;
+        window._allClassrooms = allClassrooms;
+        AdminCrudView.renderClassroomsTable(allClassrooms);
+      });
+    }
   }
 
   // ---- Amenities Tag Input ----
@@ -166,7 +186,7 @@
     });
   }
 
-  // ---- Add / Edit / Save / Delete ----
+  // ---- Facility Add / Edit / Save / Delete ----
   if (addFacilityBtn) {
     addFacilityBtn.addEventListener('click', () => {
       editingFacilityId = null;
@@ -174,6 +194,8 @@
       currentImages     = [];
       if (facilityModalTitle) facilityModalTitle.textContent = 'Add Facility';
       if (facilityForm) facilityForm.reset();
+      const visEl = document.getElementById('facVisibility');
+      if (visEl) visEl.value = 'both';
       refreshAmenityTags();
       refreshImagePreviews();
       if (facilityModal) facilityModal.classList.add('visible');
@@ -191,6 +213,8 @@
     document.getElementById('facDescription').value = facility.description || '';
     document.getElementById('facCapacity').value    = facility.capacity || '';
     document.getElementById('facStatus').value      = facility.status || 'Active';
+    const visEl = document.getElementById('facVisibility');
+    if (visEl) visEl.value = Utils.normalizeFacilityVisibility(facility.visibility);
 
     currentAmenities = [...(facility.amenities || [])];
     refreshAmenityTags();
@@ -209,6 +233,8 @@
       const description = document.getElementById('facDescription').value.trim();
       const capacity    = document.getElementById('facCapacity').value.trim();
       const status      = document.getElementById('facStatus').value;
+      const visEl       = document.getElementById('facVisibility');
+      const visibility  = visEl ? visEl.value : 'both';
 
       if (!name) {
         alert('Please enter a facility name.');
@@ -237,7 +263,7 @@
         const wasEditing = Boolean(editingFacilityId);
         await FacilityModel.save(
           editingFacilityId,
-          { name, description, capacity, status, amenities: [...currentAmenities] },
+          { name, description, capacity, status, visibility, amenities: [...currentAmenities] },
           [...currentImages],
           allFacilities.length
         );
@@ -297,12 +323,114 @@
     deletingFacilityId = null;
   };
 
-  [facilityModal, deleteConfirmModal].forEach(modal => {
+  // ---- Classroom Add / Edit / Save / Delete ----
+  if (addClassroomBtn) {
+    addClassroomBtn.addEventListener('click', () => {
+      editingClassroomId = null;
+      if (classroomModalTitle) classroomModalTitle.textContent = 'Add Classroom';
+      if (classroomForm) classroomForm.reset();
+      if (classroomModal) classroomModal.classList.add('visible');
+    });
+  }
+
+  window.editClassroom = function (docId) {
+    const cls = allClassrooms.find(c => c.id === docId);
+    if (!cls) return;
+
+    editingClassroomId = docId;
+    if (classroomModalTitle) classroomModalTitle.textContent = 'Edit Classroom';
+
+    document.getElementById('clsName').value     = cls.name || '';
+    document.getElementById('clsCapacity').value = cls.capacity || '';
+    document.getElementById('clsStatus').value   = cls.status || 'Active';
+
+    if (classroomModal) classroomModal.classList.add('visible');
+  };
+
+  if (classroomForm) {
+    classroomForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name     = document.getElementById('clsName').value.trim();
+      const capacity = document.getElementById('clsCapacity').value.trim();
+      const status   = document.getElementById('clsStatus').value;
+
+      if (!name) {
+        alert('Please enter a classroom name or room number.');
+        return;
+      }
+
+      const submitBtn = document.getElementById('classroomSubmitBtn');
+      submitBtn.innerHTML = '<span class="spinner"></span> Saving...';
+      submitBtn.classList.add('loading');
+
+      try {
+        const wasEditing = Boolean(editingClassroomId);
+        await ClassroomModel.save(
+          editingClassroomId,
+          { name, capacity, status },
+          allClassrooms.length
+        );
+
+        UiView.showToast(
+          'success',
+          wasEditing ? 'Classroom Updated' : 'Classroom Added',
+          `"${name}" has been ${wasEditing ? 'updated' : 'added'} successfully.`
+        );
+        window.closeClassroomModal();
+      } catch (err) {
+        Logger.error(LAYER, 'Classroom save error:', err);
+        UiView.showToast('error', 'Error', 'Failed to save classroom. Please try again.');
+      } finally {
+        submitBtn.innerHTML = 'Save Classroom';
+        submitBtn.classList.remove('loading');
+      }
+    });
+  }
+
+  window.deleteClassroom = function (docId) {
+    const cls = allClassrooms.find(c => c.id === docId);
+    if (!cls) return;
+
+    deletingClassroomId = docId;
+    if (deleteClassroomName) deleteClassroomName.textContent = `"${cls.name}"`;
+    if (deleteClassroomConfirmModal) deleteClassroomConfirmModal.classList.add('visible');
+  };
+
+  if (confirmDeleteClassroomBtn) {
+    confirmDeleteClassroomBtn.addEventListener('click', async () => {
+      if (!deletingClassroomId) return;
+
+      try {
+        const cls = allClassrooms.find(c => c.id === deletingClassroomId);
+        await ClassroomModel.remove(deletingClassroomId);
+        UiView.showToast('warning', 'Classroom Deleted', `"${cls?.name || 'Classroom'}" has been removed.`);
+        window.closeDeleteClassroomModal();
+      } catch (err) {
+        Logger.error(LAYER, 'Delete classroom error:', err);
+        UiView.showToast('error', 'Error', 'Failed to delete classroom.');
+      }
+    });
+  }
+
+  window.closeClassroomModal = function () {
+    if (classroomModal) classroomModal.classList.remove('visible');
+    editingClassroomId = null;
+  };
+
+  window.closeDeleteClassroomModal = function () {
+    if (deleteClassroomConfirmModal) deleteClassroomConfirmModal.classList.remove('visible');
+    deletingClassroomId = null;
+  };
+
+  [facilityModal, deleteConfirmModal, classroomModal, deleteClassroomConfirmModal].forEach(modal => {
     if (modal) {
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
           if (modal === facilityModal) window.closeFacilityModal();
-          else window.closeDeleteModal();
+          else if (modal === deleteConfirmModal) window.closeDeleteModal();
+          else if (modal === classroomModal) window.closeClassroomModal();
+          else if (modal === deleteClassroomConfirmModal) window.closeDeleteClassroomModal();
         }
       });
     }
@@ -310,7 +438,7 @@
 
   window.FacilityController = {
     startListening,
-    getAll: () => allFacilities
+    getAll: () => allFacilities,
+    getAllClassrooms: () => allClassrooms
   };
 })();
-

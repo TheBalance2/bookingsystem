@@ -213,7 +213,7 @@
     if (addressManualMode) {
       const value = addr.manual.value.trim();
       if (!value) { showError('extAddressError'); return { valid: false }; }
-      return { valid: true, address: value, parts: null };
+      return { valid: true, address: value, shortAddress: value, parts: null };
     }
 
     let valid = true;
@@ -243,11 +243,14 @@
       street:   street
     };
     const barangayLabel = /^(brgy\.?|barangay)\s/i.test(barangay) ? barangay : `Brgy. ${barangay}`;
+    const shortAddress = [parts.street, barangayLabel, parts.city]
+      .filter(Boolean)
+      .join(', ');
     const address = [parts.street, barangayLabel, parts.city, parts.province, parts.region]
       .filter(Boolean)
       .join(', ');
 
-    return { valid: true, address, parts };
+    return { valid: true, address, shortAddress, parts };
   }
 
   window.AddressService = {

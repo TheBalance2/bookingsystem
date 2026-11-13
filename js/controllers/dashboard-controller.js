@@ -61,6 +61,9 @@
     listenBookings();
     FacilityController.startListening(() => refreshFilterDropdowns());
     VehicleController.startListening(() => refreshFilterDropdowns());
+    if (window.DepartmentController && typeof window.DepartmentController.startListening === 'function') {
+      DepartmentController.startListening(() => refreshFilterDropdowns());
+    }
     SettingsController.listenBookingIdConfig();
     SettingsController.listenSignatoriesConfig();
   });
@@ -438,15 +441,18 @@
   });
 
   // ---- Approve / Reject / View Details / Delete ----
-  async function updateBookingStatus(docId, newStatus) {
+  async function updateBookingStatus(docId, newStatus, extraFields = {}) {
     try {
-      const data = await BookingModel.updateStatus(docId, newStatus);
+      const data = await BookingModel.updateStatus(docId, newStatus, extraFields);
       if (data) {
         EmailService.sendStatusNotification(data, newStatus);
+        const driverNote = (newStatus === 'Approved' && data.assignedDriverName)
+          ? ` (Driver: ${data.assignedDriverName})`
+          : '';
         UiView.showToast(
           newStatus === 'Approved' ? 'success' : 'warning',
           `Reservation ${newStatus}`,
-          `${data.name}'s booking for ${Utils.getBookingLocation(data)} has been ${newStatus.toLowerCase()}.`
+          `${data.name}'s booking for ${Utils.getBookingLocation(data)} has been ${newStatus.toLowerCase()}${driverNote}.`
         );
       }
     } catch (err) {
@@ -455,9 +461,20 @@
     }
   }
 
-  window.approveBooking = async function (docId) {
+  window.approveBooking = async function (docId, driverPayload) {
+    const booking = allBookings.find(b => b.id === docId);
+    if (booking && Utils.isVehicleBooking(booking) && !driverPayload && !booking.assignedDriverName) {
+      await window.viewBookingDetails(docId);
+      const driverSelect = document.getElementById('modalDriverSelect');
+      if (driverSelect) {
+        driverSelect.focus();
+      }
+      UiView.showToast('info', 'Assign Driver Required', 'Please select a driver for this vehicle booking before approving.');
+      return;
+    }
+
     if (!confirm('Approve this reservation?')) return;
-    await updateBookingStatus(docId, 'Approved');
+    await updateBookingStatus(docId, 'Approved', driverPayload || {});
   };
 
   window.rejectBooking = async function (docId) {
@@ -546,11 +563,13 @@
   // ---- View Switching (Sidebar Navigation) ----
   const facilitiesSection  = document.getElementById('facilitiesSection');
   const vehiclesSection    = document.getElementById('vehiclesSection');
+  const departmentsSection = document.getElementById('departmentsSection');
   const reportsSection     = document.getElementById('reportsSection');
   const idSettingsSection  = document.getElementById('idSettingsSection');
   const signatoriesSection = document.getElementById('signatoriesSection');
   const sidebarFacilities  = document.getElementById('sidebarFacilities');
   const sidebarVehicles    = document.getElementById('sidebarVehicles');
+  const sidebarDepartments = document.getElementById('sidebarDepartments');
   const sidebarReports     = document.getElementById('sidebarReports');
   const sidebarIdSettings  = document.getElementById('sidebarIdSettings');
   const sidebarSignatories = document.getElementById('sidebarSignatories');
@@ -570,6 +589,7 @@
     bookingsViewElements.forEach(el => el.style.display = 'none');
     if (facilitiesSection)  facilitiesSection.style.display  = 'none';
     if (vehiclesSection)    vehiclesSection.style.display    = 'none';
+    if (departmentsSection) departmentsSection.style.display = 'none';
     if (reportsSection)     reportsSection.style.display     = 'none';
     if (idSettingsSection)  idSettingsSection.style.display  = 'none';
     if (signatoriesSection) signatoriesSection.style.display = 'none';
@@ -577,6 +597,7 @@
     sidebarLinks.forEach(l => l.classList.remove('active'));
     if (sidebarFacilities)  sidebarFacilities.classList.remove('active');
     if (sidebarVehicles)    sidebarVehicles.classList.remove('active');
+    if (sidebarDepartments) sidebarDepartments.classList.remove('active');
     if (sidebarReports)     sidebarReports.classList.remove('active');
     if (sidebarIdSettings)  sidebarIdSettings.classList.remove('active');
     if (sidebarSignatories) sidebarSignatories.classList.remove('active');
@@ -587,6 +608,9 @@
     } else if (view === 'vehicles') {
       if (vehiclesSection) vehiclesSection.style.display = 'block';
       if (sidebarVehicles) sidebarVehicles.classList.add('active');
+    } else if (view === 'departments') {
+      if (departmentsSection) departmentsSection.style.display = 'block';
+      if (sidebarDepartments) sidebarDepartments.classList.add('active');
     } else if (view === 'reports') {
       if (reportsSection) reportsSection.style.display = 'block';
       if (sidebarReports) sidebarReports.classList.add('active');
@@ -623,6 +647,7 @@
 
   if (sidebarFacilities)  sidebarFacilities.addEventListener('click', (e) => { e.preventDefault(); switchView('facilities'); });
   if (sidebarVehicles)    sidebarVehicles.addEventListener('click', (e) => { e.preventDefault(); switchView('vehicles'); });
+  if (sidebarDepartments) sidebarDepartments.addEventListener('click', (e) => { e.preventDefault(); switchView('departments'); });
   if (sidebarReports)     sidebarReports.addEventListener('click', (e) => { e.preventDefault(); switchView('reports'); });
   if (sidebarIdSettings)  sidebarIdSettings.addEventListener('click', (e) => { e.preventDefault(); switchView('idSettings'); });
   if (sidebarSignatories) sidebarSignatories.addEventListener('click', (e) => { e.preventDefault(); switchView('signatories'); });

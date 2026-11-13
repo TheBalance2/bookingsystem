@@ -275,11 +275,12 @@
     });
   }
 
-  // ---- Internal PDF Signatories Settings State & DOM ----
+  // ---- PDF Signatories Settings State & DOM ----
   let signatoriesState = {
     facilitiesInCharge: '',
     comptroller: '',
-    generalAdminCoordinator: ''
+    generalAdminCoordinator: '',
+    vpAdminFinance: ''
   };
   let signatoriesFormDirty = false;
 
@@ -287,12 +288,14 @@
   const sigFacilitiesInChargeInput = document.getElementById('sigFacilitiesInCharge');
   const sigComptrollerInput        = document.getElementById('sigComptroller');
   const sigGeneralAdminInput       = document.getElementById('sigGeneralAdmin');
+  const sigVpAdminFinanceInput     = document.getElementById('sigVpAdminFinance');
   const saveSignatoriesBtn         = document.getElementById('saveSignatoriesBtn');
   const revertSignatoriesBtn       = document.getElementById('revertSignatoriesBtn');
   const clearSignatoriesBtn        = document.getElementById('clearSignatoriesBtn');
   const previewSigFacilitiesEl     = document.getElementById('previewSigFacilitiesInCharge');
   const previewSigComptrollerEl    = document.getElementById('previewSigComptroller');
   const previewSigGeneralAdminEl   = document.getElementById('previewSigGeneralAdmin');
+  const previewSigVpAdminFinanceEl = document.getElementById('previewSigVpAdminFinance');
 
   function renderPreviewSignatorySlot(el, value) {
     if (!el) return;
@@ -310,10 +313,12 @@
     const facVal  = sigFacilitiesInChargeInput ? sigFacilitiesInChargeInput.value : signatoriesState.facilitiesInCharge;
     const compVal = sigComptrollerInput ? sigComptrollerInput.value : signatoriesState.comptroller;
     const genVal  = sigGeneralAdminInput ? sigGeneralAdminInput.value : signatoriesState.generalAdminCoordinator;
+    const vpVal   = sigVpAdminFinanceInput ? sigVpAdminFinanceInput.value : signatoriesState.vpAdminFinance;
 
     renderPreviewSignatorySlot(previewSigFacilitiesEl, facVal);
     renderPreviewSignatorySlot(previewSigComptrollerEl, compVal);
     renderPreviewSignatorySlot(previewSigGeneralAdminEl, genVal);
+    renderPreviewSignatorySlot(previewSigVpAdminFinanceEl, vpVal);
   }
 
   function syncSignatoriesFormFromState(forceOverwrite = false) {
@@ -324,6 +329,7 @@
     if (sigFacilitiesInChargeInput) sigFacilitiesInChargeInput.value = signatoriesState.facilitiesInCharge;
     if (sigComptrollerInput)        sigComptrollerInput.value        = signatoriesState.comptroller;
     if (sigGeneralAdminInput)       sigGeneralAdminInput.value       = signatoriesState.generalAdminCoordinator;
+    if (sigVpAdminFinanceInput)     sigVpAdminFinanceInput.value     = signatoriesState.vpAdminFinance;
     signatoriesFormDirty = false;
     updateSignatoriesPreview();
   }
@@ -340,7 +346,7 @@
     );
   }
 
-  [sigFacilitiesInChargeInput, sigComptrollerInput, sigGeneralAdminInput].forEach(inp => {
+  [sigFacilitiesInChargeInput, sigComptrollerInput, sigGeneralAdminInput, sigVpAdminFinanceInput].forEach(inp => {
     if (!inp) return;
     inp.addEventListener('input', () => {
       signatoriesFormDirty = true;
@@ -360,6 +366,7 @@
       if (sigFacilitiesInChargeInput) sigFacilitiesInChargeInput.value = '';
       if (sigComptrollerInput)        sigComptrollerInput.value        = '';
       if (sigGeneralAdminInput)       sigGeneralAdminInput.value       = '';
+      if (sigVpAdminFinanceInput)     sigVpAdminFinanceInput.value     = '';
       signatoriesFormDirty = true;
       updateSignatoriesPreview();
       UiView.showToast('info', 'Fields Cleared', 'Click "Save Signatories" to apply blank lines to future PDFs.');
@@ -373,6 +380,7 @@
       const facilitiesInCharge      = String(sigFacilitiesInChargeInput ? sigFacilitiesInChargeInput.value : '').trim();
       const comptroller             = String(sigComptrollerInput ? sigComptrollerInput.value : '').trim();
       const generalAdminCoordinator = String(sigGeneralAdminInput ? sigGeneralAdminInput.value : '').trim();
+      const vpAdminFinance          = String(sigVpAdminFinanceInput ? sigVpAdminFinanceInput.value : '').trim();
 
       if (saveSignatoriesBtn) {
         saveSignatoriesBtn.innerHTML = '<span class="spinner"></span> Saving...';
@@ -384,13 +392,14 @@
         await SettingsModel.saveSignatories({
           facilitiesInCharge,
           comptroller,
-          generalAdminCoordinator
+          generalAdminCoordinator,
+          vpAdminFinance
         });
 
-        signatoriesState = { facilitiesInCharge, comptroller, generalAdminCoordinator };
+        signatoriesState = { facilitiesInCharge, comptroller, generalAdminCoordinator, vpAdminFinance };
         signatoriesFormDirty = false;
         syncSignatoriesFormFromState(true);
-        UiView.showToast('success', 'Signatories Saved', 'Internal Booking PDFs will now print the updated signatory names.');
+        UiView.showToast('success', 'Signatories Saved', 'Booking PDFs will now print the updated signatory names.');
       } catch (err) {
         Logger.error(LAYER, 'Failed to save PDF signatories:', err);
         if (err && err.code === 'permission-denied') {
