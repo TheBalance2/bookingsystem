@@ -2,7 +2,8 @@
    Booking Model — San Isidro College Reservation System
    Model Layer (js/models/booking-model.js)
    Handles all Firestore operations for 'bookings' and 'receipts',
-   including atomic sequential ID allocation and conflict queries.
+   including atomic sequential ID allocation, conflict queries,
+   admin mass delete, and JSON backup restore.
    ============================================================ */
 
 (function () {
@@ -11,6 +12,21 @@
   const LAYER = 'BookingModel';
   const SETTINGS_COLLECTION = 'settings';
   const BOOKING_ID_DOC      = 'bookingId';
+
+  function reviveTimestamp(val) {
+    if (!val) return firebase.firestore.FieldValue.serverTimestamp();
+    if (typeof val.toMillis === 'function') return val;
+    if (typeof val === 'object' && typeof val.seconds === 'number') {
+      return new firebase.firestore.Timestamp(val.seconds, val.nanoseconds || 0);
+    }
+    if (typeof val === 'string' || typeof val === 'number') {
+      const d = new Date(val);
+      if (!Number.isNaN(d.getTime())) {
+        return firebase.firestore.Timestamp.fromDate(d);
+      }
+    }
+    return firebase.firestore.FieldValue.serverTimestamp();
+  }
 
   const BookingModel = {
     listenAll(onUpdate, onError) {
@@ -147,11 +163,124 @@
       }
     },
 
-    async remove(docId) {
+    async remove(docId, hasReceipt = false) {
       try {
-        await db.collection('bookings').doc(docId).delete();
+        const batch = db.batch();
+        batch.delete(db.collection('bookings').doc(docId));
+        if (hasReceipt) {
+          batch.delete(db.collection('receipts').doc(docId));
+        }
+        await batch.commit();
       } catch (err) {
         Logger.error(LAYER, 'Delete booking failed:', err);
+        throw err;
+      }
+    },
+
+    // Mass deletes an array of booking objects and their corresponding receipts
+    // in chunked batches of <= 450 Firestore operations.
+    async bulkRemove(bookings, onProgress) {
+      if (!Array.isArray(bookings) || bookings.length === 0) return 0;
+
+      const ops = [];
+      bookings.forEach(b => {
+        if (!b || !b.id) return;
+        ops.push({ ref: db.collection('bookings').doc(b.id), isBooking: true });
+        if (b.hasReceipt || b.receiptUploadedAt) {
+          ops.push({ ref: db.collection('receipts').doc(b.id), isBooking: false });
+        }
+      });
+
+      const MAX_OPS_PER_BATCH = 450;
+      let deletedBookings = 0;
+
+      try {
+        for (let i = 0; i < ops.length; i += MAX_OPS_PER_BATCH) {
+          const batch = db.batch();
+          const slice = ops.slice(i, i + MAX_OPS_PER_BATCH);
+          let batchBookingsCount = 0;
+
+          slice.forEach(op => {
+            batch.delete(op.ref);
+            if (op.isBooking) batchBookingsCount++;
+          });
+
+          await batch.commit();
+          deletedBookings += batchBookingsCount;
+          if (typeof onProgress === 'function') {
+            onProgress(deletedBookings, bookings.length);
+          }
+        }
+        return deletedBookings;
+      } catch (err) {
+        Logger.error(LAYER, 'Bulk delete bookings failed:', err);
+        throw err;
+      }
+    },
+
+    // Restores bookings from a JSON backup without altering settings/bookingId counter.
+    // Skips bookings whose document ID or referenceId already exists.
+    async restoreMany(backupItems, existingBookings = [], onProgress) {
+      if (!Array.isArray(backupItems) || backupItems.length === 0) {
+        return { restoredCount: 0, skippedCount: 0 };
+      }
+
+      const existingIds  = new Set(existingBookings.map(b => b.id).filter(Boolean));
+      const existingRefs = new Set(existingBookings.map(b => b.referenceId).filter(Boolean));
+
+      const toRestore = [];
+      let skippedCount = 0;
+
+      backupItems.forEach(raw => {
+        if (!raw || typeof raw !== 'object') return;
+        const docId = String(raw._docId || raw.id || '').trim();
+        const refId = String(raw.referenceId || '').trim();
+
+        if ((docId && existingIds.has(docId)) || (refId && existingRefs.has(refId))) {
+          skippedCount++;
+          return;
+        }
+
+        const clean = { ...raw };
+        delete clean._docId;
+        delete clean.id;
+        delete clean._createdAtIso;
+        delete clean._receiptUploadedAtIso;
+
+        clean.createdAt = reviveTimestamp(raw._createdAtIso || raw.createdAt);
+        if (raw._receiptUploadedAtIso || raw.receiptUploadedAt) {
+          clean.receiptUploadedAt = reviveTimestamp(raw._receiptUploadedAtIso || raw.receiptUploadedAt);
+        }
+
+        const targetDocRef = docId
+          ? db.collection('bookings').doc(docId)
+          : db.collection('bookings').doc();
+
+        if (docId) existingIds.add(docId);
+        if (refId) existingRefs.add(refId);
+
+        toRestore.push({ ref: targetDocRef, data: clean });
+      });
+
+      const MAX_OPS_PER_BATCH = 450;
+      let restoredCount = 0;
+
+      try {
+        for (let i = 0; i < toRestore.length; i += MAX_OPS_PER_BATCH) {
+          const batch = db.batch();
+          const slice = toRestore.slice(i, i + MAX_OPS_PER_BATCH);
+          slice.forEach(item => {
+            batch.set(item.ref, item.data);
+          });
+          await batch.commit();
+          restoredCount += slice.length;
+          if (typeof onProgress === 'function') {
+            onProgress(restoredCount, toRestore.length);
+          }
+        }
+        return { restoredCount, skippedCount };
+      } catch (err) {
+        Logger.error(LAYER, 'Restore bookings failed:', err);
         throw err;
       }
     },
@@ -222,4 +351,3 @@
 
   window.BookingModel = BookingModel;
 })();
-

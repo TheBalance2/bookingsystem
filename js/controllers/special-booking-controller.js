@@ -25,6 +25,7 @@
   const sbFirstNameInput      = document.getElementById('sbFirstName');
   const sbLastNameInput       = document.getElementById('sbLastName');
   const sbMiddleInitialInput  = document.getElementById('sbMiddleInitial');
+  const sbPositionInput       = document.getElementById('sbPosition');
   const sbContactInput        = document.getElementById('sbContact');
   const sbNumPersonsInput     = document.getElementById('sbNumPersons');
   const sbStartDateInput      = document.getElementById('sbStartDate');
@@ -112,7 +113,7 @@
   if (sbFacilitySelect) sbFacilitySelect.addEventListener('change', updateSbVehicleVisibility);
   if (sbDepartmentSelect) sbDepartmentSelect.addEventListener('change', updateSbCollegeSchoolVisibility);
 
-  [sbFirstNameInput, sbLastNameInput, sbMiddleInitialInput].forEach(el => {
+  [sbFirstNameInput, sbLastNameInput, sbMiddleInitialInput, sbPositionInput].forEach(el => {
     if (!el) return;
     el.addEventListener('input', () => {
       const upper = el.value.toUpperCase();
@@ -228,6 +229,7 @@
   if (specialBookingForm) {
     specialBookingForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (window.Session && !Session.requireFic('create a special booking')) return;
 
       const firstName      = (sbFirstNameInput ? sbFirstNameInput.value : '').trim().toUpperCase();
       const lastName       = (sbLastNameInput ? sbLastNameInput.value : '').trim().toUpperCase();
@@ -241,7 +243,7 @@
         officeHead = selOpt && selOpt.dataset ? (selOpt.dataset.headName || '') : '';
       }
       const finalDepartment = collegeSchool ? collegeSchool : departmentRaw;
-      const position       = (document.getElementById('sbPosition') ? document.getElementById('sbPosition').value : '').trim();
+      const position       = (sbPositionInput ? sbPositionInput.value : '').trim().toUpperCase();
       const contact        = (document.getElementById('sbContact') ? document.getElementById('sbContact').value : '').trim();
       const email          = document.getElementById('sbEmail').value.trim();
       const address        = 'San Isidro College Impalambong';
@@ -349,6 +351,23 @@
           dateSubmitted:    filingDateStr,
           status:           'Approved'
         });
+
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log('BOOKING_SPECIAL_CREATE', 'Booking', {
+            targetId:    refId,
+            targetLabel: refId,
+            details: {
+              referenceId: refId,
+              requester:   combinedName,
+              department:  finalDepartment,
+              location:    isVehicle ? Utils.formatVehicleList(vehicle) : (classroom ? `${facility} (${classroom})` : facility),
+              startDate,
+              endDate,
+              startTime,
+              endTime
+            }
+          });
+        }
 
         specialBookingModal.classList.remove('visible');
         UiView.showToast('success', 'Special Booking Created', `Reservation ${refId} has been created and automatically approved.`);

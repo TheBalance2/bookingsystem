@@ -386,7 +386,19 @@
     Utils.stripNonDigitsInput(el);
   });
 
-  ['intFirstName', 'intLastName', 'intMiddleInitial', 'extFirstName', 'extLastName', 'extMiddleInitial', 'receiptRefId'].forEach(id => {
+  [
+    'intFirstName',
+    'intLastName',
+    'intMiddleInitial',
+    'intPosition',
+    'extFirstName',
+    'extLastName',
+    'extMiddleInitial',
+    'extAgencyName',
+    'extOfficeName',
+    'extPosition',
+    'receiptRefId'
+  ].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', () => {
@@ -446,7 +458,7 @@
         officeHead = selOpt && selOpt.dataset ? (selOpt.dataset.headName || '') : '';
       }
       const finalDepartment = collegeSchool ? collegeSchool : departmentRaw;
-      const position       = (document.getElementById('intPosition') ? document.getElementById('intPosition').value : '').trim();
+      const position       = (document.getElementById('intPosition') ? document.getElementById('intPosition').value : '').trim().toUpperCase();
       const contact        = (document.getElementById('intContact') ? document.getElementById('intContact').value : '').trim();
       const email          = document.getElementById('intEmail').value.trim();
       const address        = 'San Isidro College Impalambong';
@@ -609,9 +621,9 @@
       const agencyTypeRaw   = document.getElementById('extAgencyType').value;
       const agencyTypeOther = document.getElementById('extAgencyTypeOther').value.trim();
       const agencyType      = (agencyTypeRaw.startsWith('Other') && agencyTypeOther) ? agencyTypeOther : agencyTypeRaw;
-      const agencyName      = document.getElementById('extAgencyName').value.trim();
-      const officeName      = document.getElementById('extOfficeName').value.trim();
-      const position        = (document.getElementById('extPosition') ? document.getElementById('extPosition').value : '').trim();
+      const agencyName      = document.getElementById('extAgencyName').value.trim().toUpperCase();
+      const officeName      = document.getElementById('extOfficeName').value.trim().toUpperCase();
+      const position        = (document.getElementById('extPosition') ? document.getElementById('extPosition').value : '').trim().toUpperCase();
       const contact         = document.getElementById('extContact').value.trim();
       const email           = document.getElementById('extEmail').value.trim();
       const facility        = document.getElementById('extFacility').value;

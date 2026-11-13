@@ -228,6 +228,7 @@
   if (facilityForm) {
     facilityForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (window.Session && !Session.requireFic('manage facilities')) return;
 
       const name        = document.getElementById('facName').value.trim();
       const description = document.getElementById('facDescription').value.trim();
@@ -261,12 +262,21 @@
 
       try {
         const wasEditing = Boolean(editingFacilityId);
+        const savedId = editingFacilityId || '';
         await FacilityModel.save(
           editingFacilityId,
           { name, description, capacity, status, visibility, amenities: [...currentAmenities] },
           [...currentImages],
           allFacilities.length
         );
+
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log(wasEditing ? 'FACILITY_UPDATE' : 'FACILITY_CREATE', 'Facility', {
+            targetId:    savedId,
+            targetLabel: name,
+            details:     { name, capacity, status, visibility }
+          });
+        }
 
         UiView.showToast(
           'success',
@@ -285,6 +295,7 @@
   }
 
   window.deleteFacility = function (docId) {
+    if (window.Session && !Session.requireFic('delete facilities')) return;
     const facility = allFacilities.find(f => f.id === docId);
     if (!facility) return;
 
@@ -296,10 +307,19 @@
   if (confirmDeleteBtn) {
     confirmDeleteBtn.addEventListener('click', async () => {
       if (!deletingFacilityId) return;
+      if (window.Session && !Session.requireFic('delete facilities')) return;
 
       try {
         const facility = allFacilities.find(f => f.id === deletingFacilityId);
+        const targetId = deletingFacilityId;
         await FacilityModel.remove(deletingFacilityId);
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log('FACILITY_DELETE', 'Facility', {
+            targetId,
+            targetLabel: facility?.name || targetId,
+            details:     { name: facility?.name || '' }
+          });
+        }
         UiView.showToast('warning', 'Facility Deleted', `"${facility?.name || 'Facility'}" has been removed.`);
         window.closeDeleteModal();
       } catch (err) {
@@ -350,6 +370,7 @@
   if (classroomForm) {
     classroomForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (window.Session && !Session.requireFic('manage classrooms')) return;
 
       const name     = document.getElementById('clsName').value.trim();
       const capacity = document.getElementById('clsCapacity').value.trim();
@@ -366,11 +387,20 @@
 
       try {
         const wasEditing = Boolean(editingClassroomId);
+        const savedId = editingClassroomId || '';
         await ClassroomModel.save(
           editingClassroomId,
           { name, capacity, status },
           allClassrooms.length
         );
+
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log(wasEditing ? 'CLASSROOM_UPDATE' : 'CLASSROOM_CREATE', 'Classroom', {
+            targetId:    savedId,
+            targetLabel: name,
+            details:     { name, capacity, status }
+          });
+        }
 
         UiView.showToast(
           'success',
@@ -389,6 +419,7 @@
   }
 
   window.deleteClassroom = function (docId) {
+    if (window.Session && !Session.requireFic('delete classrooms')) return;
     const cls = allClassrooms.find(c => c.id === docId);
     if (!cls) return;
 
@@ -400,10 +431,19 @@
   if (confirmDeleteClassroomBtn) {
     confirmDeleteClassroomBtn.addEventListener('click', async () => {
       if (!deletingClassroomId) return;
+      if (window.Session && !Session.requireFic('delete classrooms')) return;
 
       try {
         const cls = allClassrooms.find(c => c.id === deletingClassroomId);
+        const targetId = deletingClassroomId;
         await ClassroomModel.remove(deletingClassroomId);
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log('CLASSROOM_DELETE', 'Classroom', {
+            targetId,
+            targetLabel: cls?.name || targetId,
+            details:     { name: cls?.name || '' }
+          });
+        }
         UiView.showToast('warning', 'Classroom Deleted', `"${cls?.name || 'Classroom'}" has been removed.`);
         window.closeDeleteClassroomModal();
       } catch (err) {

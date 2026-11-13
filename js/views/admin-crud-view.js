@@ -1,13 +1,22 @@
 /* ============================================================
    Admin CRUD View — San Isidro College Reservation System
    View Layer (js/views/admin-crud-view.js)
-   Renders Facilities, Classrooms, Vehicles, and Drivers tables,
-   amenity tag chips, and facility image upload previews on
-   dashboard.html. Never calls Firestore.
+   Renders Facilities, Classrooms, Vehicles, Drivers, Departments,
+   Accounts, and Activity Logs tables, amenity tag chips, and
+   facility image upload previews on dashboard.html. Never calls Firestore.
    ============================================================ */
 
 (function () {
   'use strict';
+
+  function canEditCatalog() {
+    if (!window.Session || !Session.profile) return true;
+    return Session.isFacilityInCharge();
+  }
+
+  function viewOnlyLabelHtml() {
+    return '<span style="font-size:0.8rem; color:var(--gray-300); font-style:italic;">View only</span>';
+  }
 
   function renderFacilitiesTable(allFacilities) {
     const facilitiesTableBody  = document.getElementById('facilitiesTableBody');
@@ -21,6 +30,7 @@
     }
 
     if (facilitiesEmptyState) facilitiesEmptyState.style.display = 'none';
+    const editable = canEditCatalog();
 
     facilitiesTableBody.innerHTML = allFacilities.map(f => {
       const statusClass = f.status === 'Active' ? 'approved' :
@@ -42,10 +52,12 @@
           <td><span class="user-badge ${visBadgeClass}" style="${visKey === 'both' ? 'background:rgba(10,22,40,0.08); color:var(--navy);' : ''}">${visLabel}</span></td>
           <td><span class="status-badge ${statusClass}"><span class="status-dot"></span> ${status}</span></td>
           <td>
-            <div class="table-actions">
-              <button class="action-btn facility-edit" onclick="editFacility('${f.id}')" title="Edit">Edit</button>
-              <button class="action-btn reject" onclick="deleteFacility('${f.id}')" title="Delete">Delete</button>
-            </div>
+            ${editable ? `
+              <div class="table-actions">
+                <button class="action-btn facility-edit" onclick="editFacility('${f.id}')" title="Edit">Edit</button>
+                <button class="action-btn reject" onclick="deleteFacility('${f.id}')" title="Delete">Delete</button>
+              </div>
+            ` : viewOnlyLabelHtml()}
           </td>
         </tr>
       `;
@@ -64,6 +76,7 @@
     }
 
     if (classroomsEmptyState) classroomsEmptyState.style.display = 'none';
+    const editable = canEditCatalog();
 
     classroomsTableBody.innerHTML = allClassrooms.map(c => {
       const statusClass = c.status === 'Active' ? 'approved' :
@@ -78,10 +91,12 @@
           <td>${cap}</td>
           <td><span class="status-badge ${statusClass}"><span class="status-dot"></span> ${status}</span></td>
           <td>
-            <div class="table-actions">
-              <button class="action-btn facility-edit" onclick="editClassroom('${c.id}')" title="Edit">Edit</button>
-              <button class="action-btn reject" onclick="deleteClassroom('${c.id}')" title="Delete">Delete</button>
-            </div>
+            ${editable ? `
+              <div class="table-actions">
+                <button class="action-btn facility-edit" onclick="editClassroom('${c.id}')" title="Edit">Edit</button>
+                <button class="action-btn reject" onclick="deleteClassroom('${c.id}')" title="Delete">Delete</button>
+              </div>
+            ` : viewOnlyLabelHtml()}
           </td>
         </tr>
       `;
@@ -138,6 +153,7 @@
     }
 
     if (vehiclesEmptyState) vehiclesEmptyState.style.display = 'none';
+    const editable = canEditCatalog();
 
     vehiclesTableBody.innerHTML = allVehicles.map(v => {
       const statusClass = v.status === 'Active' ? 'approved' :
@@ -154,10 +170,12 @@
           <td>${cap}</td>
           <td><span class="status-badge ${statusClass}"><span class="status-dot"></span> ${status}</span></td>
           <td>
-            <div class="table-actions">
-              <button class="action-btn facility-edit" onclick="editVehicle('${v.id}')" title="Edit">Edit</button>
-              <button class="action-btn reject" onclick="deleteVehicle('${v.id}')" title="Delete">Delete</button>
-            </div>
+            ${editable ? `
+              <div class="table-actions">
+                <button class="action-btn facility-edit" onclick="editVehicle('${v.id}')" title="Edit">Edit</button>
+                <button class="action-btn reject" onclick="deleteVehicle('${v.id}')" title="Delete">Delete</button>
+              </div>
+            ` : viewOnlyLabelHtml()}
           </td>
         </tr>
       `;
@@ -176,6 +194,7 @@
     }
 
     if (driversEmptyState) driversEmptyState.style.display = 'none';
+    const editable = canEditCatalog();
 
     driversTableBody.innerHTML = allDrivers.map(d => {
       const statusClass = d.status === 'Active' ? 'approved' :
@@ -190,10 +209,12 @@
           <td>${phone}</td>
           <td><span class="status-badge ${statusClass}"><span class="status-dot"></span> ${status}</span></td>
           <td>
-            <div class="table-actions">
-              <button class="action-btn facility-edit" onclick="editDriver('${d.id}')" title="Edit">Edit</button>
-              <button class="action-btn reject" onclick="deleteDriver('${d.id}')" title="Delete">Delete</button>
-            </div>
+            ${editable ? `
+              <div class="table-actions">
+                <button class="action-btn facility-edit" onclick="editDriver('${d.id}')" title="Edit">Edit</button>
+                <button class="action-btn reject" onclick="deleteDriver('${d.id}')" title="Delete">Delete</button>
+              </div>
+            ` : viewOnlyLabelHtml()}
           </td>
         </tr>
       `;
@@ -218,6 +239,7 @@
     }
 
     if (departmentsEmptyState) departmentsEmptyState.style.display = 'none';
+    const editable = canEditCatalog();
 
     departmentsTableBody.innerHTML = list.map(d => {
       const statusClass = d.status === 'Active' ? 'approved' :
@@ -236,10 +258,12 @@
           <td>${headName}</td>
           <td><span class="status-badge ${statusClass}"><span class="status-dot"></span> ${status}</span></td>
           <td>
-            <div class="table-actions">
-              <button class="action-btn facility-edit" onclick="editDepartment('${d.id}')" title="Edit">Edit</button>
-              <button class="action-btn reject" onclick="deleteDepartment('${d.id}')" title="Delete">Delete</button>
-            </div>
+            ${editable ? `
+              <div class="table-actions">
+                <button class="action-btn facility-edit" onclick="editDepartment('${d.id}')" title="Edit">Edit</button>
+                <button class="action-btn reject" onclick="deleteDepartment('${d.id}')" title="Delete">Delete</button>
+              </div>
+            ` : viewOnlyLabelHtml()}
           </td>
         </tr>
       `;

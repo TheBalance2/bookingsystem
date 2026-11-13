@@ -7,14 +7,16 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(10,22,40,0.65);
-  backdrop-filter: blur(4px);
+  background: rgba(10, 22, 40, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 2000;
   display: none;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xl);
-  animation: fadeIn 0.3s ease;
+  padding: var(--space-lg);
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overscroll-behavior: contain;
 }
 
 .modal-overlay.visible {
@@ -28,29 +30,31 @@
 
 .modal {
   background: var(--white);
-  border-radius: var(--radius-xl);
-  padding: var(--space-2xl);
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
   max-width: 480px;
   width: 100%;
+  border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: var(--shadow-xl);
-  animation: modalSlideIn 0.4s ease;
+  animation: modalSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: center;
+  overscroll-behavior: contain;
 }
 
 @keyframes modalSlideIn {
-  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .modal .modal-icon {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
-  margin: 0 auto var(--space-lg);
+  font-size: 1.8rem;
+  margin: 0 auto var(--space-md);
 }
 
 .modal .modal-icon.success {
@@ -58,17 +62,21 @@
 }
 
 .modal h2 {
-  font-family: var(--font-heading);
-  font-size: 1.5rem;
+  font-family: var(--font-body);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--navy);
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-xs);
+  text-wrap: balance;
 }
 
 .modal p {
   color: var(--gray-400);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   margin-bottom: var(--space-lg);
-  line-height: 1.6;
+  line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .modal .reference-id {
@@ -76,25 +84,32 @@
   border: 1px solid var(--gray-100);
   border-radius: var(--radius-md);
   padding: var(--space-md);
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 1rem;
   font-weight: 700;
   color: var(--navy);
   margin-bottom: var(--space-lg);
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 /* Booking details modal */
 .modal-details {
   text-align: left;
+  background: var(--off-white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
 }
 
 .modal-details .detail-row {
   display: flex;
   justify-content: space-between;
-  padding: var(--space-sm) 0;
+  align-items: baseline;
+  gap: var(--space-md);
+  padding: 0.55rem 0;
   border-bottom: 1px solid var(--gray-100);
-  font-size: 0.9rem;
+  font-size: 0.86rem;
 }
 
 .modal-details .detail-row:last-child {
@@ -104,11 +119,14 @@
 .modal-details .detail-label {
   color: var(--gray-400);
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .modal-details .detail-value {
   color: var(--navy);
   font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* GCash Receipt in Details Modal */
@@ -328,10 +346,10 @@
 }
 
 .form-group label {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--navy);
-  margin-bottom: var(--space-xs);
+  margin-bottom: 5px;
 }
 
 .form-group label .required {
@@ -344,27 +362,39 @@
 .form-group textarea {
   width: 100%;
   max-width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid var(--gray-100);
-  border-radius: var(--radius-md);
-  font-size: 0.92rem;
-  color: var(--gray-500);
-  transition: var(--transition);
+  padding: 0.65rem 0.9rem;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--navy);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
   background: var(--white);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--gray-300);
+}
+
+.form-group input:hover:not(:disabled):not(:focus),
+.form-group select:hover:not(:disabled):not(:focus),
+.form-group textarea:hover:not(:disabled):not(:focus) {
+  border-color: var(--gray-300);
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
+  outline: none;
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(212,168,67,0.12);
+  box-shadow: 0 0 0 3px rgba(212, 168, 67, 0.16);
 }
 
 .form-group input.error,
 .form-group select.error,
 .form-group textarea.error {
   border-color: var(--danger);
-  box-shadow: 0 0 0 3px rgba(231,76,60,0.1);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
 }
 
 .form-group textarea {

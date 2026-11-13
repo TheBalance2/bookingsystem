@@ -3,14 +3,37 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ============================================================
-    // HELPER FUNCTIONS
+    // HELPER FUNCTIONS — ROLE-BASED ACCESS CONTROL (RBAC)
     // ============================================================
 
-    // Any authenticated user is an admin.
-    // Since there is no public signup (only manually-added Firebase Auth
-    // accounts exist), request.auth != null guarantees admin access.
-    function isAdmin() {
-      return request.auth != null;
+    function profilePath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasActiveProfile() {
+      return request.auth != null
+             && exists(profilePath())
+             && get(profilePath()).data.status == 'Active';
+    }
+
+    // True Admin: manages Facility-In-Charge accounts, views activity logs,
+    // deletes single or monthly bookings, and performs backups/restores.
+    function isSuperAdmin() {
+      return hasActiveProfile()
+             && get(profilePath()).data.role == 'admin';
+    }
+
+    // Facility-In-Charge: approves/rejects bookings, assigns drivers, creates
+    // special bookings, and manages facilities, classrooms, vehicles, drivers,
+    // departments, and settings.
+    function isFacilityInCharge() {
+      return hasActiveProfile()
+             && get(profilePath()).data.role == 'facility_incharge';
+    }
+
+    // Either True Admin or Facility-In-Charge
+    function isStaff() {
+      return isSuperAdmin() || isFacilityInCharge();
     }
 
     // Check if the request time falls within working hours
@@ -30,18 +53,63 @@ service cloud.firestore {
     }
 
     // ============================================================
+    // USERS — Role Profiles (Admin & Facility-In-Charge)
+    // ============================================================
+    match /users/{userId} {
+      // Any signed-in user can read their own profile document to check
+      // their role/status on login; True Admin can read all profiles.
+      allow read: if (request.auth != null && request.auth.uid == userId)
+                  || isSuperAdmin();
+
+      // True Admin can create Facility-In-Charge profiles.
+      allow create: if isSuperAdmin();
+
+      // True Admin can update other accounts (or their own non-role/status info),
+      // and any active staff member can update their own lastLoginAt timestamp.
+      allow update: if (isSuperAdmin()
+                        && (userId != request.auth.uid
+                            || (request.resource.data.role == resource.data.role
+                                && request.resource.data.status == resource.data.status)))
+                    || (hasActiveProfile()
+                        && request.auth.uid == userId
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                            .hasOnly(['lastLoginAt', 'updatedAt']));
+
+      // True Admin can delete (soft-delete) Facility-In-Charge profiles,
+      // but cannot delete their own Admin profile.
+      allow delete: if isSuperAdmin() && userId != request.auth.uid;
+    }
+
+    // ============================================================
+    // ACTIVITY LOGS — Tamper-Proof Audit Trail
+    // ============================================================
+    match /activity_logs/{logId} {
+      allow read: if isSuperAdmin();
+
+      // Active staff can append log entries for their own UID only.
+      allow create: if isStaff()
+                    && request.resource.data.actorUid == request.auth.uid;
+
+      // Logs are immutable and can never be edited.
+      allow update: if false;
+
+      // Only True Admin can purge monthly logs.
+      allow delete: if isSuperAdmin();
+    }
+
+    // ============================================================
     // FACILITIES
     // ============================================================
     match /facilities/{facilityId} {
       allow read:  if true;
-      allow write: if isAdmin();
+      allow write: if isFacilityInCharge();
     }
 
     // Facility images — separated from facility docs to avoid
     // hitting the 1 MB Firestore document size limit.
     match /facility_images/{facilityId} {
       allow read:  if true;
-      allow write: if isAdmin();
+      allow write: if isFacilityInCharge();
     }
 
     // ============================================================
@@ -49,22 +117,22 @@ service cloud.firestore {
     // ============================================================
     match /vehicles/{vehicleId} {
       allow read:  if true;
-      allow write: if isAdmin();
+      allow write: if isFacilityInCharge();
     }
 
     match /drivers/{driverId} {
       allow read:  if true;
-      allow write: if isAdmin();
+      allow write: if isFacilityInCharge();
     }
 
     match /classrooms/{classroomId} {
       allow read:  if true;
-      allow write: if isAdmin();
+      allow write: if isFacilityInCharge();
     }
 
     match /departments/{departmentId} {
       allow read:  if true;
-      allow write: if isAdmin();
+      allow write: if isFacilityInCharge();
     }
 
     // ============================================================
@@ -73,19 +141,20 @@ service cloud.firestore {
     match /bookings/{bookingId} {
       allow read: if true;
 
-      // Admin can create bookings anytime (Special Booking).
+      // Facility-In-Charge can create Special Bookings anytime;
+      // True Admin can restore bookings from JSON backup anytime;
       // Public can create bookings during working hours (or when
       // isTestingMode() is enabled) with a valid initial status only.
-      allow create: if isAdmin() 
+      allow create: if isStaff()
                     || ((isWorkingHours() || isTestingMode())
                         && request.resource.data.status in ['Pending', 'Pending Payment']);
 
       // Update rules:
-      //  • Admin can update anything.
+      //  • Facility-In-Charge can update booking status / driver assignment.
       //  • Public can ONLY mark a "Pending Payment" booking as
       //    "Payment Under Review" (receipt uploaded), and may only
       //    touch the three whitelisted fields.
-      allow update: if isAdmin()
+      allow update: if isFacilityInCharge()
                     || (
                       resource.data.status == 'Pending Payment'
                       && request.resource.data.status == 'Payment Under Review'
@@ -93,17 +162,20 @@ service cloud.firestore {
                           .hasOnly(['status', 'hasReceipt', 'receiptUploadedAt'])
                     );
 
-      allow delete: if isAdmin();
+      // ONLY True Admin can delete bookings (single or mass monthly delete).
+      allow delete: if isSuperAdmin();
     }
 
     // ============================================================
     // RECEIPTS — separated from booking docs to avoid 1 MB limit
     // ============================================================
     match /receipts/{bookingId} {
-      allow read:   if isAdmin();
-      allow create: if request.resource.data.keys().hasAll(['imageData'])
-                    && request.resource.data.imageData is string;
-      allow update, delete: if isAdmin();
+      allow read:   if isStaff();
+      allow create: if (request.resource.data.keys().hasAll(['imageData'])
+                        && request.resource.data.imageData is string)
+                    || isSuperAdmin();
+      allow update: if isFacilityInCharge();
+      allow delete: if isSuperAdmin();
     }
 
     // ============================================================
@@ -112,9 +184,9 @@ service cloud.firestore {
     match /settings/bookingId {
       allow read: if true;
 
-      // Admin can initialize anytime; first public booking during working
+      // Facility-In-Charge can initialize anytime; first public booking during working
       // hours (or testing mode) can auto-seed default config (SIC-<year>, nextSequence = 2).
-      allow create: if isAdmin()
+      allow create: if isFacilityInCharge()
                     || (
                       (isWorkingHours() || isTestingMode())
                       && request.resource.data.keys().hasOnly(['prefix', 'year', 'nextSequence', 'updatedAt'])
@@ -123,9 +195,9 @@ service cloud.firestore {
                       && request.resource.data.nextSequence == 2
                     );
 
-      // Admin can customize prefix/year or reset counter anytime.
+      // Facility-In-Charge can customize prefix/year or reset counter anytime.
       // Public users during working hours (or testing mode) can ONLY increment nextSequence by +1.
-      allow update: if isAdmin()
+      allow update: if isFacilityInCharge()
                     || (
                       (isWorkingHours() || isTestingMode())
                       && request.resource.data.diff(resource.data).affectedKeys()
@@ -133,7 +205,7 @@ service cloud.firestore {
                       && request.resource.data.nextSequence == resource.data.nextSequence + 1
                     );
 
-      allow delete: if isAdmin();
+      allow delete: if isFacilityInCharge();
     }
 
     // ============================================================
@@ -141,7 +213,7 @@ service cloud.firestore {
     // ============================================================
     match /settings/signatories {
       allow read:  if true;
-      allow write: if isAdmin();
+      allow write: if isFacilityInCharge();
     }
   }
 }

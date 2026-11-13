@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Admin Dashboard — Manage facility and equipment reservations at San Isidro College.">
-  <title>Admin Dashboard — San Isidro College</title>
+  <meta name="theme-color" content="#0a1628">
+  <meta name="description" content="Admin & Facility-In-Charge Dashboard — Manage facility and equipment reservations at San Isidro College.">
+  <title>Management Portal — San Isidro College</title>
   <!-- Bootstrap 5 Grid & Utilities -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap-grid.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap-utilities.min.css">
   <!-- Custom Styles -->
-  <link rel="stylesheet" href="css/core.css?v=2">
-  <link rel="stylesheet" href="css/components.css?v=2">
-  <link rel="stylesheet" href="css/admin.css?v=5">
-  <link rel="stylesheet" href="css/responsive.css?v=3">
+  <link rel="stylesheet" href="css/core.css?v=8">
+  <link rel="stylesheet" href="css/components.css?v=8">
+  <link rel="stylesheet" href="css/admin.css?v=8">
+  <link rel="stylesheet" href="css/responsive.css?v=8">
 </head>
 <body>
 
@@ -22,72 +23,91 @@
   <div class="dashboard-layout">
 
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar" aria-label="Portal Navigation">
       <div class="sidebar-brand">
-        <img src="images/logo.jpg" alt="SIC Logo" class="sidebar-logo" style="background: transparent; object-fit: contain;">
+        <img src="images/logo.jpg" alt="San Isidro College Logo" width="40" height="40" class="sidebar-logo" style="object-fit: contain;">
         <div class="sidebar-brand-text">
           <h2>San Isidro College</h2>
-          <span>Admin Panel</span>
+          <span>Management Portal</span>
         </div>
       </div>
 
-      <nav class="sidebar-nav">
+      <nav class="sidebar-nav" aria-label="Main Menu">
+        <div class="sidebar-section-label">Reservations</div>
         <a href="#" class="sidebar-link active" data-filter="all">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
           Dashboard
         </a>
         <a href="#" class="sidebar-link" data-filter="Pending">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           Pending Requests
         </a>
         <a href="#" class="sidebar-link" data-filter="Payment Under Review">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
           Payment Review
         </a>
         <a href="#" class="sidebar-link" data-filter="Approved">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           Approved
         </a>
         <a href="#" class="sidebar-link" data-filter="Rejected">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
           Rejected
         </a>
 
-        <div style="margin-top:var(--space-md); padding-top:var(--space-md); border-top:1px solid rgba(255,255,255,0.08);">
+        <div class="sidebar-nav-group">
+          <div class="sidebar-section-label">Resources &amp; Config</div>
           <a href="#" class="sidebar-link" id="sidebarFacilities" data-view="facilities">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             Manage Facilities
           </a>
           <a href="#" class="sidebar-link" id="sidebarVehicles" data-view="vehicles">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h4a2 2 0 0 1 2 2v1M5 17l-1 4h16l-1-4"/><circle cx="7.5" cy="17" r="1.5"/><circle cx="16.5" cy="17" r="1.5"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14M5 17a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h4a2 2 0 0 1 2 2v1M5 17l-1 4h16l-1-4"/><circle cx="7.5" cy="17" r="1.5"/><circle cx="16.5" cy="17" r="1.5"/></svg>
             Manage Vehicles
           </a>
           <a href="#" class="sidebar-link" id="sidebarDepartments" data-view="departments">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Manage Departments
           </a>
           <a href="#" class="sidebar-link" id="sidebarReports" data-view="reports">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             Reports
           </a>
           <a href="#" class="sidebar-link" id="sidebarIdSettings" data-view="idSettings">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
             Booking ID Settings
           </a>
           <a href="#" class="sidebar-link" id="sidebarSignatories" data-view="signatories">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
             PDF Signatories
+          </a>
+        </div>
+
+        <!-- True Admin Only Navigation -->
+        <div class="admin-only sidebar-nav-group">
+          <div class="sidebar-section-label">Administration</div>
+          <a href="#" class="sidebar-link" id="sidebarAccounts" data-view="accounts">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            Manage Accounts
+          </a>
+          <a href="#" class="sidebar-link" id="sidebarActivityLogs" data-view="activityLogs">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Activity Logs
+          </a>
+          <a href="#" class="sidebar-link" id="sidebarDataManagement" data-view="dataManagement">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            Backup &amp; Cleanup
           </a>
         </div>
       </nav>
 
       <div class="sidebar-footer">
         <a href="index.html" class="sidebar-link">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           Back to Site
         </a>
-        <button class="sidebar-link" id="logoutBtn" style="width:100%; text-align:left; background:none;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2 2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <button type="button" class="sidebar-link" id="logoutBtn" style="width:100%; text-align:left; background:none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           Sign Out
         </button>
       </div>
@@ -99,22 +119,23 @@
       <!-- Topbar -->
       <div class="dashboard-topbar d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center" style="gap: var(--space-md);">
-          <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Menu" style="padding: 0; background: transparent; border: none; cursor: pointer; color: var(--navy);">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <button type="button" id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle navigation menu" style="padding: 4px; background: transparent; border: none; cursor: pointer; color: var(--navy);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
           <div>
             <h1>Dashboard</h1>
-            <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Manage all facility reservations</p>
+            <p style="color:var(--gray-400); font-size:0.84rem; margin-top:1px;">Manage facility &amp; vehicle reservations</p>
           </div>
         </div>
-        <div class="admin-info d-flex align-items-center" style="gap: 15px;">
+        <div class="admin-info d-flex align-items-center">
           <button type="button" class="btn-topbar-id-settings" id="openIdSettingsBtn" title="Customize or reset sequential Booking IDs">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
             <span class="id-btn-label">Next ID:</span>
             <strong id="topbarNextBookingId">SIC-2026-001</strong>
           </button>
 
-          <button class="btn btn-primary btn-sm" id="specialBookingBtn" style="background-color: var(--warning); color: #fff; border: none; font-weight: 500;">
+          <button type="button" class="btn btn-sm btn-special-booking fic-only" id="specialBookingBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Special Booking
           </button>
 
@@ -148,8 +169,11 @@
             </div>
           </div>
 
-          <span id="adminEmail">admin</span>
-          <div class="admin-avatar" id="adminAvatar">A</div>
+          <div class="admin-user-pill">
+            <span id="adminRoleBadge" class="role-badge" style="display:none;"></span>
+            <span id="adminEmail">admin</span>
+            <div class="admin-avatar" id="adminAvatar">A</div>
+          </div>
         </div>
       </div>
 
@@ -329,9 +353,10 @@
             <h2 class="facility-mgmt-title">Manage Facilities</h2>
             <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Add, edit, or remove facilities and configure which booking forms they appear in</p>
           </div>
-          <button class="btn btn-primary btn-sm" id="addFacilityBtn">
+          <button class="btn btn-primary btn-sm fic-only" id="addFacilityBtn">
             Add Facility
           </button>
+          <span class="role-badge role-badge-admin admin-only">View Only</span>
         </div>
 
         <div class="table-card">
@@ -365,9 +390,10 @@
             <h2 class="facility-mgmt-title">Manage Classrooms</h2>
             <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Add, edit, or remove classrooms shown in the dropdown when a user selects "Classroom"</p>
           </div>
-          <button class="btn btn-primary btn-sm" id="addClassroomBtn">
+          <button class="btn btn-primary btn-sm fic-only" id="addClassroomBtn">
             Add Classroom
           </button>
+          <span class="role-badge role-badge-admin admin-only">View Only</span>
         </div>
 
         <div class="table-card">
@@ -403,9 +429,10 @@
             <h2 class="facility-mgmt-title">Manage Vehicles</h2>
             <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Add, edit, or remove campus vehicles available for reservation</p>
           </div>
-          <button class="btn btn-primary btn-sm" id="addVehicleBtn">
+          <button class="btn btn-primary btn-sm fic-only" id="addVehicleBtn">
             Add Vehicle
           </button>
+          <span class="role-badge role-badge-admin admin-only">View Only</span>
         </div>
 
         <div class="table-card">
@@ -438,9 +465,10 @@
             <h2 class="facility-mgmt-title">Manage Drivers</h2>
             <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Add, edit, or remove drivers and their contact numbers for vehicle booking assignments</p>
           </div>
-          <button class="btn btn-primary btn-sm" id="addDriverBtn">
+          <button class="btn btn-primary btn-sm fic-only" id="addDriverBtn">
             Add Driver
           </button>
+          <span class="role-badge role-badge-admin admin-only">View Only</span>
         </div>
 
         <div class="table-card">
@@ -484,9 +512,10 @@
               <option value="Non-teaching Personnel">Non-teaching Personnel</option>
               <option value="Administration">Administration</option>
             </select>
-            <button class="btn btn-primary btn-sm" id="addDepartmentBtn">
+            <button class="btn btn-primary btn-sm fic-only" id="addDepartmentBtn">
               Add Office / School
             </button>
+            <span class="role-badge role-badge-admin admin-only">View Only</span>
           </div>
         </div>
 
@@ -681,7 +710,7 @@
                 </div>
               </div>
 
-              <div class="form-actions" style="margin-top:var(--space-lg); display:flex; gap:10px; flex-wrap:wrap;">
+              <div class="form-actions fic-only" style="margin-top:var(--space-lg); display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="submit" class="btn btn-primary btn-sm" id="saveIdConfigBtn">
                   Save ID Settings
                 </button>
@@ -689,6 +718,9 @@
                   Revert Edits
                 </button>
               </div>
+              <p class="admin-only" style="margin-top:var(--space-md); font-size:0.84rem; color:var(--gray-400); font-style:italic;">
+                View only — Booking ID settings are managed by the Facility-In-Charge.
+              </p>
             </form>
           </div>
 
@@ -707,7 +739,7 @@
               </ul>
             </div>
 
-            <div class="id-reset-actions">
+            <div class="id-reset-actions fic-only">
               <button type="button" class="btn btn-danger btn-sm" id="resetCounterToOneBtn">
                 Reset Counter to 001
               </button>
@@ -773,7 +805,7 @@
                 </ul>
               </div>
 
-              <div class="form-actions" style="margin-top:var(--space-lg); display:flex; gap:10px; flex-wrap:wrap;">
+              <div class="form-actions fic-only" style="margin-top:var(--space-lg); display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="submit" class="btn btn-primary btn-sm" id="saveSignatoriesBtn">
                   Save Signatories
                 </button>
@@ -784,6 +816,9 @@
                   Clear Fields
                 </button>
               </div>
+              <p class="admin-only" style="margin-top:var(--space-md); font-size:0.84rem; color:var(--gray-400); font-style:italic;">
+                View only — PDF Signatories are managed by the Facility-In-Charge.
+              </p>
             </form>
           </div>
 
@@ -860,6 +895,324 @@
         </div>
       </div>
 
+      <!-- ============================================================
+           MANAGE ACCOUNTS SECTION (True Admin Only — hidden by default)
+           ============================================================ -->
+      <div id="accountsSection" style="display:none;">
+        <div class="facility-mgmt-header">
+          <div>
+            <h2 class="facility-mgmt-title">Manage Facility-In-Charge Accounts</h2>
+            <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Create, edit, activate/deactivate, send password resets, or remove Facility-In-Charge staff accounts</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline btn-sm" id="registerExistingLoginBtn" title="Link an existing Firebase Auth login by UID">
+              Register Existing Login
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="addAccountBtn">
+              + Add Facility-In-Charge
+            </button>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="bookings-table" id="accountsTable">
+              <thead>
+                <tr>
+                  <th>Full Name / UID</th>
+                  <th>Email Address</th>
+                  <th>Position &amp; Contact</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Last Login</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="accountsTableBody">
+                <!-- Rows inserted dynamically -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="empty-state" id="accountsEmptyState" style="display:none;">
+            <h3>No accounts found</h3>
+            <p>Click "+ Add Facility-In-Charge" to create a new staff account.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           ACTIVITY LOGS SECTION (True Admin Only — hidden by default)
+           ============================================================ -->
+      <div id="activityLogsSection" style="display:none;">
+        <div class="facility-mgmt-header">
+          <div>
+            <h2 class="facility-mgmt-title">Staff Activity Logs</h2>
+            <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Tamper-proof audit trail of all Facility-In-Charge and Administrator actions by month</p>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline btn-sm" id="refreshLogsBtn">Refresh</button>
+            <button type="button" class="btn btn-primary btn-sm" id="exportLogsExcelBtn">Export Month to Excel</button>
+            <button type="button" class="btn btn-danger btn-sm" id="openDeleteLogsModalBtn">Delete Month Logs</button>
+          </div>
+        </div>
+
+        <!-- Monthly Log Stats -->
+        <div class="row g-3" style="margin-bottom:var(--space-lg);">
+          <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card h-100">
+              <div class="stat-icon total" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <div class="stat-info">
+                <h3 id="logStatTotal">0</h3>
+                <p>Total Actions (Month)</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card h-100">
+              <div class="stat-icon approved" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+              <div class="stat-info">
+                <h3 id="logStatApprovals">0</h3>
+                <p>Bookings Approved</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card h-100">
+              <div class="stat-icon rejected" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              </div>
+              <div class="stat-info">
+                <h3 id="logStatRejections">0</h3>
+                <p>Bookings Rejected</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-xl-3">
+            <div class="stat-card h-100">
+              <div class="stat-icon pending" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div class="stat-info">
+                <h3 id="logStatTopActor" style="font-size:0.98rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">—</h3>
+                <p>Most Active Account</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Log Filters -->
+        <div class="booking-filters-card" style="margin-bottom:var(--space-lg);">
+          <div class="booking-filters-grid booking-filters-grid-4">
+            <div class="booking-filter-group">
+              <label for="logMonthFilter">Month</label>
+              <input type="month" id="logMonthFilter">
+            </div>
+            <div class="booking-filter-group">
+              <label for="logAccountFilter">Account</label>
+              <select id="logAccountFilter">
+                <option value="all">All Accounts</option>
+              </select>
+            </div>
+            <div class="booking-filter-group">
+              <label for="logCategoryFilter">Category</label>
+              <select id="logCategoryFilter">
+                <option value="all">All Categories</option>
+                <option value="Booking">Booking Actions</option>
+                <option value="Facility">Facilities</option>
+                <option value="Classroom">Classrooms</option>
+                <option value="Vehicle">Vehicles</option>
+                <option value="Driver">Drivers</option>
+                <option value="Department">Departments</option>
+                <option value="Settings">Settings</option>
+                <option value="Account">Accounts</option>
+                <option value="Auth">Sign In / Out</option>
+                <option value="Data">Backup &amp; Cleanup</option>
+              </select>
+            </div>
+            <div class="booking-filter-group">
+              <label for="logSearchInput">Search Target / Details</label>
+              <input type="text" id="logSearchInput" placeholder="e.g. SIC-2026-001 or driver name">
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="bookings-table" id="activityLogsTable">
+              <thead>
+                <tr>
+                  <th>Date &amp; Time</th>
+                  <th>Staff Account</th>
+                  <th>Category</th>
+                  <th>Action</th>
+                  <th>Target</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody id="activityLogsTableBody">
+                <!-- Rows inserted dynamically -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="empty-state" id="activityLogsEmptyState" style="display:none;">
+            <h3>No activity logs for this month</h3>
+            <p>Actions performed by Facility-In-Charge and Admin accounts will appear here automatically.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           BACKUP & CLEANUP SECTION (True Admin Only — hidden by default)
+           ============================================================ -->
+      <div id="dataManagementSection" style="display:none;">
+        <div class="facility-mgmt-header">
+          <div>
+            <h2 class="facility-mgmt-title">Backup, Restore &amp; Mass Cleanup</h2>
+            <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Download monthly or yearly booking backups (Excel &amp; JSON), restore from JSON backups, or mass-delete bookings for a specific month</p>
+          </div>
+        </div>
+
+        <div class="id-settings-grid" style="margin-bottom:var(--space-xl);">
+          <!-- Card 1: Backup Bookings by Month or Year -->
+          <div class="id-settings-card">
+            <div class="id-settings-card-header">
+              <h3>Backup Bookings (Month or Year)</h3>
+              <p>Export all reservations scheduled in a specific month or year as a human-readable Excel (.xlsx) file or a full raw JSON (.json) backup file.</p>
+            </div>
+
+            <div class="form-grid" style="gap:var(--space-md);">
+              <div class="form-group">
+                <label for="backupScopeType">Backup Period Type</label>
+                <select id="backupScopeType">
+                  <option value="month">Specific Month</option>
+                  <option value="year">Specific Year</option>
+                </select>
+              </div>
+
+              <div class="form-group" id="backupMonthGroup">
+                <label for="backupMonthInput">Select Month</label>
+                <input type="month" id="backupMonthInput">
+              </div>
+
+              <div class="form-group" id="backupYearGroup" style="display:none;">
+                <label for="backupYearSelect">Select Year</label>
+                <select id="backupYearSelect"></select>
+              </div>
+            </div>
+
+            <div class="id-reset-info-box" style="margin-top:var(--space-md);">
+              <p id="backupPreviewText" style="margin:0; font-size:0.88rem; color:var(--navy);">Loading booking summary…</p>
+            </div>
+
+            <div class="form-actions" style="margin-top:var(--space-lg); display:flex; gap:10px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-primary btn-sm" id="downloadBackupExcelBtn">
+                Download Excel (.xlsx)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="downloadBackupJsonBtn">
+                Download JSON Backup (.json)
+              </button>
+            </div>
+          </div>
+
+          <!-- Card 2: Restore Bookings from JSON Backup -->
+          <div class="id-settings-card">
+            <div class="id-settings-card-header">
+              <h3>Restore from JSON Backup</h3>
+              <p>Upload a previously downloaded <code>SIC_Bookings_Backup_*.json</code> file to restore deleted bookings with their original Reference IDs. Existing bookings are safely skipped.</p>
+            </div>
+
+            <div class="form-group">
+              <label for="restoreJsonFileInput">Select Backup JSON File (<code>.json</code>)</label>
+              <input type="file" id="restoreJsonFileInput" accept=".json,application/json">
+            </div>
+
+            <div class="id-reset-info-box" id="restorePreviewBox" style="display:none; margin-top:var(--space-md); font-size:0.86rem; color:var(--navy);"></div>
+
+            <div class="form-actions" style="margin-top:var(--space-lg);">
+              <button type="button" class="btn btn-primary btn-sm" id="confirmRestoreJsonBtn" disabled>
+                Restore Bookings
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Danger Zone — Mass Delete by Month -->
+        <div class="id-settings-card danger-zone-card">
+          <div class="id-settings-card-header">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <div>
+                <h3>Danger Zone — Mass Delete Bookings by Month</h3>
+                <p>Permanently delete all bookings (and their uploaded payment receipts) scheduled in a specific month. This action cannot be undone.</p>
+              </div>
+              <span class="status-badge rejected" id="massDeleteCountBadge">0 matching booking(s)</span>
+            </div>
+          </div>
+
+          <div class="form-grid" style="gap:var(--space-md); margin-bottom:var(--space-md);">
+            <div class="form-group">
+              <label for="massDeleteMonthInput">Target Reservation Month <span class="required">*</span></label>
+              <input type="month" id="massDeleteMonthInput">
+            </div>
+            <div class="form-group">
+              <label for="massDeleteStatusFilter">Filter by Status (Optional)</label>
+              <select id="massDeleteStatusFilter">
+                <option value="all">All Statuses in Selected Month</option>
+                <option value="Approved">Approved Only</option>
+                <option value="Rejected">Rejected Only</option>
+                <option value="Pending">Pending Only</option>
+                <option value="Pending Payment">Pending Payment Only</option>
+                <option value="Payment Under Review">Payment Under Review Only</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Preview Table of Matching Bookings -->
+          <div class="table-responsive" style="max-height:240px; overflow-y:auto; border:1px solid var(--gray-100); border-radius:var(--radius-sm); margin-bottom:var(--space-md);">
+            <table class="bookings-table" style="margin-bottom:0;">
+              <thead>
+                <tr>
+                  <th>Reference ID</th>
+                  <th>Requester</th>
+                  <th>Facility / Vehicle</th>
+                  <th>Reservation Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="massDeletePreviewBody"></tbody>
+            </table>
+          </div>
+
+          <div class="form-group" style="max-width:460px;">
+            <label for="massDeleteConfirmInput">
+              Type <strong style="color:var(--danger); font-family:monospace;" id="massDeleteExpectedPhrase">DELETE NOVEMBER 2026</strong> to confirm:
+            </label>
+            <input type="text" id="massDeleteConfirmInput" class="input-uppercase" placeholder="Type confirmation phrase here" autocomplete="off">
+          </div>
+
+          <div id="massDeleteProgressWrap" style="display:none; margin-top:var(--space-md);">
+            <small id="massDeleteProgressText" style="color:var(--danger); font-weight:600;">Deleting bookings…</small>
+            <div class="progress-track">
+              <div class="progress-fill" id="massDeleteProgressBar"></div>
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top:var(--space-lg); display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+            <button type="button" class="btn btn-outline btn-sm" id="massDeleteBackupFirstBtn">
+              Download Backup (Excel + JSON) First
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" id="executeMassDeleteBtn">
+              Permanently Delete Matching Bookings
+            </button>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -915,7 +1268,7 @@
           <!-- II.3 Position / Designation -->
           <div class="form-group">
             <label for="sbPosition">Position / Designation <span class="required">*</span></label>
-            <input type="text" id="sbPosition" name="position" placeholder="e.g. Faculty / Dean / Office Staff" required>
+            <input type="text" id="sbPosition" name="position" class="input-uppercase" autocapitalize="characters" placeholder="e.g. Faculty / Dean / Office Staff" required>
           </div>
 
           <!-- II.4 Contact Number -->
@@ -1384,6 +1737,172 @@
   </div>
 
   <!-- ============================================================
+       ACCOUNT ADD / EDIT MODAL (True Admin Only)
+       ============================================================ -->
+  <div class="modal-overlay" id="accountModal">
+    <div class="modal" style="max-width:520px; text-align:left; max-height:90vh; overflow-y:auto;">
+      <h2 id="accountModalTitle">Add Facility-In-Charge Account</h2>
+      <p style="color:var(--gray-400); font-size:0.88rem; margin-bottom:var(--space-md);">Create or update a Facility-In-Charge staff account.</p>
+
+      <form id="accountForm" novalidate>
+        <div class="form-grid" style="grid-template-columns:1fr; gap:var(--space-md);">
+          <div class="form-group">
+            <label for="accFullName">Full Name <span class="required">*</span></label>
+            <input type="text" id="accFullName" placeholder="e.g. ENGR. JUAN P. DELA CRUZ" required>
+          </div>
+
+          <div class="form-group">
+            <label for="accEmail">Email Address <span class="required">*</span></label>
+            <input type="email" id="accEmail" placeholder="e.g. facility@sic.edu.ph" required>
+          </div>
+
+          <div class="form-grid" style="gap:var(--space-md);">
+            <div class="form-group">
+              <label for="accContact">Contact Number <span class="required">*</span></label>
+              <input type="tel" id="accContact" inputmode="numeric" maxlength="15" placeholder="e.g. 09171234567" required>
+            </div>
+            <div class="form-group">
+              <label for="accPosition">Position / Title <span class="required">*</span></label>
+              <input type="text" id="accPosition" placeholder="e.g. Facility In-Charge" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="accStatus">Account Status</label>
+            <select id="accStatus">
+              <option value="Active">Active (Can Sign In)</option>
+              <option value="Inactive">Inactive (Blocked)</option>
+            </select>
+          </div>
+
+          <div id="accPasswordGroup">
+            <div class="form-group" style="margin-bottom:var(--space-md);">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label for="accPassword" style="margin-bottom:0;">Initial Password <span class="required">*</span></label>
+                <button type="button" class="id-inline-link-btn" id="toggleAccPasswordBtn">Show</button>
+              </div>
+              <input type="password" id="accPassword" minlength="6" placeholder="At least 6 characters">
+            </div>
+
+            <div class="form-group">
+              <label for="accPasswordConfirm">Confirm Initial Password <span class="required">*</span></label>
+              <input type="password" id="accPasswordConfirm" minlength="6" placeholder="Re-enter password">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions" style="margin-top:var(--space-lg); display:flex; gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeAccountModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="accountSubmitBtn">Create Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       REGISTER EXISTING FIREBASE AUTH LOGIN MODAL (True Admin Only)
+       ============================================================ -->
+  <div class="modal-overlay" id="registerExistingModal">
+    <div class="modal" style="max-width:520px; text-align:left; max-height:90vh; overflow-y:auto;">
+      <h2>Register Existing Firebase Login</h2>
+      <p style="color:var(--gray-400); font-size:0.86rem; margin-bottom:var(--space-md);">
+        If an email already exists in <strong>Firebase Console &rarr; Authentication</strong>, paste its <strong>User UID</strong> below to grant it access.
+      </p>
+
+      <form id="registerExistingForm" novalidate>
+        <div class="form-grid" style="grid-template-columns:1fr; gap:var(--space-md);">
+          <div class="form-group">
+            <label for="regUid">Firebase Auth User UID <span class="required">*</span></label>
+            <input type="text" id="regUid" placeholder="Paste User UID from Firebase Console" required>
+          </div>
+
+          <div class="form-group">
+            <label for="regEmail">Email Address <span class="required">*</span></label>
+            <input type="email" id="regEmail" placeholder="e.g. staff@sic.edu.ph" required>
+          </div>
+
+          <div class="form-group">
+            <label for="regFullName">Full Name <span class="required">*</span></label>
+            <input type="text" id="regFullName" placeholder="e.g. MARIA C. SANTOS" required>
+          </div>
+
+          <div class="form-grid" style="gap:var(--space-md);">
+            <div class="form-group">
+              <label for="regContact">Contact Number <span class="required">*</span></label>
+              <input type="tel" id="regContact" inputmode="numeric" maxlength="15" placeholder="e.g. 09171234567" required>
+            </div>
+            <div class="form-group">
+              <label for="regPosition">Position / Title <span class="required">*</span></label>
+              <input type="text" id="regPosition" placeholder="e.g. Facility In-Charge" required>
+            </div>
+          </div>
+
+          <div class="form-grid" style="gap:var(--space-md);">
+            <div class="form-group">
+              <label for="regRole">Role</label>
+              <select id="regRole">
+                <option value="facility_incharge">Facility-In-Charge</option>
+                <option value="admin">Administrator</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="regStatus">Status</label>
+              <select id="regStatus">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions" style="margin-top:var(--space-lg); display:flex; gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeRegisterExistingModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="registerExistingSubmitBtn">Register Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       DELETE ACCOUNT CONFIRMATION MODAL (True Admin Only)
+       ============================================================ -->
+  <div class="modal-overlay" id="deleteAccountConfirmModal">
+    <div class="modal" style="max-width:440px;">
+      <h2>Remove Account Access?</h2>
+      <p>Are you sure you want to remove <strong id="deleteAccountName"></strong>?</p>
+      <p style="font-size:0.82rem; color:var(--gray-400); margin-top:8px;">
+        This immediately deletes their role profile and blocks them from signing in or accessing the database. (To re-enable this email later, use <em>Register Existing Login</em>.)
+      </p>
+      <div style="margin-top:var(--space-lg); display:flex; gap:var(--space-sm); justify-content:center;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeDeleteAccountModal()">Cancel</button>
+        <button type="button" class="btn btn-danger btn-sm" id="confirmDeleteAccountBtn">Remove Access</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       DELETE MONTHLY LOGS CONFIRMATION MODAL (True Admin Only)
+       ============================================================ -->
+  <div class="modal-overlay" id="deleteLogsMonthModal">
+    <div class="modal" style="max-width:460px; text-align:left;">
+      <h2>Delete Monthly Activity Logs?</h2>
+      <p style="margin-bottom:var(--space-md);">
+        You are about to permanently delete all activity logs for <strong id="deleteLogsMonthLabel"></strong>. This purge action will itself be recorded in the audit log.
+      </p>
+      <div class="form-group">
+        <label for="deleteLogsConfirmInput">
+          Type <strong style="color:var(--danger); font-family:monospace;" id="deleteLogsExpectedText">DELETE LOGS 2026-11</strong> to confirm:
+        </label>
+        <input type="text" id="deleteLogsConfirmInput" class="input-uppercase" autocomplete="off">
+      </div>
+      <div style="margin-top:var(--space-lg); display:flex; gap:var(--space-sm); justify-content:flex-end;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeDeleteLogsMonthModal()">Cancel</button>
+        <button type="button" class="btn btn-danger btn-sm" id="confirmDeleteLogsBtn">Delete Month Logs</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        TOAST CONTAINER
        ============================================================ -->
   <div class="toast-container" id="toastContainer"></div>
@@ -1408,9 +1927,12 @@
   <script src="js/core/firebase-config.js"></script>
   <script src="js/core/logger.js"></script>
   <script src="js/core/utils.js"></script>
+  <script src="js/core/session.js"></script>
 
   <!-- MVC Models -->
   <script src="js/models/auth-model.js"></script>
+  <script src="js/models/user-model.js"></script>
+  <script src="js/models/activity-log-model.js"></script>
   <script src="js/models/facility-model.js"></script>
   <script src="js/models/classroom-model.js"></script>
   <script src="js/models/vehicle-model.js"></script>
@@ -1434,6 +1956,9 @@
   <script src="js/controllers/department-controller.js"></script>
   <script src="js/controllers/special-booking-controller.js"></script>
   <script src="js/controllers/settings-controller.js"></script>
+  <script src="js/controllers/account-controller.js"></script>
+  <script src="js/controllers/activity-log-controller.js"></script>
+  <script src="js/controllers/data-management-controller.js"></script>
   <script src="js/controllers/dashboard-controller.js"></script>
 
   <!-- Vue 3 Reports App -->

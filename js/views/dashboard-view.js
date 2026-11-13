@@ -50,11 +50,23 @@
     return String(b.agencyName || b.agency || b.organization || '').trim();
   }
 
-  function renderAdminInfo(user) {
-    const adminEmail  = document.getElementById('adminEmail');
-    const adminAvatar = document.getElementById('adminAvatar');
-    if (adminEmail && user) adminEmail.textContent = user.email;
-    if (adminAvatar && user) adminAvatar.textContent = (user.email || 'A')[0].toUpperCase();
+  function renderAdminInfo(user, profile) {
+    const adminEmail     = document.getElementById('adminEmail');
+    const adminAvatar    = document.getElementById('adminAvatar');
+    const adminRoleBadge = document.getElementById('adminRoleBadge');
+    const effectiveProfile = profile || (window.Session && Session.profile) || null;
+    const displayName    = (effectiveProfile && effectiveProfile.fullName)
+      ? effectiveProfile.fullName
+      : (user && user.email ? user.email : 'Staff');
+
+    if (adminEmail) adminEmail.textContent = displayName;
+    if (adminAvatar) adminAvatar.textContent = (displayName || 'A')[0].toUpperCase();
+    if (adminRoleBadge) {
+      const role = effectiveProfile ? effectiveProfile.role : '';
+      adminRoleBadge.textContent = role === 'admin' ? 'Administrator' : 'Facility-In-Charge';
+      adminRoleBadge.className = 'role-badge ' + (role === 'admin' ? 'role-badge-admin' : 'role-badge-fic');
+      adminRoleBadge.style.display = 'inline-block';
+    }
   }
 
   function renderStats(allBookings) {
@@ -313,6 +325,31 @@
       const purpose = Utils.escapeHtml(b.purpose || '—');
       const statusText = Utils.escapeHtml(b.status || '—');
       const safeId = Utils.escapeHtml(b.id);
+      const isAdminRole = Boolean(window.Session && Session.isAdmin());
+      const isFicRole   = Boolean(window.Session && Session.isFacilityInCharge());
+
+      let actionsHtml = '';
+      if (isAdminRole) {
+        actionsHtml = `
+          <div class="table-actions">
+            <button class="action-btn facility-edit" onclick="viewBookingDetails('${safeId}')">View</button>
+            <button class="action-btn reject" onclick="deleteBooking('${safeId}')" title="Delete booking">Delete</button>
+          </div>
+        `;
+      } else if (isFicRole && showActions) {
+        actionsHtml = `
+          <div class="table-actions">
+            <button class="action-btn approve" onclick="approveBooking('${safeId}')">Approve</button>
+            <button class="action-btn reject" onclick="rejectBooking('${safeId}')">Reject</button>
+          </div>
+        `;
+      } else {
+        actionsHtml = `
+          <div class="table-actions">
+            <button class="action-btn facility-edit" onclick="viewBookingDetails('${safeId}')">View</button>
+          </div>
+        `;
+      }
 
       return `
         <tr data-booking-id="${safeId}" class="${isNewUnread ? 'booking-row-new' : ''}">
@@ -323,16 +360,7 @@
           <td>${dateTime}</td>
           <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${purpose}">${purpose}</td>
           <td><span class="status-badge ${statusClass}"><span class="status-dot"></span> ${statusText}</span></td>
-          <td>
-            ${showActions ? `
-              <div class="table-actions">
-                <button class="action-btn approve" onclick="approveBooking('${safeId}')">Approve</button>
-                <button class="action-btn reject" onclick="rejectBooking('${safeId}')">Reject</button>
-              </div>
-            ` : `<div class="table-actions">
-                <button class="action-btn reject" onclick="deleteBooking('${safeId}')" title="Delete booking">Delete</button>
-              </div>`}
-          </td>
+          <td>${actionsHtml}</td>
         </tr>
       `;
     }).join('');
@@ -451,7 +479,9 @@
       }
     }
 
-    const isPendingActionable = booking.status === 'Pending' || booking.status === 'Payment Under Review';
+    const isAdminRole = Boolean(window.Session && Session.isAdmin());
+    const isFicRole   = Boolean(window.Session && Session.isFacilityInCharge());
+    const isPendingActionable = isFicRole && (booking.status === 'Pending' || booking.status === 'Payment Under Review');
     const isVehBooking = Utils.isVehicleBooking(booking);
 
     if (isVehBooking && isPendingActionable) {
@@ -541,7 +571,13 @@
     }
 
     if (deleteBtn) {
-      deleteBtn.onclick = () => { if (onClose) onClose(); if (onDelete) onDelete(booking.id); };
+      if (isAdminRole) {
+        deleteBtn.style.display = 'inline-flex';
+        deleteBtn.onclick = () => { if (onClose) onClose(); if (onDelete) onDelete(booking.id); };
+      } else {
+        deleteBtn.style.display = 'none';
+        deleteBtn.onclick = null;
+      }
     }
 
     detailsModal.classList.add('visible');

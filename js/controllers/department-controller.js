@@ -84,6 +84,7 @@
   if (departmentForm) {
     departmentForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (window.Session && !Session.requireFic('manage departments')) return;
 
       const category = document.getElementById('deptCategory').value || 'College';
       const name     = document.getElementById('deptName').value.trim();
@@ -101,11 +102,20 @@
 
       try {
         const wasEditing = Boolean(editingDepartmentId);
+        const savedId = editingDepartmentId || '';
         await DepartmentModel.save(
           editingDepartmentId,
           { category, name, headName, status },
           allDepartments.length
         );
+
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log(wasEditing ? 'DEPARTMENT_UPDATE' : 'DEPARTMENT_CREATE', 'Department', {
+            targetId:    savedId,
+            targetLabel: `${name} (${category})`,
+            details:     { category, name, headName, status }
+          });
+        }
 
         UiView.showToast(
           'success',
@@ -124,6 +134,7 @@
   }
 
   window.deleteDepartment = function (docId) {
+    if (window.Session && !Session.requireFic('delete departments')) return;
     const dept = allDepartments.find(d => d.id === docId);
     if (!dept) return;
 
@@ -135,10 +146,19 @@
   if (confirmDeleteDepartmentBtn) {
     confirmDeleteDepartmentBtn.addEventListener('click', async () => {
       if (!deletingDepartmentId) return;
+      if (window.Session && !Session.requireFic('delete departments')) return;
 
       try {
         const dept = allDepartments.find(d => d.id === deletingDepartmentId);
+        const targetId = deletingDepartmentId;
         await DepartmentModel.remove(deletingDepartmentId);
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log('DEPARTMENT_DELETE', 'Department', {
+            targetId,
+            targetLabel: dept ? `${dept.name} (${dept.category})` : targetId,
+            details:     { category: dept?.category || '', name: dept?.name || '' }
+          });
+        }
         UiView.showToast('warning', 'Office / School Deleted', `"${dept?.name || 'Office / School'}" has been removed.`);
         window.closeDeleteDepartmentModal();
       } catch (err) {

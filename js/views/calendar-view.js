@@ -56,21 +56,21 @@
       const color = facilityColors[d.facility] || '#3498db';
       const sDate = d.startDate || d.date;
       const eDate = d.endDate || sDate;
+      const location = Utils.getBookingLocation(d, 'Vehicle');
 
       calendar.addEvent({
         id:    d.id,
-        title: Utils.getBookingLocation(d, 'Vehicle') + ' — ' + d.name,
+        title: location + (d.userType ? ' — ' + d.userType : ' — Reserved'),
         start: sDate + 'T' + d.startTime,
         end:   eDate + 'T' + d.endTime,
         color: color,
         extendedProps: {
-          facility:    Utils.getBookingLocation(d, 'Vehicle'),
-          name:        d.name,
-          email:       d.email,
-          purpose:     d.purpose,
-          userType:    d.userType,
-          equipment:   d.equipment || [],
-          referenceId: d.referenceId || '—'
+          facility:  location,
+          userType:  d.userType || '—',
+          startDate: sDate,
+          endDate:   eDate,
+          startTime: d.startTime,
+          endTime:   d.endTime
         }
       });
     });
@@ -84,11 +84,11 @@
     const base  = `${yyyy}-${mm}`;
 
     const demoEvents = [
-      { title: 'Gymnasium — Faculty Sports Fest',        start: `${base}-${dd}T08:00`, end: `${base}-${dd}T12:00`, color: defaultColors['Gymnasium'] },
-      { title: 'Chapel — College Assembly',              start: `${base}-${String(Math.min(28, today.getDate() + 2)).padStart(2, '0')}T13:00`, end: `${base}-${String(Math.min(28, today.getDate() + 2)).padStart(2, '0')}T16:00`, color: defaultColors['Chapel'] },
-      { title: 'Guest House/College H.E — Workshop',     start: `${base}-${String(Math.min(28, today.getDate() + 4)).padStart(2, '0')}T09:00`, end: `${base}-${String(Math.min(28, today.getDate() + 4)).padStart(2, '0')}T11:30`, color: defaultColors['Guest House/College H.E'] },
-      { title: 'Conference Room — Board Meeting',        start: `${base}-${String(Math.min(28, today.getDate() + 1)).padStart(2, '0')}T14:00`, end: `${base}-${String(Math.min(28, today.getDate() + 1)).padStart(2, '0')}T15:30`, color: defaultColors['Conference Room'] },
-      { title: 'Field/Oval — Seminar',                   start: `${base}-${String(Math.min(28, today.getDate() + 5)).padStart(2, '0')}T10:00`, end: `${base}-${String(Math.min(28, today.getDate() + 5)).padStart(2, '0')}T12:00`, color: defaultColors['Field/Oval'] }
+      { title: 'Gymnasium — Internal',                    start: `${base}-${dd}T08:00`, end: `${base}-${dd}T12:00`, color: defaultColors['Gymnasium'], extendedProps: { facility: 'Gymnasium', userType: 'Internal' } },
+      { title: 'Chapel — Internal',                       start: `${base}-${String(Math.min(28, today.getDate() + 2)).padStart(2, '0')}T13:00`, end: `${base}-${String(Math.min(28, today.getDate() + 2)).padStart(2, '0')}T16:00`, color: defaultColors['Chapel'], extendedProps: { facility: 'Chapel', userType: 'Internal' } },
+      { title: 'Guest House/College H.E — External',      start: `${base}-${String(Math.min(28, today.getDate() + 4)).padStart(2, '0')}T09:00`, end: `${base}-${String(Math.min(28, today.getDate() + 4)).padStart(2, '0')}T11:30`, color: defaultColors['Guest House/College H.E'], extendedProps: { facility: 'Guest House/College H.E', userType: 'External' } },
+      { title: 'Conference Room — Internal',              start: `${base}-${String(Math.min(28, today.getDate() + 1)).padStart(2, '0')}T14:00`, end: `${base}-${String(Math.min(28, today.getDate() + 1)).padStart(2, '0')}T15:30`, color: defaultColors['Conference Room'], extendedProps: { facility: 'Conference Room', userType: 'Internal' } },
+      { title: 'Field/Oval — External',                   start: `${base}-${String(Math.min(28, today.getDate() + 5)).padStart(2, '0')}T10:00`, end: `${base}-${String(Math.min(28, today.getDate() + 5)).padStart(2, '0')}T12:00`, color: defaultColors['Field/Oval'], extendedProps: { facility: 'Field/Oval', userType: 'External' } }
     ];
 
     demoEvents.forEach(evt => calendar.addEvent(evt));
@@ -204,29 +204,31 @@
     if (!modal || !title || !details) return;
 
     const p = event.extendedProps || {};
-    const formatDateTime12 = d => {
-      if (!d) return '—';
-      const datePart = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-      const timePart = Utils.formatTime12(`${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`);
-      return `${datePart}, ${timePart}`;
+    const formatDateTime12 = (d, fallbackDate, fallbackTime) => {
+      if (d instanceof Date && !isNaN(d.getTime())) {
+        const datePart = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        const timePart = Utils.formatTime12(`${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`);
+        return `${datePart}, ${timePart}`;
+      }
+      if (fallbackDate) {
+        return fallbackTime ? `${fallbackDate}, ${Utils.formatTime12(fallbackTime)}` : fallbackDate;
+      }
+      return '—';
     };
-    const startStr = formatDateTime12(event.start);
-    const endStr   = formatDateTime12(event.end);
+    const startStr = formatDateTime12(event.start, p.startDate, p.startTime);
+    const endStr   = formatDateTime12(event.end, p.endDate, p.endTime);
 
-    title.textContent = p.facility || event.title;
+    title.textContent = p.facility || 'Reservation Details';
 
-    const eqText = (p.equipment && p.equipment.length)
-      ? p.equipment.map(e => typeof e === 'string' ? e : `${e.item} (x${e.qty})`).join(', ')
-      : 'None';
+    const userTypeClass = (p.userType === 'Internal') ? 'internal' : (p.userType === 'External' ? 'external' : '');
+    const userTypeBadge = userTypeClass
+      ? `<span class="type-badge ${userTypeClass}">${Utils.escapeHtml(p.userType)}</span>`
+      : Utils.escapeHtml(p.userType || '—');
 
     details.innerHTML = `
-      <div class="detail-row"><span class="detail-label">Requester</span><span class="detail-value">${Utils.escapeHtml(p.name || '—')}</span></div>
-      <div class="detail-row"><span class="detail-label">Type</span><span class="detail-value">${Utils.escapeHtml(p.userType || '—')}</span></div>
-      <div class="detail-row"><span class="detail-label">Start</span><span class="detail-value">${Utils.escapeHtml(startStr)}</span></div>
-      <div class="detail-row"><span class="detail-label">End</span><span class="detail-value">${Utils.escapeHtml(endStr)}</span></div>
-      <div class="detail-row"><span class="detail-label">Purpose</span><span class="detail-value">${Utils.escapeHtml(p.purpose || '—')}</span></div>
-      <div class="detail-row"><span class="detail-label">Equipment</span><span class="detail-value">${Utils.escapeHtml(eqText)}</span></div>
-      <div class="detail-row"><span class="detail-label">Reference</span><span class="detail-value">${Utils.escapeHtml(p.referenceId || '—')}</span></div>
+      <div class="detail-row"><span class="detail-label">Type</span><span class="detail-value">${userTypeBadge}</span></div>
+      <div class="detail-row"><span class="detail-label">Start Date</span><span class="detail-value">${Utils.escapeHtml(startStr)}</span></div>
+      <div class="detail-row"><span class="detail-label">End Date</span><span class="detail-value">${Utils.escapeHtml(endStr)}</span></div>
     `;
 
     modal.classList.add('visible');

@@ -142,6 +142,7 @@
   if (bookingIdConfigForm) {
     bookingIdConfigForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (window.Session && !Session.requireFic('change Booking ID settings')) return;
 
       const prefix = Utils.sanitizeIdSegment(idConfigPrefixInput ? idConfigPrefixInput.value : '');
       const year   = Utils.sanitizeIdSegment(idConfigYearInput ? idConfigYearInput.value : '');
@@ -179,6 +180,13 @@
         syncBookingIdFormFromState(true);
 
         const nextFormatted = Utils.formatSequentialBookingId(prefix, year, nextSequence);
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log('SETTINGS_BOOKING_ID_UPDATE', 'Settings', {
+            targetId:    'bookingId',
+            targetLabel: nextFormatted,
+            details:     { prefix, year, nextSequence }
+          });
+        }
         UiView.showToast('success', 'Booking ID Settings Saved', `Upcoming reservations will start at ${nextFormatted}.`);
       } catch (err) {
         Logger.error(LAYER, 'Failed to save Booking ID settings:', err);
@@ -238,6 +246,7 @@
 
   if (confirmResetBookingIdBtn) {
     confirmResetBookingIdBtn.addEventListener('click', async () => {
+      if (window.Session && !Session.requireFic('reset the Booking ID counter')) return;
       const targetPrefix = (pendingResetTarget && pendingResetTarget.prefix) || bookingIdConfigState.prefix;
       const targetYear   = (pendingResetTarget && pendingResetTarget.year) || bookingIdConfigState.year;
 
@@ -258,6 +267,13 @@
         syncBookingIdFormFromState(true);
 
         const resetId = Utils.formatSequentialBookingId(targetPrefix, targetYear, 1);
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log('SETTINGS_BOOKING_ID_RESET', 'Settings', {
+            targetId:    'bookingId',
+            targetLabel: resetId,
+            details:     { prefix: targetPrefix, year: targetYear, nextSequence: 1 }
+          });
+        }
         window.closeResetBookingIdModal();
         UiView.showToast('success', 'Counter Reset to 001', `The next reservation submitted will be assigned ${resetId}.`);
       } catch (err) {
@@ -376,6 +392,7 @@
   if (signatoriesForm) {
     signatoriesForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (window.Session && !Session.requireFic('update PDF signatories')) return;
 
       const facilitiesInCharge      = String(sigFacilitiesInChargeInput ? sigFacilitiesInChargeInput.value : '').trim();
       const comptroller             = String(sigComptrollerInput ? sigComptrollerInput.value : '').trim();
@@ -399,6 +416,13 @@
         signatoriesState = { facilitiesInCharge, comptroller, generalAdminCoordinator, vpAdminFinance };
         signatoriesFormDirty = false;
         syncSignatoriesFormFromState(true);
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log('SETTINGS_SIGNATORIES_UPDATE', 'Settings', {
+            targetId:    'signatories',
+            targetLabel: 'PDF Signatories',
+            details:     { facilitiesInCharge, comptroller, generalAdminCoordinator, vpAdminFinance }
+          });
+        }
         UiView.showToast('success', 'Signatories Saved', 'Booking PDFs will now print the updated signatory names.');
       } catch (err) {
         Logger.error(LAYER, 'Failed to save PDF signatories:', err);

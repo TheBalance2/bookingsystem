@@ -87,6 +87,7 @@
   if (vehicleForm) {
     vehicleForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (window.Session && !Session.requireFic('manage vehicles')) return;
 
       const name        = document.getElementById('vehName').value.trim();
       const description = document.getElementById('vehDescription').value.trim();
@@ -104,11 +105,20 @@
 
       try {
         const wasEditing = Boolean(editingVehicleId);
+        const savedId = editingVehicleId || '';
         await VehicleModel.save(
           editingVehicleId,
           { name, description, capacity, status },
           allVehicles.length
         );
+
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log(wasEditing ? 'VEHICLE_UPDATE' : 'VEHICLE_CREATE', 'Vehicle', {
+            targetId:    savedId,
+            targetLabel: name,
+            details:     { name, capacity, status }
+          });
+        }
 
         UiView.showToast(
           'success',
@@ -130,6 +140,7 @@
   }
 
   window.deleteVehicle = function (docId) {
+    if (window.Session && !Session.requireFic('delete vehicles')) return;
     const vehicle = allVehicles.find(v => v.id === docId);
     if (!vehicle) return;
 
@@ -141,10 +152,19 @@
   if (confirmDeleteVehicleBtn) {
     confirmDeleteVehicleBtn.addEventListener('click', async () => {
       if (!deletingVehicleId) return;
+      if (window.Session && !Session.requireFic('delete vehicles')) return;
 
       try {
         const vehicle = allVehicles.find(v => v.id === deletingVehicleId);
+        const targetId = deletingVehicleId;
         await VehicleModel.remove(deletingVehicleId);
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log('VEHICLE_DELETE', 'Vehicle', {
+            targetId,
+            targetLabel: vehicle?.name || targetId,
+            details:     { name: vehicle?.name || '' }
+          });
+        }
         UiView.showToast('warning', 'Vehicle Deleted', `"${vehicle?.name || 'Vehicle'}" has been removed.`);
         window.closeDeleteVehicleModal();
       } catch (err) {
@@ -191,6 +211,7 @@
   if (driverForm) {
     driverForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (window.Session && !Session.requireFic('manage drivers')) return;
 
       const name   = document.getElementById('drvName').value.trim();
       const phone  = document.getElementById('drvPhone').value.trim();
@@ -211,11 +232,20 @@
 
       try {
         const wasEditing = Boolean(editingDriverId);
+        const savedId = editingDriverId || '';
         await DriverModel.save(
           editingDriverId,
           { name, phone, status },
           allDrivers.length
         );
+
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log(wasEditing ? 'DRIVER_UPDATE' : 'DRIVER_CREATE', 'Driver', {
+            targetId:    savedId,
+            targetLabel: name,
+            details:     { name, phone, status }
+          });
+        }
 
         UiView.showToast(
           'success',
@@ -234,6 +264,7 @@
   }
 
   window.deleteDriver = function (docId) {
+    if (window.Session && !Session.requireFic('delete drivers')) return;
     const drv = allDrivers.find(d => d.id === docId);
     if (!drv) return;
 
@@ -245,10 +276,19 @@
   if (confirmDeleteDriverBtn) {
     confirmDeleteDriverBtn.addEventListener('click', async () => {
       if (!deletingDriverId) return;
+      if (window.Session && !Session.requireFic('delete drivers')) return;
 
       try {
         const drv = allDrivers.find(d => d.id === deletingDriverId);
+        const targetId = deletingDriverId;
         await DriverModel.remove(deletingDriverId);
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log('DRIVER_DELETE', 'Driver', {
+            targetId,
+            targetLabel: drv?.name || targetId,
+            details:     { name: drv?.name || '', phone: drv?.phone || '' }
+          });
+        }
         UiView.showToast('warning', 'Driver Deleted', `"${drv?.name || 'Driver'}" has been removed.`);
         window.closeDeleteDriverModal();
       } catch (err) {

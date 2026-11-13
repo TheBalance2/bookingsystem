@@ -45,14 +45,72 @@
   const clearBookingFiltersBtn = document.getElementById('clearBookingFiltersBtn');
   const sidebarLinks           = document.querySelectorAll('.sidebar-link[data-filter]');
 
-  // ---- Auth Guard ----
-  AuthModel.onChange(user => {
+  // ---- Auth Guard & Live Role Profile Enforcement ----
+  let unsubscribeSelfProfile = null;
+
+  function applyRoleFormRestrictions() {
+    const isAdmin = Boolean(window.Session && Session.isAdmin());
+    ['bookingIdConfigForm', 'signatoriesForm'].forEach(formId => {
+      const form = document.getElementById(formId);
+      if (!form) return;
+      form.querySelectorAll('input, select, textarea, button').forEach(el => {
+        el.disabled = isAdmin;
+      });
+    });
+  }
+
+  AuthModel.onChange(async (user) => {
+    if (unsubscribeSelfProfile) {
+      unsubscribeSelfProfile();
+      unsubscribeSelfProfile = null;
+    }
+
     if (!user) {
+      if (window.Session) Session.clear();
       window.location.href = 'admin.html';
       return;
     }
 
-    DashboardView.renderAdminInfo(user);
+    let profile = null;
+    try {
+      profile = await UserModel.getProfile(user.uid);
+    } catch (err) {
+      Logger.error(LAYER, 'Could not fetch staff profile:', err);
+    }
+
+    if (!profile) {
+      await AuthModel.logout();
+      window.location.href = 'admin.html?reason=unregistered';
+      return;
+    }
+
+    if (profile.status !== 'Active') {
+      await AuthModel.logout();
+      window.location.href = 'admin.html?reason=inactive';
+      return;
+    }
+
+    Session.set(profile);
+    DashboardView.renderAdminInfo(user, profile);
+    applyRoleFormRestrictions();
+
+    // Live listener: if the Admin deactivates or deletes this account mid-session,
+    // immediately sign out and redirect to admin.html.
+    unsubscribeSelfProfile = UserModel.listenProfile(user.uid, async (liveProfile) => {
+      if (!liveProfile || liveProfile.status !== 'Active') {
+        if (unsubscribeSelfProfile) {
+          unsubscribeSelfProfile();
+          unsubscribeSelfProfile = null;
+        }
+        Session.clear();
+        await AuthModel.logout();
+        window.location.href = 'admin.html?reason=revoked';
+        return;
+      }
+      Session.set(liveProfile);
+      DashboardView.renderAdminInfo(user, liveProfile);
+      applyRoleFormRestrictions();
+    });
 
     if (window.BookingNotifier && typeof window.BookingNotifier.init === 'function') {
       window.BookingNotifier.init();
@@ -64,6 +122,13 @@
     if (window.DepartmentController && typeof window.DepartmentController.startListening === 'function') {
       DepartmentController.startListening(() => refreshFilterDropdowns());
     }
+    if (Session.isAdmin() && window.AccountController && typeof AccountController.startListening === 'function') {
+      AccountController.startListening(() => {
+        if (window.ActivityLogController && typeof ActivityLogController.populateAccountFilterOptions === 'function') {
+          ActivityLogController.populateAccountFilterOptions();
+        }
+      });
+    }
     SettingsController.listenBookingIdConfig();
     SettingsController.listenSignatoriesConfig();
   });
@@ -71,6 +136,18 @@
   // ---- Logout ----
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
+      if (unsubscribeSelfProfile) {
+        unsubscribeSelfProfile();
+        unsubscribeSelfProfile = null;
+      }
+      if (window.ActivityLogModel && window.Session && Session.profile) {
+        await ActivityLogModel.log('AUTH_LOGOUT', 'Auth', {
+          targetId:    Session.profile.uid,
+          targetLabel: Session.profile.email,
+          details:     { role: Session.profile.role, fullName: Session.profile.fullName }
+        });
+      }
+      if (window.Session) Session.clear();
       await AuthModel.logout();
       window.location.href = 'admin.html';
     });
@@ -98,6 +175,9 @@
       renderTable();
       if (currentView === 'reports' && typeof window.initReportsView === 'function') {
         window.initReportsView();
+      }
+      if (currentView === 'dataManagement' && window.DataManagementController && typeof DataManagementController.refreshView === 'function') {
+        DataManagementController.refreshView();
       }
     });
   }
@@ -442,9 +522,30 @@
 
   // ---- Approve / Reject / View Details / Delete ----
   async function updateBookingStatus(docId, newStatus, extraFields = {}) {
+    if (window.Session && !Session.requireFic(`${newStatus.toLowerCase()} reservations`)) return;
     try {
       const data = await BookingModel.updateStatus(docId, newStatus, extraFields);
       if (data) {
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log(
+            newStatus === 'Approved' ? 'BOOKING_APPROVE' : 'BOOKING_REJECT',
+            'Booking',
+            {
+              targetId:    docId,
+              targetLabel: data.referenceId || docId,
+              details: {
+                referenceId: data.referenceId || '',
+                requester:   Utils.getBookingRequesterName(data),
+                location:    Utils.getBookingLocation(data),
+                driverName:  data.assignedDriverName || '',
+                driverPhone: data.assignedDriverPhone || '',
+                startDate:   data.startDate || data.date || '',
+                endDate:     data.endDate || data.startDate || data.date || '',
+                status:      newStatus
+              }
+            }
+          );
+        }
         EmailService.sendStatusNotification(data, newStatus);
         const driverNote = (newStatus === 'Approved' && data.assignedDriverName)
           ? ` (Driver: ${data.assignedDriverName})`
@@ -462,6 +563,7 @@
   }
 
   window.approveBooking = async function (docId, driverPayload) {
+    if (window.Session && !Session.requireFic('approve reservations')) return;
     const booking = allBookings.find(b => b.id === docId);
     if (booking && Utils.isVehicleBooking(booking) && !driverPayload && !booking.assignedDriverName) {
       await window.viewBookingDetails(docId);
@@ -478,6 +580,7 @@
   };
 
   window.rejectBooking = async function (docId) {
+    if (window.Session && !Session.requireFic('reject reservations')) return;
     if (!confirm('Reject this reservation?')) return;
     await updateBookingStatus(docId, 'Rejected');
   };
@@ -525,6 +628,7 @@
   const confirmDeleteBookingBtn = document.getElementById('confirmDeleteBookingBtn');
 
   window.deleteBooking = function (docId) {
+    if (window.Session && !Session.requireAdmin('delete bookings')) return;
     const booking = allBookings.find(b => b.id === docId);
     if (!booking) return;
 
@@ -541,10 +645,26 @@
   if (confirmDeleteBookingBtn) {
     confirmDeleteBookingBtn.addEventListener('click', async () => {
       if (!deletingBookingId) return;
+      if (window.Session && !Session.requireAdmin('delete bookings')) return;
 
       try {
         const booking = allBookings.find(b => b.id === deletingBookingId);
-        await BookingModel.remove(deletingBookingId);
+        const targetId = deletingBookingId;
+        const hasReceipt = Boolean(booking && (booking.hasReceipt || booking.receiptUploadedAt));
+        await BookingModel.remove(deletingBookingId, hasReceipt);
+        if (window.ActivityLogModel) {
+          ActivityLogModel.log('BOOKING_DELETE', 'Data', {
+            targetId,
+            targetLabel: booking?.referenceId || targetId,
+            details: {
+              referenceId: booking?.referenceId || '',
+              requester:   booking ? Utils.getBookingRequesterName(booking) : '',
+              location:    booking ? Utils.getBookingLocation(booking) : '',
+              startDate:   booking?.startDate || booking?.date || '',
+              status:      booking?.status || ''
+            }
+          });
+        }
         UiView.showToast('warning', 'Booking Deleted', `Booking "${booking?.referenceId || ''}" has been permanently deleted.`);
         window.closeDeleteBookingModal();
       } catch (err) {
@@ -561,19 +681,26 @@
   }
 
   // ---- View Switching (Sidebar Navigation) ----
-  const facilitiesSection  = document.getElementById('facilitiesSection');
-  const vehiclesSection    = document.getElementById('vehiclesSection');
-  const departmentsSection = document.getElementById('departmentsSection');
-  const reportsSection     = document.getElementById('reportsSection');
-  const idSettingsSection  = document.getElementById('idSettingsSection');
-  const signatoriesSection = document.getElementById('signatoriesSection');
-  const sidebarFacilities  = document.getElementById('sidebarFacilities');
-  const sidebarVehicles    = document.getElementById('sidebarVehicles');
-  const sidebarDepartments = document.getElementById('sidebarDepartments');
-  const sidebarReports     = document.getElementById('sidebarReports');
-  const sidebarIdSettings  = document.getElementById('sidebarIdSettings');
-  const sidebarSignatories = document.getElementById('sidebarSignatories');
-  const openIdSettingsBtn  = document.getElementById('openIdSettingsBtn');
+  const facilitiesSection     = document.getElementById('facilitiesSection');
+  const vehiclesSection       = document.getElementById('vehiclesSection');
+  const departmentsSection    = document.getElementById('departmentsSection');
+  const reportsSection        = document.getElementById('reportsSection');
+  const idSettingsSection     = document.getElementById('idSettingsSection');
+  const signatoriesSection    = document.getElementById('signatoriesSection');
+  const accountsSection       = document.getElementById('accountsSection');
+  const activityLogsSection   = document.getElementById('activityLogsSection');
+  const dataManagementSection = document.getElementById('dataManagementSection');
+
+  const sidebarFacilities     = document.getElementById('sidebarFacilities');
+  const sidebarVehicles       = document.getElementById('sidebarVehicles');
+  const sidebarDepartments    = document.getElementById('sidebarDepartments');
+  const sidebarReports        = document.getElementById('sidebarReports');
+  const sidebarIdSettings     = document.getElementById('sidebarIdSettings');
+  const sidebarSignatories    = document.getElementById('sidebarSignatories');
+  const sidebarAccounts       = document.getElementById('sidebarAccounts');
+  const sidebarActivityLogs   = document.getElementById('sidebarActivityLogs');
+  const sidebarDataManagement = document.getElementById('sidebarDataManagement');
+  const openIdSettingsBtn     = document.getElementById('openIdSettingsBtn');
 
   const bookingsViewElements = [
     document.querySelector('.dashboard-topbar'),
@@ -584,23 +711,29 @@
   ].filter(Boolean);
 
   function switchView(view) {
+    if ((view === 'accounts' || view === 'activityLogs' || view === 'dataManagement')
+        && window.Session && !Session.requireAdmin('access Administration pages')) {
+      return;
+    }
+
     currentView = view;
 
     bookingsViewElements.forEach(el => el.style.display = 'none');
-    if (facilitiesSection)  facilitiesSection.style.display  = 'none';
-    if (vehiclesSection)    vehiclesSection.style.display    = 'none';
-    if (departmentsSection) departmentsSection.style.display = 'none';
-    if (reportsSection)     reportsSection.style.display     = 'none';
-    if (idSettingsSection)  idSettingsSection.style.display  = 'none';
-    if (signatoriesSection) signatoriesSection.style.display = 'none';
+    if (facilitiesSection)     facilitiesSection.style.display     = 'none';
+    if (vehiclesSection)       vehiclesSection.style.display       = 'none';
+    if (departmentsSection)    departmentsSection.style.display    = 'none';
+    if (reportsSection)        reportsSection.style.display        = 'none';
+    if (idSettingsSection)     idSettingsSection.style.display     = 'none';
+    if (signatoriesSection)    signatoriesSection.style.display    = 'none';
+    if (accountsSection)       accountsSection.style.display       = 'none';
+    if (activityLogsSection)   activityLogsSection.style.display   = 'none';
+    if (dataManagementSection) dataManagementSection.style.display = 'none';
 
     sidebarLinks.forEach(l => l.classList.remove('active'));
-    if (sidebarFacilities)  sidebarFacilities.classList.remove('active');
-    if (sidebarVehicles)    sidebarVehicles.classList.remove('active');
-    if (sidebarDepartments) sidebarDepartments.classList.remove('active');
-    if (sidebarReports)     sidebarReports.classList.remove('active');
-    if (sidebarIdSettings)  sidebarIdSettings.classList.remove('active');
-    if (sidebarSignatories) sidebarSignatories.classList.remove('active');
+    [
+      sidebarFacilities, sidebarVehicles, sidebarDepartments, sidebarReports,
+      sidebarIdSettings, sidebarSignatories, sidebarAccounts, sidebarActivityLogs, sidebarDataManagement
+    ].forEach(el => { if (el) el.classList.remove('active'); });
 
     if (view === 'facilities') {
       if (facilitiesSection) facilitiesSection.style.display = 'block';
@@ -623,6 +756,21 @@
       if (signatoriesSection) signatoriesSection.style.display = 'block';
       if (sidebarSignatories) sidebarSignatories.classList.add('active');
       SettingsController.syncSignatoriesFormFromState(false);
+    } else if (view === 'accounts') {
+      if (accountsSection) accountsSection.style.display = 'block';
+      if (sidebarAccounts) sidebarAccounts.classList.add('active');
+    } else if (view === 'activityLogs') {
+      if (activityLogsSection) activityLogsSection.style.display = 'block';
+      if (sidebarActivityLogs) sidebarActivityLogs.classList.add('active');
+      if (window.ActivityLogController && typeof ActivityLogController.loadMonthLogs === 'function') {
+        ActivityLogController.loadMonthLogs();
+      }
+    } else if (view === 'dataManagement') {
+      if (dataManagementSection) dataManagementSection.style.display = 'block';
+      if (sidebarDataManagement) sidebarDataManagement.classList.add('active');
+      if (window.DataManagementController && typeof DataManagementController.refreshView === 'function') {
+        DataManagementController.refreshView();
+      }
     } else {
       bookingsViewElements.forEach(el => {
         if (el.classList.contains('stats-grid')) {
@@ -636,6 +784,8 @@
     }
   }
 
+  window.showSection = switchView;
+
   window.switchToBookingsView = function () {
     if (currentView !== 'bookings') {
       switchView('bookings');
@@ -645,13 +795,16 @@
     }
   };
 
-  if (sidebarFacilities)  sidebarFacilities.addEventListener('click', (e) => { e.preventDefault(); switchView('facilities'); });
-  if (sidebarVehicles)    sidebarVehicles.addEventListener('click', (e) => { e.preventDefault(); switchView('vehicles'); });
-  if (sidebarDepartments) sidebarDepartments.addEventListener('click', (e) => { e.preventDefault(); switchView('departments'); });
-  if (sidebarReports)     sidebarReports.addEventListener('click', (e) => { e.preventDefault(); switchView('reports'); });
-  if (sidebarIdSettings)  sidebarIdSettings.addEventListener('click', (e) => { e.preventDefault(); switchView('idSettings'); });
-  if (sidebarSignatories) sidebarSignatories.addEventListener('click', (e) => { e.preventDefault(); switchView('signatories'); });
-  if (openIdSettingsBtn)  openIdSettingsBtn.addEventListener('click', () => switchView('idSettings'));
+  if (sidebarFacilities)     sidebarFacilities.addEventListener('click', (e) => { e.preventDefault(); switchView('facilities'); });
+  if (sidebarVehicles)       sidebarVehicles.addEventListener('click', (e) => { e.preventDefault(); switchView('vehicles'); });
+  if (sidebarDepartments)    sidebarDepartments.addEventListener('click', (e) => { e.preventDefault(); switchView('departments'); });
+  if (sidebarReports)        sidebarReports.addEventListener('click', (e) => { e.preventDefault(); switchView('reports'); });
+  if (sidebarIdSettings)     sidebarIdSettings.addEventListener('click', (e) => { e.preventDefault(); switchView('idSettings'); });
+  if (sidebarSignatories)    sidebarSignatories.addEventListener('click', (e) => { e.preventDefault(); switchView('signatories'); });
+  if (sidebarAccounts)       sidebarAccounts.addEventListener('click', (e) => { e.preventDefault(); switchView('accounts'); });
+  if (sidebarActivityLogs)   sidebarActivityLogs.addEventListener('click', (e) => { e.preventDefault(); switchView('activityLogs'); });
+  if (sidebarDataManagement) sidebarDataManagement.addEventListener('click', (e) => { e.preventDefault(); switchView('dataManagement'); });
+  if (openIdSettingsBtn)     openIdSettingsBtn.addEventListener('click', () => switchView('idSettings'));
 
   // Mobile sidebar toggle
   const mobileMenuBtn = document.getElementById('mobileMenuBtn');
