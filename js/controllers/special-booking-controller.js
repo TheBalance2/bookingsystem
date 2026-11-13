@@ -19,10 +19,12 @@
   const sbVehicleOptions     = document.getElementById('sbVehicleOptions');
   const sbVehicleGroup       = document.getElementById('sbVehicleGroup');
   const sbDestinationGroup   = document.getElementById('sbDestinationGroup');
-  const sbDepartmentSelect   = document.getElementById('sbDepartment');
-  const sbCollegeSchoolGroup = document.getElementById('sbCollegeSchoolGroup');
+  const sbDepartmentSelect    = document.getElementById('sbDepartment');
+  const sbCollegeSchoolGroup  = document.getElementById('sbCollegeSchoolGroup');
   const sbCollegeSchoolSelect = document.getElementById('sbCollegeSchool');
-  const sbNameInput           = document.getElementById('sbName');
+  const sbFirstNameInput      = document.getElementById('sbFirstName');
+  const sbLastNameInput       = document.getElementById('sbLastName');
+  const sbMiddleInitialInput  = document.getElementById('sbMiddleInitial');
   const sbContactInput        = document.getElementById('sbContact');
   const sbNumPersonsInput     = document.getElementById('sbNumPersons');
   const sbStartDateInput      = document.getElementById('sbStartDate');
@@ -110,11 +112,17 @@
   if (sbFacilitySelect) sbFacilitySelect.addEventListener('change', updateSbVehicleVisibility);
   if (sbDepartmentSelect) sbDepartmentSelect.addEventListener('change', updateSbCollegeSchoolVisibility);
 
-  if (sbNameInput) {
-    sbNameInput.addEventListener('input', () => {
-      sbNameInput.value = sbNameInput.value.toUpperCase();
+  [sbFirstNameInput, sbLastNameInput, sbMiddleInitialInput].forEach(el => {
+    if (!el) return;
+    el.addEventListener('input', () => {
+      const upper = el.value.toUpperCase();
+      if (upper === el.value) return;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      el.value = upper;
+      try { el.setSelectionRange(start, end); } catch (_) {}
     });
-  }
+  });
 
   if (sbNumPersonsInput) {
     sbNumPersonsInput.addEventListener('keydown', (e) => {
@@ -138,17 +146,22 @@
     specialBookingBtn.addEventListener('click', () => {
       if (sbFacilitySelect && window._allFacilities) {
         const prev = sbFacilitySelect.value;
-        while (sbFacilitySelect.options.length > 2) {
-          sbFacilitySelect.remove(2);
+        while (sbFacilitySelect.options.length > 1) {
+          sbFacilitySelect.remove(1);
         }
         window._allFacilities.forEach(f => {
-          if (f.status === 'Active' && f.name !== 'Vehicle') {
+          const vis = Utils.normalizeFacilityVisibility(f.visibility);
+          if (f.status === 'Active' && f.name !== 'Vehicle' && (vis === 'both' || vis === 'internal')) {
             const option = document.createElement('option');
             option.value = f.name;
             option.textContent = f.name;
             sbFacilitySelect.appendChild(option);
           }
         });
+        const vehOpt = document.createElement('option');
+        vehOpt.value = 'Vehicle';
+        vehOpt.textContent = 'Vehicle';
+        sbFacilitySelect.appendChild(vehOpt);
         if (prev && Array.from(sbFacilitySelect.options).some(o => o.value === prev)) {
           sbFacilitySelect.value = prev;
         }
@@ -216,7 +229,9 @@
     specialBookingForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const name           = (document.getElementById('sbName').value || '').trim().toUpperCase();
+      const firstName      = (sbFirstNameInput ? sbFirstNameInput.value : '').trim().toUpperCase();
+      const lastName       = (sbLastNameInput ? sbLastNameInput.value : '').trim().toUpperCase();
+      const middleInitial  = (sbMiddleInitialInput ? sbMiddleInitialInput.value : '').trim().toUpperCase();
       const departmentRaw  = document.getElementById('sbDepartment').value;
       const collegeSchool  = sbCollegeSchoolSelect ? sbCollegeSchoolSelect.value : '';
       const hasOffices     = sbCollegeSchoolSelect && sbCollegeSchoolSelect.dataset.hasOffices === '1';
@@ -250,7 +265,21 @@
         : [];
       const equipment = getSbEquipmentWithQuantities('sbEquipment');
 
-      if (!name)           { alert('Please enter requesting personnel name.'); return; }
+      if (!firstName) {
+        alert("Please enter requesting personnel's first name.");
+        if (sbFirstNameInput) sbFirstNameInput.focus();
+        return;
+      }
+      if (!lastName) {
+        alert("Please enter requesting personnel's last name.");
+        if (sbLastNameInput) sbLastNameInput.focus();
+        return;
+      }
+      if (!middleInitial) {
+        alert('Please enter middle initial (or N/A).');
+        if (sbMiddleInitialInput) sbMiddleInitialInput.focus();
+        return;
+      }
       if (!departmentRaw)  { alert('Please select department.'); return; }
       if (hasOffices && !collegeSchool) {
         alert('Please select your Office / School.');
@@ -259,7 +288,8 @@
       }
       if (!position)       { alert('Please enter position or designation.'); return; }
       if (!contact)        { alert('Please enter contact number.'); return; }
-      if (!email)          { alert('Please enter email address.'); return; }
+      if (!Utils.isDigitsOnly(contact)) { alert('Contact number must be numbers only.'); return; }
+      if (!email || !Utils.isValidEmail(email)) { alert('Please enter a valid email address.'); return; }
       if (!facilityChoice) { alert('Please select a facility or Vehicle.'); return; }
       if (isClassroom && !classroom) {
         alert('Please select a classroom.');
@@ -278,7 +308,10 @@
       if (!numPersons || numPersons < 1)     { alert('Please enter a valid number of participants.'); return; }
       if (isVehicle && vehicle.length === 0) { alert('Please select at least one vehicle.'); return; }
       if (isVehicle && !destination)         { alert('Please enter a destination.'); return; }
-      if (!purpose)                          { alert('Please describe the purpose.'); return; }
+      if (!purpose)                          { alert('Please describe the purpose of activity.'); return; }
+
+      const combinedName  = Utils.formatCombinedName(lastName, firstName, middleInitial);
+      const filingDateStr = Utils.formatFilingDate(new Date());
 
       const btn = document.getElementById('sbSubmitBtn');
       btn.innerHTML = '<span class="spinner"></span> Submitting...';
@@ -288,7 +321,10 @@
       try {
         const refId = await BookingModel.create({
           userType:         'Internal',
-          name,
+          firstName,
+          lastName,
+          middleInitial,
+          name:             combinedName,
           department:       finalDepartment,
           parentDepartment: departmentRaw,
           collegeSchool:    collegeSchool || '',
@@ -305,11 +341,12 @@
           startTime,
           endTime,
           numPersons:       String(numPersons),
+          purpose,
+          equipment,
           vehicle,
           destination:      isVehicle ? destination : '',
-          equipment,
-          purpose,
           considerations,
+          dateSubmitted:    filingDateStr,
           status:           'Approved'
         });
 

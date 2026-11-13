@@ -867,19 +867,32 @@
        SPECIAL BOOKING MODAL
        ============================================================ -->
   <div class="modal-overlay" id="specialBookingModal">
-    <div class="modal" style="max-width:600px; text-align:left; max-height:90vh; overflow-y:auto;">
+    <div class="modal" style="max-width:680px; text-align:left; max-height:90vh; overflow-y:auto;">
       <h2>Special Booking</h2>
       <p style="color:var(--gray-400); font-size:0.9rem; margin-bottom:var(--space-md);">Bypass workhours and 3-day notice rules.</p>
       
       <form id="specialBookingForm" novalidate>
         <div class="form-grid">
-          <!-- Name -->
+          <!-- I & II.1 Name of Requesting Personnel -->
           <div class="form-group full-width">
-            <label for="sbName">Name of Requesting Personnel <span class="required">*</span></label>
-            <input type="text" id="sbName" name="name" class="input-uppercase" autocapitalize="characters" placeholder="e.g. JUAN M. DELA CRUZ" required>
+            <label class="form-section-title">Name of Requesting Personnel</label>
+            <div class="name-grid">
+              <div class="form-group">
+                <label for="sbFirstName">First Name <span class="required">*</span></label>
+                <input type="text" id="sbFirstName" name="firstName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. JUAN" required>
+              </div>
+              <div class="form-group">
+                <label for="sbLastName">Last Name <span class="required">*</span></label>
+                <input type="text" id="sbLastName" name="lastName" class="input-uppercase" autocapitalize="characters" placeholder="e.g. DELA CRUZ" required>
+              </div>
+              <div class="form-group">
+                <label for="sbMiddleInitial">Middle Initial <span class="required">*</span></label>
+                <input type="text" id="sbMiddleInitial" name="middleInitial" class="input-uppercase" autocapitalize="characters" placeholder="e.g. M." maxlength="5" required>
+              </div>
+            </div>
           </div>
 
-          <!-- Department -->
+          <!-- II.2 Department -->
           <div class="form-group">
             <label for="sbDepartment">Department <span class="required">*</span></label>
             <select id="sbDepartment" name="department" required>
@@ -899,31 +912,31 @@
             </select>
           </div>
 
-          <!-- Position / Designation -->
+          <!-- II.3 Position / Designation -->
           <div class="form-group">
             <label for="sbPosition">Position / Designation <span class="required">*</span></label>
-            <input type="text" id="sbPosition" name="position" placeholder="e.g. Faculty / Dean / Coordinator" required>
+            <input type="text" id="sbPosition" name="position" placeholder="e.g. Faculty / Dean / Office Staff" required>
           </div>
 
-          <!-- Contact Number -->
+          <!-- II.4 Contact Number -->
           <div class="form-group">
             <label for="sbContact">Contact Number <span class="required">*</span></label>
             <input type="tel" id="sbContact" name="contactNumber" inputmode="numeric" pattern="[0-9]*" maxlength="15" placeholder="e.g. 09171234567" required>
           </div>
 
-          <!-- Email -->
+          <!-- II.5 Email Address -->
           <div class="form-group">
             <label for="sbEmail">Email Address <span class="required">*</span></label>
             <input type="email" id="sbEmail" name="email" placeholder="e.g. jdelacruz@sic.edu.ph" required>
           </div>
 
-          <!-- Office / Organization Address (Auto-filled for Internal) -->
+          <!-- II.6 Office / Organization Address (Auto-filled for Internal) -->
           <div class="form-group">
             <label for="sbAddress">Office / Organization Address</label>
             <input type="text" id="sbAddress" name="address" value="San Isidro College Impalambong" readonly style="background:var(--off-white); color:var(--gray-500); cursor:not-allowed;">
           </div>
 
-          <!-- Facility -->
+          <!-- III.1 & III.2 Facility / Vehicle Requested -->
           <div class="form-group">
             <label for="sbFacility">Facility / Vehicle Requested <span class="required">*</span></label>
             <select id="sbFacility" name="facility" required>
@@ -955,10 +968,10 @@
             <input type="text" id="sbDestination" name="destination" placeholder="e.g. Cagayan de Oro City">
           </div>
 
-          <!-- Purpose of Activity (Matches Section III.3 Purpose and Schedule order) -->
+          <!-- III.3 Purpose and Schedule -->
           <div class="form-group full-width">
             <label for="sbPurpose">Purpose of Activity <span class="required">*</span></label>
-            <textarea id="sbPurpose" name="purpose" placeholder="Describe the purpose / activity..." required></textarea>
+            <textarea id="sbPurpose" name="purpose" placeholder="Describe the purpose of activity..." required></textarea>
           </div>
 
           <!-- Start Date -->
