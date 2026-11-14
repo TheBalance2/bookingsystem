@@ -31,9 +31,16 @@
   border-radius: var(--radius-lg);
   padding: var(--space-xs);
   box-shadow: var(--shadow-lg);
-  max-width: 420px;
+  max-width: 600px;
   position: relative;
   z-index: 10;
+}
+
+@media (max-width: 576px) {
+  .user-type-toggle {
+    flex-direction: column;
+    max-width: 340px;
+  }
 }
 
 .toggle-btn {
@@ -500,6 +507,125 @@
   font-size: 0.82rem;
   color: var(--success);
   font-weight: 600;
+}
+
+.receipt-file-upload.error {
+  border-color: var(--danger);
+  background: rgba(231, 76, 60, 0.04);
+}
+
+/* ============================================================
+   LETTER OF INTENT (PDF) SECTION — External Booking Form
+   ============================================================ */
+.loi-section {
+  margin-top: var(--space-md);
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, #f8fafd 0%, #f1f5fb 100%);
+  border: 1px solid rgba(10, 36, 99, 0.14);
+  border-left: 4px solid var(--navy);
+  border-radius: var(--radius-md);
+}
+
+.loi-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.loi-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 2px !important;
+  display: block;
+}
+
+.loi-section-subtitle {
+  font-size: 0.82rem;
+  color: var(--gray-400);
+  margin: 0;
+}
+
+.loi-pdf-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(192, 57, 43, 0.1);
+  color: #b02a1e;
+  border: 1px solid rgba(192, 57, 43, 0.25);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.loi-note-box {
+  background: #fffdf6;
+  border: 1px solid rgba(212, 168, 67, 0.45);
+  border-left: 4px solid var(--gold);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: 0.84rem;
+  color: var(--gray-600, #334155);
+  line-height: 1.55;
+}
+
+.loi-note-title {
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 6px;
+  font-size: 0.86rem;
+}
+
+.loi-note-list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.loi-note-list li {
+  margin-bottom: 4px;
+}
+
+.loi-note-list li:last-child {
+  margin-bottom: 0;
+}
+
+.loi-file-upload {
+  background: var(--white);
+}
+
+.loi-file-selected {
+  margin-top: var(--space-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.loi-file-selected .receipt-file-name {
+  margin-top: 0;
+}
+
+.loi-remove-btn {
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(231, 76, 60, 0.1);
+  color: var(--danger);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.loi-remove-btn:hover {
+  background: var(--danger);
+  color: var(--white);
 }
 
 /* External Success Modal extras */

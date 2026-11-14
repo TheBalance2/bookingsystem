@@ -12,11 +12,63 @@
   const SETTINGS_COLLECTION = 'settings';
   const BOOKING_ID_DOC      = 'bookingId';
   const SIGNATORIES_DOC     = 'signatories';
+  const SYSTEM_DOC          = 'system';
 
   const SettingsModel = {
     SETTINGS_COLLECTION,
     BOOKING_ID_DOC,
     SIGNATORIES_DOC,
+    SYSTEM_DOC,
+
+    async getSystemConfig() {
+      try {
+        const docSnap = await db.collection(SETTINGS_COLLECTION).doc(SYSTEM_DOC).get();
+        if (docSnap.exists) {
+          const d = docSnap.data() || {};
+          const testingMode = d.testingMode !== undefined ? Boolean(d.testingMode) : true;
+          window.SIC_TESTING_MODE = testingMode;
+          return { testingMode, updatedAt: d.updatedAt || null };
+        }
+      } catch (err) {
+        Logger.warn(LAYER, 'Could not fetch settings/system config:', err?.code || err);
+      }
+      return { testingMode: Boolean(window.SIC_TESTING_MODE) };
+    },
+
+    listenSystemConfig(onUpdate, onError) {
+      try {
+        const sysRef = db.collection(SETTINGS_COLLECTION).doc(SYSTEM_DOC);
+        return sysRef.onSnapshot((docSnap) => {
+          const d = docSnap.exists ? (docSnap.data() || {}) : {};
+          const testingMode = d.testingMode !== undefined ? Boolean(d.testingMode) : true;
+          window.SIC_TESTING_MODE = testingMode;
+          if (typeof onUpdate === 'function') {
+            onUpdate({ testingMode, updatedAt: d.updatedAt || null, exists: docSnap.exists });
+          }
+        }, (err) => {
+          Logger.warn(LAYER, 'System config listener error:', err?.code || err);
+          if (typeof onError === 'function') onError(err);
+        });
+      } catch (err) {
+        return () => {};
+      }
+    },
+
+    async setTestingMode(testingMode) {
+      const cleanFlag = Boolean(testingMode);
+      try {
+        await db.collection(SETTINGS_COLLECTION).doc(SYSTEM_DOC).set({
+          testingMode: cleanFlag,
+          updatedAt:   firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy:   (window.Session && Session.profile && Session.profile.uid) || ''
+        }, { merge: true });
+        window.SIC_TESTING_MODE = cleanFlag;
+        return cleanFlag;
+      } catch (err) {
+        Logger.error(LAYER, 'Failed to update testingMode in settings/system:', err);
+        throw err;
+      }
+    },
 
     async getBookingIdConfig() {
       try {

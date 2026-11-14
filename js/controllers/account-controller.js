@@ -221,8 +221,8 @@
       if (!editingUid) {
         const pwd        = accPasswordInput ? accPasswordInput.value : '';
         const pwdConfirm = accPasswordConfirmInput ? accPasswordConfirmInput.value : '';
-        if (!pwd || pwd.length < 6) {
-          alert('Initial password must be at least 6 characters.');
+        if (!pwd || pwd.length < 8 || !/[A-Za-z]/.test(pwd) || !/\d/.test(pwd)) {
+          alert('Initial password must be at least 8 characters and include at least one letter and one number.');
           return;
         }
         if (pwd !== pwdConfirm) {
@@ -330,7 +330,7 @@
       const fullName      = (regFullNameInput ? regFullNameInput.value : '').trim();
       const contactNumber = (regContactInput ? regContactInput.value : '').trim();
       const position      = (regPositionInput ? regPositionInput.value : '').trim();
-      const role          = regRoleSelect ? regRoleSelect.value : 'facility_incharge';
+      const role          = 'facility_incharge';
       const status        = regStatusSelect ? regStatusSelect.value : 'Active';
 
       if (!uid)      { alert('Please paste the User UID from Firebase Console -> Authentication.'); return; }
@@ -468,6 +468,12 @@
       if (!deletingUid || !Session.requireAdmin('delete accounts')) return;
       const user = allUsers.find(u => u.uid === deletingUid);
       const targetUid = deletingUid;
+      window.closeDeleteAccountModal();
+
+      if (window.UiView && typeof UiView.requirePassword === 'function') {
+        const verified = await UiView.requirePassword(`remove account access for "${user?.fullName || user?.email || targetUid}"`);
+        if (!verified) return;
+      }
 
       try {
         await UserModel.remove(targetUid);
@@ -479,7 +485,6 @@
           });
         }
         UiView.showToast('warning', 'Account Access Removed', `"${user?.fullName || user?.email || 'Account'}" has been removed and can no longer sign in.`);
-        window.closeDeleteAccountModal();
       } catch (err) {
         Logger.error(LAYER, 'Delete account error:', err);
         UiView.showToast('error', 'Error', 'Failed to delete account profile.');

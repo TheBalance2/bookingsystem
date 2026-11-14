@@ -79,7 +79,9 @@
     ACCOUNT_DELETE:             { label: 'Deleted Account Profile',   badge: 'rejected' },
     ACCOUNT_PASSWORD_RESET:     { label: 'Sent Password Reset Email', badge: 'pending' },
     LOGS_EXPORT:                { label: 'Exported Activity Logs',    badge: 'approved' },
-    LOGS_DELETE_MONTH:          { label: 'Purged Monthly Logs',       badge: 'rejected' }
+    LOGS_DELETE_MONTH:          { label: 'Purged Monthly Logs',       badge: 'rejected' },
+    DATA_SYNC_PUBLIC_SCHEDULE:  { label: 'Synced Public Schedule',    badge: 'approved' },
+    SETTINGS_TESTING_MODE_TOGGLE:{ label: 'Toggled Testing Mode',     badge: 'pending' }
   };
 
   function formatLogTimestamp(ms) {
@@ -360,6 +362,13 @@
       if (typed !== expected) {
         alert(`Please type "${expected}" to confirm deleting this month's logs.`);
         return;
+      }
+
+      window.closeDeleteLogsMonthModal();
+
+      if (window.UiView && typeof UiView.requirePassword === 'function') {
+        const verified = await UiView.requirePassword(`permanently purge all activity logs for ${currentMonthKey}`);
+        if (!verified) return;
       }
 
       confirmDeleteLogsBtn.innerHTML = '<span class="spinner"></span> Deleting...';

@@ -596,6 +596,58 @@
     });
   }
 
+  function dataUrlToPdfBlobUrl(dataUrl) {
+    try {
+      const safe = Utils.sanitizeUrl(dataUrl);
+      if (!safe) return '';
+      if (safe.startsWith('http://') || safe.startsWith('https://')) return safe;
+      const parts = safe.split(',');
+      if (parts.length < 2) return '';
+      const binary = atob(parts[1]);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      return URL.createObjectURL(blob);
+    } catch (err) {
+      Logger.warn(LAYER, 'Failed to create PDF Blob URL:', err);
+      return '';
+    }
+  }
+
+  function openLetterOfIntentPdf(dataUrl) {
+    const blobUrl = dataUrlToPdfBlobUrl(dataUrl);
+    if (!blobUrl) {
+      UiView.showToast('error', 'PDF Error', 'Could not open the Letter of Intent PDF.');
+      return;
+    }
+    window.open(blobUrl, '_blank', 'noopener');
+    if (blobUrl.startsWith('blob:')) {
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    }
+  }
+
+  function downloadLetterOfIntentPdf(dataUrl, fileName) {
+    const blobUrl = dataUrlToPdfBlobUrl(dataUrl);
+    if (!blobUrl) {
+      UiView.showToast('error', 'PDF Error', 'Could not download the Letter of Intent PDF.');
+      return;
+    }
+    const safeName = (fileName || 'Letter_of_Intent.pdf').endsWith('.pdf')
+      ? (fileName || 'Letter_of_Intent.pdf')
+      : `${fileName}.pdf`;
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = safeName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    if (blobUrl.startsWith('blob:')) {
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    }
+  }
+
   window.viewBookingDetails = async function (docId) {
     const booking = allBookings.find(b => b.id === docId);
     if (!booking) return;
@@ -606,19 +658,26 @@
     }
 
     let receiptUrl = '';
+    let loiData    = null;
     if (booking.userType === 'External') {
-      if (booking.hasReceipt) {
-        receiptUrl = await BookingModel.getReceipt(docId, booking.receiptUrl || booking.gcashReceipt);
-      } else {
-        receiptUrl = Utils.sanitizeUrl(booking.receiptUrl || booking.gcashReceipt);
-      }
+      const [fetchedReceipt, fetchedLoi] = await Promise.all([
+        booking.hasReceipt
+          ? BookingModel.getReceipt(docId, booking.receiptUrl || booking.gcashReceipt)
+          : Promise.resolve(Utils.sanitizeUrl(booking.receiptUrl || booking.gcashReceipt)),
+        BookingModel.getLetterOfIntent(docId)
+      ]);
+      receiptUrl = fetchedReceipt;
+      loiData    = fetchedLoi;
     }
 
     DashboardView.renderBookingDetailsModal(booking, receiptUrl, {
-      onApprove: window.approveBooking,
-      onReject:  window.rejectBooking,
-      onDelete:  window.deleteBooking,
-      onClose:   window.closeDetailsModal
+      onApprove:        window.approveBooking,
+      onReject:         window.rejectBooking,
+      onDelete:         window.deleteBooking,
+      onClose:          window.closeDetailsModal,
+      loiData:          loiData,
+      onOpenLoiPdf:     openLetterOfIntentPdf,
+      onDownloadLoiPdf: downloadLetterOfIntentPdf
     });
   };
 
@@ -647,11 +706,20 @@
       if (!deletingBookingId) return;
       if (window.Session && !Session.requireAdmin('delete bookings')) return;
 
+      const booking = allBookings.find(b => b.id === deletingBookingId);
+      const targetId = deletingBookingId;
+      window.closeDeleteBookingModal();
+
+      if (window.UiView && typeof UiView.requirePassword === 'function') {
+        const verified = await UiView.requirePassword(`permanently delete booking "${booking?.referenceId || targetId}"`);
+        if (!verified) return;
+      }
+
       try {
-        const booking = allBookings.find(b => b.id === deletingBookingId);
-        const targetId = deletingBookingId;
         const hasReceipt = Boolean(booking && (booking.hasReceipt || booking.receiptUploadedAt));
-        await BookingModel.remove(deletingBookingId, hasReceipt);
+        const hasLetterOfIntent = Boolean(booking && booking.hasLetterOfIntent);
+        const lookupKey = (booking && booking.lookupKey) || '';
+        await BookingModel.remove(targetId, hasReceipt, hasLetterOfIntent, lookupKey);
         if (window.ActivityLogModel) {
           ActivityLogModel.log('BOOKING_DELETE', 'Data', {
             targetId,
@@ -666,7 +734,6 @@
           });
         }
         UiView.showToast('warning', 'Booking Deleted', `Booking "${booking?.referenceId || ''}" has been permanently deleted.`);
-        window.closeDeleteBookingModal();
       } catch (err) {
         Logger.error(LAYER, 'Delete booking error:', err);
         UiView.showToast('error', 'Error', 'Failed to delete booking.');

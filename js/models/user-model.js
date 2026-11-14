@@ -107,7 +107,7 @@
         fullName:      String(payload.fullName || '').trim(),
         contactNumber: String(payload.contactNumber || '').trim(),
         position:      String(payload.position || '').trim(),
-        role:          payload.role === 'admin' ? 'admin' : 'facility_incharge',
+        role:          'facility_incharge',
         status:        payload.status === 'Inactive' ? 'Inactive' : 'Active',
         createdBy:     actorUid,
         createdAt:     firebase.firestore.FieldValue.serverTimestamp(),

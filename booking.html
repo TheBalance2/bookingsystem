@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.sheetjs.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com wss://*.firebaseio.com https://api.emailjs.com https://psgc.gitlab.io https://cdn.jsdelivr.net; frame-src 'self' blob: data: https://*.firebaseapp.com; object-src 'self' blob: data:; base-uri 'self'; form-action 'self';">
   <meta name="description" content="Book a facility or equipment at San Isidro College. Choose between Internal and External user forms.">
   <title>Make a Reservation — San Isidro College</title>
   <!-- Bootstrap 5 Grid & Utilities -->
@@ -55,12 +57,15 @@
        USER TYPE TOGGLE
        ============================================================ -->
   <div class="container">
-    <div class="user-type-toggle d-flex justify-content-center" id="userTypeToggle">
-      <button class="toggle-btn active" data-type="internal" id="toggleInternal">
+    <div class="user-type-toggle d-flex justify-content-center" id="userTypeToggle" role="tablist" aria-label="Reservation Mode">
+      <button type="button" class="toggle-btn active" data-type="internal" id="toggleInternal" role="tab" aria-selected="true">
         Internal User
       </button>
-      <button class="toggle-btn" data-type="external" id="toggleExternal">
+      <button type="button" class="toggle-btn" data-type="external" id="toggleExternal" role="tab" aria-selected="false">
         External User
+      </button>
+      <button type="button" class="toggle-btn" data-type="receipt" id="toggleReceipt" role="tab" aria-selected="false">
+        Upload Receipt
       </button>
     </div>
   </div>
@@ -541,6 +546,39 @@
             <label for="extConsiderations">Other Considerations</label>
             <textarea id="extConsiderations" name="considerations" placeholder="Any other details or requests..."></textarea>
           </div>
+
+          <!-- Letter of Intent (PDF) -->
+          <div class="form-group full-width loi-section" id="extLoiGroup">
+            <div class="loi-section-header">
+              <div>
+                <label for="extLoiFileInput" class="loi-section-title">
+                  Letter of Intent (PDF Format) <span class="required">*</span>
+                </label>
+                <p class="loi-section-subtitle">Required for External Facility Reservation Review</p>
+              </div>
+              <span class="loi-pdf-badge">PDF ONLY (.pdf)</span>
+            </div>
+
+            <div class="loi-note-box" role="note">
+              <div class="loi-note-title">Important Submission Notes:</div>
+              <ul class="loi-note-list">
+                <li><strong>Online Review (PDF Format Required):</strong> You must upload a clear copy of your signed <strong>Letter of Intent in PDF format (<code>.pdf</code>)</strong> below so the <strong>Facility-In-Charge</strong> can inspect and verify your request in the portal.</li>
+                <li><strong>Personal Submission of Original Copy:</strong> Uploading the PDF here does not replace the physical requirement—you must still personally submit the <strong>original Letter of Intent</strong> along with <strong>four (4) printed copies</strong> of the generated Request Form to the Business Office.</li>
+              </ul>
+            </div>
+
+            <div class="receipt-file-upload loi-file-upload" id="extLoiDropZone" tabindex="0" role="button" aria-label="Upload Letter of Intent in PDF format">
+              <input type="file" id="extLoiFileInput" accept=".pdf,application/pdf" style="display:none;">
+              <div class="upload-icon" aria-hidden="true">📄</div>
+              <div class="upload-text"><strong>Click to upload Letter of Intent (PDF)</strong> or drag &amp; drop here</div>
+              <div class="upload-text" style="font-size:0.78rem; margin-top:4px;"> strictly <strong>.PDF format only</strong> (Max 700 KB)</div>
+              <div class="loi-file-selected" id="extLoiFileSelected" style="display:none;">
+                <span class="receipt-file-name" id="extLoiFileName"></span>
+                <button type="button" class="loi-remove-btn" id="extLoiRemoveBtn" aria-label="Remove selected PDF file">Remove PDF</button>
+              </div>
+            </div>
+            <div class="error-message" id="extLoiFileError">Please upload your Letter of Intent in PDF format (.pdf).</div>
+          </div>
         </div>
 
         <!-- Conflict Warning -->
@@ -559,13 +597,12 @@
     </div>
 
     <!-- ============================================================
-         UPLOAD PAYMENT RECEIPT (External Users)
+         UPLOAD PAYMENT RECEIPT (External Users — Separate Tab)
          ============================================================ -->
     <div class="receipt-upload-section" id="receiptUploadSection" style="display:none;">
-      <div class="section-divider"><span>Already submitted a booking?</span></div>
       <div class="receipt-upload-card">
-        <h2>Upload Payment Receipt</h2>
-        <p class="form-subtitle">If you've already submitted a booking and paid at the Business Office, upload your receipt here to confirm your payment.</p>
+        <h2>External User — Upload Payment Receipt</h2>
+        <p class="form-subtitle">Already submitted an External Reservation and paid at the Business Office? Enter your Reference ID and Email below to upload your Official Payment Receipt.</p>
 
         <div class="receipt-steps">
           <div class="receipt-step">
@@ -654,8 +691,11 @@
       <p style="font-size:0.82rem;color:var(--gray-300);margin-bottom:var(--space-sm);">Save this reference ID for your records.</p>
       <div class="ext-success-actions">
         <button class="btn-download-pdf" id="downloadPdfBtn">📥 Download Booking PDF</button>
-        <p style="font-size:0.8rem; color:var(--gray-400); max-width:340px; text-align:center; line-height:1.5;">Please print and accomplish <strong>FOUR (4) COPIES</strong> of this form, attach the <strong>ORIGINAL COPY of the Letter of Intent</strong>, and present it to the <strong>Business Office</strong> for payment assessment.</p>
-        <a href="index.html" class="btn btn-primary" style="margin-top:var(--space-sm);">Back to Home</a>
+        <p style="font-size:0.8rem; color:var(--gray-400); max-width:340px; text-align:center; line-height:1.5;">Please print and accomplish <strong>FOUR (4) COPIES</strong> of this form, attach the <strong>ORIGINAL COPY of the Letter of Intent</strong>, and present it to the <strong>Business Office</strong> for payment assessment. Once paid, return here and select the <strong>Upload Receipt</strong> tab to submit your receipt.</p>
+        <div style="display:flex; gap:var(--space-sm); flex-wrap:wrap; justify-content:center; margin-top:var(--space-sm);">
+          <button type="button" class="btn btn-outline" id="goToReceiptTabBtn">Go to Upload Receipt Tab</button>
+          <a href="index.html" class="btn btn-primary">Back to Home</a>
+        </div>
       </div>
     </div>
   </div>
@@ -705,7 +745,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <!-- EmailJS SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"></script>
 
   <!-- MVC Core -->
   <script src="js/core/firebase-config.js"></script>

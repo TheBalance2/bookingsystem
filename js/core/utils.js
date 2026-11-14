@@ -23,11 +23,16 @@
       .replace(/'/g, '&#39;');
   }
 
-  // Allow only safe URL schemes for src/href (http(s) and data:image)
+  // Allow only safe URL schemes for src/href (http(s), data:image, and data:application/pdf)
   function sanitizeUrl(url) {
     if (!url) return '';
     const s = String(url).trim();
-    if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('data:image/')) return s;
+    if (
+      s.startsWith('http://') ||
+      s.startsWith('https://') ||
+      s.startsWith('data:image/') ||
+      s.startsWith('data:application/pdf')
+    ) return s;
     return '';
   }
 

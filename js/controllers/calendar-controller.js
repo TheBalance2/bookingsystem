@@ -9,7 +9,13 @@
   'use strict';
 
   const LAYER = 'CalendarController';
-  const TESTING_MODE = Boolean(window.SIC_TESTING_MODE);
+  let testingMode = Boolean(window.SIC_TESTING_MODE);
+
+  if (window.SettingsModel && typeof SettingsModel.listenSystemConfig === 'function') {
+    SettingsModel.listenSystemConfig(cfg => {
+      testingMode = Boolean(cfg && cfg.testingMode);
+    });
+  }
 
   const FACILITY_COLORS_DEFAULT = {
     'Gymnasium':               '#3498db',
@@ -119,7 +125,7 @@
       activeFacilities,
       facilityColors,
       PALETTE,
-      TESTING_MODE
+      testingMode
     );
   }
 

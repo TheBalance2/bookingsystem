@@ -10,6 +10,18 @@ service cloud.firestore {
       return /databases/$(database)/documents/users/$(request.auth.uid);
     }
 
+    function bookingPath(bookingId) {
+      return /databases/$(database)/documents/bookings/$(bookingId);
+    }
+
+    function systemSettingsPath() {
+      return /databases/$(database)/documents/settings/system;
+    }
+
+    function bookingIdSettingsPath() {
+      return /databases/$(database)/documents/settings/bookingId;
+    }
+
     function hasActiveProfile() {
       return request.auth != null
              && exists(profilePath())
@@ -45,11 +57,49 @@ service cloud.firestore {
       return utcHour >= 0 && utcHour < 9;
     }
 
-    // Testing / Backdate Mode bypass for 24/7 public submissions.
-    // Set to false (and publish rules) after capstone testing/seeding
-    // to restore the 8:00 AM – 5:00 PM PHT submission window.
+    // Single-switch Testing / Backdate Mode controlled by True Admin in
+    // settings/system.testingMode (defaults to true until toggled OFF).
     function isTestingMode() {
-      return true;
+      return !exists(systemSettingsPath())
+             || get(systemSettingsPath()).data.get('testingMode', true) == true;
+    }
+
+    // True when a booking document is being created in the same atomic transaction
+    function isNewBookingInThisWrite(bookingId) {
+      return !exists(bookingPath(bookingId))
+             && existsAfter(bookingPath(bookingId));
+    }
+
+    // True when settings/bookingId counter is incremented (or initialized) in the same transaction
+    function counterIncrementedInSameWrite() {
+      return existsAfter(bookingIdSettingsPath())
+             && (
+               (!exists(bookingIdSettingsPath()) && getAfter(bookingIdSettingsPath()).data.nextSequence == 2)
+               || (exists(bookingIdSettingsPath()) && getAfter(bookingIdSettingsPath()).data.nextSequence == get(bookingIdSettingsPath()).data.nextSequence + 1)
+             );
+    }
+
+    // Validates public unauthenticated booking payload fields and status
+    function isValidPublicBooking(data) {
+      return data.referenceId is string
+             && data.referenceId.size() >= 5
+             && data.referenceId.size() <= 40
+             && data.userType in ['Internal', 'External']
+             && data.email is string
+             && data.email.size() >= 3
+             && data.email.size() <= 160
+             && data.startDate is string
+             && data.startTime is string
+             && data.endTime is string
+             && data.purpose is string
+             && data.purpose.size() >= 1
+             && data.purpose.size() <= 2000
+             && !('hasReceipt' in data)
+             && !('isSpecialBooking' in data)
+             && (
+               (data.userType == 'Internal' && data.status == 'Pending')
+               || (data.userType == 'External' && data.status == 'Pending Payment' && data.hasLetterOfIntent == true)
+             );
     }
 
     // ============================================================
@@ -61,15 +111,20 @@ service cloud.firestore {
       allow read: if (request.auth != null && request.auth.uid == userId)
                   || isSuperAdmin();
 
-      // True Admin can create Facility-In-Charge profiles.
-      allow create: if isSuperAdmin();
+      // True Admin can ONLY create Facility-In-Charge accounts from the portal
+      // (no additional True Admin accounts can be created via client).
+      allow create: if isSuperAdmin()
+                    && request.resource.data.role == 'facility_incharge'
+                    && request.resource.data.status in ['Active', 'Inactive']
+                    && request.resource.data.email is string;
 
-      // True Admin can update other accounts (or their own non-role/status info),
-      // and any active staff member can update their own lastLoginAt timestamp.
+      // True Admin can update profile details/status, but roles can NEVER be escalated;
+      // any active staff member can update their own lastLoginAt timestamp.
       allow update: if (isSuperAdmin()
+                        && request.resource.data.role == resource.data.role
+                        && request.resource.data.status in ['Active', 'Inactive']
                         && (userId != request.auth.uid
-                            || (request.resource.data.role == resource.data.role
-                                && request.resource.data.status == resource.data.status)))
+                            || request.resource.data.status == resource.data.status))
                     || (hasActiveProfile()
                         && request.auth.uid == userId
                         && request.resource.data.diff(resource.data).affectedKeys()
@@ -86,9 +141,10 @@ service cloud.firestore {
     match /activity_logs/{logId} {
       allow read: if isSuperAdmin();
 
-      // Active staff can append log entries for their own UID only.
+      // Active staff can append log entries for their own UID and true role only.
       allow create: if isStaff()
-                    && request.resource.data.actorUid == request.auth.uid;
+                    && request.resource.data.actorUid == request.auth.uid
+                    && request.resource.data.actorRole == get(profilePath()).data.role;
 
       // Logs are immutable and can never be edited.
       allow update: if false;
@@ -136,25 +192,31 @@ service cloud.firestore {
     }
 
     // ============================================================
-    // BOOKINGS
+    // BOOKINGS — Confidential Full Records (Staff Read Only)
     // ============================================================
     match /bookings/{bookingId} {
-      allow read: if true;
+      // Confidential PII (names, emails, phones, addresses, purposes) is restricted to Staff.
+      // Public homepage calendar and conflict checks read from /public_schedule instead.
+      allow read: if isStaff();
 
       // Facility-In-Charge can create Special Bookings anytime;
       // True Admin can restore bookings from JSON backup anytime;
-      // Public can create bookings during working hours (or when
-      // isTestingMode() is enabled) with a valid initial status only.
+      // Public can create validated bookings during working hours (or when
+      // isTestingMode() is enabled) in an atomic transaction with settings/bookingId.
       allow create: if isStaff()
                     || ((isWorkingHours() || isTestingMode())
-                        && request.resource.data.status in ['Pending', 'Pending Payment']);
+                        && isValidPublicBooking(request.resource.data)
+                        && counterIncrementedInSameWrite());
 
       // Update rules:
       //  • Facility-In-Charge can update booking status / driver assignment.
+      //  • True Admin can backfill lookupKey during public schedule migration.
       //  • Public can ONLY mark a "Pending Payment" booking as
       //    "Payment Under Review" (receipt uploaded), and may only
       //    touch the three whitelisted fields.
       allow update: if isFacilityInCharge()
+                    || (isSuperAdmin()
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lookupKey']))
                     || (
                       resource.data.status == 'Pending Payment'
                       && request.resource.data.status == 'Payment Under Review'
@@ -167,13 +229,86 @@ service cloud.firestore {
     }
 
     // ============================================================
-    // RECEIPTS — separated from booking docs to avoid 1 MB limit
+    // PUBLIC SCHEDULE — Non-Sensitive Calendar & Conflict Mirror
+    // ============================================================
+    match /public_schedule/{bookingId} {
+      allow read: if true;
+
+      allow create: if isStaff()
+                    || (
+                      isNewBookingInThisWrite(bookingId)
+                      && request.resource.data.keys().hasOnly([
+                        'facility', 'classroom', 'vehicle', 'userType', 'status',
+                        'date', 'startDate', 'endDate', 'startTime', 'endTime'
+                      ])
+                      && request.resource.data.status == getAfter(bookingPath(bookingId)).data.status
+                    );
+
+      allow update: if isFacilityInCharge()
+                    || isSuperAdmin()
+                    || (
+                      resource.data.status == 'Pending Payment'
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                      && request.resource.data.status == 'Payment Under Review'
+                      && getAfter(bookingPath(bookingId)).data.status == 'Payment Under Review'
+                    );
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // BOOKING LOOKUP — Privacy-Preserving SHA-256(RefID|Email) Index
+    // ============================================================
+    match /booking_lookup/{lookupKey} {
+      // Exact hash lookup allowed; listing/enumerating all keys is strictly blocked.
+      allow get:  if true;
+      allow list: if false;
+
+      allow create: if isStaff()
+                    || (
+                      request.resource.data.bookingId is string
+                      && isNewBookingInThisWrite(request.resource.data.bookingId)
+                    );
+
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // LETTERS OF INTENT (PDF) — Separated to avoid 1 MB limit
+    // ============================================================
+    match /letters_of_intent/{bookingId} {
+      allow read: if isStaff();
+
+      allow create: if isSuperAdmin()
+                    || (
+                      isNewBookingInThisWrite(bookingId)
+                      && request.resource.data.mimeType == 'application/pdf'
+                      && request.resource.data.imageData is string
+                      && request.resource.data.imageData.size() < 1000000
+                    );
+
+      allow update: if false;
+      allow delete: if isSuperAdmin();
+    }
+
+    // ============================================================
+    // RECEIPTS — Separated from booking docs to avoid 1 MB limit
     // ============================================================
     match /receipts/{bookingId} {
-      allow read:   if isStaff();
-      allow create: if (request.resource.data.keys().hasAll(['imageData'])
-                        && request.resource.data.imageData is string)
-                    || isSuperAdmin();
+      allow read: if isStaff();
+
+      // Public can only create a receipt when the corresponding booking is
+      // simultaneously transitioning from "Pending Payment" to "Payment Under Review".
+      allow create: if isSuperAdmin()
+                    || (
+                      exists(bookingPath(bookingId))
+                      && get(bookingPath(bookingId)).data.status == 'Pending Payment'
+                      && getAfter(bookingPath(bookingId)).data.status == 'Payment Under Review'
+                      && request.resource.data.imageData is string
+                      && request.resource.data.imageData.size() < 1000000
+                    );
+
       allow update: if isFacilityInCharge();
       allow delete: if isSuperAdmin();
     }
@@ -214,6 +349,14 @@ service cloud.firestore {
     match /settings/signatories {
       allow read:  if true;
       allow write: if isFacilityInCharge();
+    }
+
+    // ============================================================
+    // SETTINGS — System Security & Testing Mode Switch
+    // ============================================================
+    match /settings/system {
+      allow read:  if true;
+      allow write: if isSuperAdmin();
     }
   }
 }

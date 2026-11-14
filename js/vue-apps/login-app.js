@@ -17,6 +17,9 @@
     if (reason === 'revoked') {
       return 'Your account access was revoked or deactivated by the Administrator.';
     }
+    if (reason === 'idle') {
+      return 'Your session expired after 30 minutes of inactivity. Please sign in again.';
+    }
     return '';
   }
 
@@ -109,11 +112,11 @@
           window.location.href = 'dashboard.html';
         } catch (err) {
           log.warn('Admin login failed:', err && err.code ? err.code : err);
+          // Generic message prevents account/email enumeration attacks
           let msg = 'Invalid email or password. Please try again.';
-          if (err.code === 'auth/user-not-found') msg = 'No account found with this email.';
-          if (err.code === 'auth/wrong-password') msg = 'Incorrect password. Please try again.';
-          if (err.code === 'auth/too-many-requests') msg = 'Too many failed attempts. Try again later.';
-          if (err.code === 'permission-denied') {
+          if (err && err.code === 'auth/too-many-requests') {
+            msg = 'Too many failed attempts. Please wait a few minutes and try again.';
+          } else if (err && err.code === 'permission-denied') {
             msg = 'Database rules blocked profile lookup. Please publish the updated firestore.rules.';
           }
           this.errorMessage = msg;

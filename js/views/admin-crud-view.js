@@ -43,6 +43,7 @@
       const desc   = Utils.escapeHtml(f.description || '—');
       const cap    = Utils.escapeHtml(f.capacity || '—');
       const status = Utils.escapeHtml(f.status || 'Active');
+      const safeId = Utils.escapeHtml(f.id);
 
       return `
         <tr>
@@ -54,8 +55,8 @@
           <td>
             ${editable ? `
               <div class="table-actions">
-                <button class="action-btn facility-edit" onclick="editFacility('${f.id}')" title="Edit">Edit</button>
-                <button class="action-btn reject" onclick="deleteFacility('${f.id}')" title="Delete">Delete</button>
+                <button class="action-btn facility-edit" onclick="editFacility('${safeId}')" title="Edit">Edit</button>
+                <button class="action-btn reject" onclick="deleteFacility('${safeId}')" title="Delete">Delete</button>
               </div>
             ` : viewOnlyLabelHtml()}
           </td>
@@ -84,6 +85,7 @@
       const name   = Utils.escapeHtml(c.name || '—');
       const cap    = Utils.escapeHtml(c.capacity || '—');
       const status = Utils.escapeHtml(c.status || 'Active');
+      const safeId = Utils.escapeHtml(c.id);
 
       return `
         <tr>
@@ -93,8 +95,8 @@
           <td>
             ${editable ? `
               <div class="table-actions">
-                <button class="action-btn facility-edit" onclick="editClassroom('${c.id}')" title="Edit">Edit</button>
-                <button class="action-btn reject" onclick="deleteClassroom('${c.id}')" title="Delete">Delete</button>
+                <button class="action-btn facility-edit" onclick="editClassroom('${safeId}')" title="Edit">Edit</button>
+                <button class="action-btn reject" onclick="deleteClassroom('${safeId}')" title="Delete">Delete</button>
               </div>
             ` : viewOnlyLabelHtml()}
           </td>
@@ -162,6 +164,7 @@
       const desc   = Utils.escapeHtml(v.description || '—');
       const cap    = Utils.escapeHtml(v.capacity || '—');
       const status = Utils.escapeHtml(v.status || 'Active');
+      const safeId = Utils.escapeHtml(v.id);
 
       return `
         <tr>
@@ -172,8 +175,8 @@
           <td>
             ${editable ? `
               <div class="table-actions">
-                <button class="action-btn facility-edit" onclick="editVehicle('${v.id}')" title="Edit">Edit</button>
-                <button class="action-btn reject" onclick="deleteVehicle('${v.id}')" title="Delete">Delete</button>
+                <button class="action-btn facility-edit" onclick="editVehicle('${safeId}')" title="Edit">Edit</button>
+                <button class="action-btn reject" onclick="deleteVehicle('${safeId}')" title="Delete">Delete</button>
               </div>
             ` : viewOnlyLabelHtml()}
           </td>
@@ -202,6 +205,7 @@
       const name   = Utils.escapeHtml(d.name || '—');
       const phone  = Utils.escapeHtml(d.phone || '—');
       const status = Utils.escapeHtml(d.status || 'Active');
+      const safeId = Utils.escapeHtml(d.id);
 
       return `
         <tr>
@@ -211,8 +215,8 @@
           <td>
             ${editable ? `
               <div class="table-actions">
-                <button class="action-btn facility-edit" onclick="editDriver('${d.id}')" title="Edit">Edit</button>
-                <button class="action-btn reject" onclick="deleteDriver('${d.id}')" title="Delete">Delete</button>
+                <button class="action-btn facility-edit" onclick="editDriver('${safeId}')" title="Edit">Edit</button>
+                <button class="action-btn reject" onclick="deleteDriver('${safeId}')" title="Delete">Delete</button>
               </div>
             ` : viewOnlyLabelHtml()}
           </td>
@@ -250,6 +254,7 @@
         ? `<strong>${Utils.escapeHtml(d.headName)}</strong>`
         : '<span style="color:var(--gray-300); font-style:italic;">Not set (blank line on PDF)</span>';
       const status   = Utils.escapeHtml(d.status || 'Active');
+      const safeId   = Utils.escapeHtml(d.id);
 
       return `
         <tr>
@@ -260,8 +265,8 @@
           <td>
             ${editable ? `
               <div class="table-actions">
-                <button class="action-btn facility-edit" onclick="editDepartment('${d.id}')" title="Edit">Edit</button>
-                <button class="action-btn reject" onclick="deleteDepartment('${d.id}')" title="Delete">Delete</button>
+                <button class="action-btn facility-edit" onclick="editDepartment('${safeId}')" title="Edit">Edit</button>
+                <button class="action-btn reject" onclick="deleteDepartment('${safeId}')" title="Delete">Delete</button>
               </div>
             ` : viewOnlyLabelHtml()}
           </td>

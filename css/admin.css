@@ -2019,3 +2019,78 @@ body:not(.role-fic) .fic-only {
   transition: width 0.2s ease;
 }
 
+/* Letter of Intent (PDF) Modal Card in Reservation Details */
+.loi-pdf-section {
+  border-color: rgba(176, 42, 30, 0.25) !important;
+  background: linear-gradient(135deg, #fffafa 0%, #f8fafc 100%) !important;
+}
+
+.loi-modal-badge {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+  border: 1px solid rgba(22, 163, 74, 0.25);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.loi-modal-file-row {
+  padding: 10px 12px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  margin: 8px 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.loi-modal-file-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--navy);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loi-modal-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.loi-action-btn {
+  flex: 1;
+  min-width: 140px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.loi-action-btn.primary {
+  background: var(--navy);
+  color: var(--white);
+}
+
+.loi-action-btn.primary:hover {
+  background: var(--navy-light);
+}
+
+.loi-action-btn.secondary {
+  background: var(--white);
+  color: var(--navy);
+  border: 1px solid var(--gray-200);
+}
+
+.loi-action-btn.secondary:hover {
+  border-color: var(--navy);
+  background: var(--off-white);
+}
+

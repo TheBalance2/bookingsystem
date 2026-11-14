@@ -9,11 +9,44 @@
   'use strict';
 
   const LAYER = 'EmailService';
+  const ALLOWED_HOSTS = new Set([
+    'thebalance2.github.io',
+    'localhost',
+    '127.0.0.1',
+    'sic-booking-system.web.app',
+    'sic-booking-system.firebaseapp.com'
+  ]);
+  const SUBMISSION_COOLDOWN_MS = 30 * 1000; // 30s cooldown between public confirmation emails
+  const MAX_SESSION_SUBMISSION_EMAILS = 5;
+  const SESSION_COUNT_KEY = 'sic_emailjs_sub_count';
+  const SESSION_LAST_TS_KEY = 'sic_emailjs_last_ts';
+
   let initialized = false;
+
+  function isAllowedOrigin() {
+    if (typeof window === 'undefined' || !window.location) return false;
+    const host = String(window.location.hostname || '').toLowerCase();
+    return ALLOWED_HOSTS.has(host) || host.endsWith('.github.io') || host.endsWith('.web.app') || host.endsWith('.firebaseapp.com');
+  }
+
+  function canSendPublicSubmissionEmail() {
+    try {
+      const now = Date.now();
+      const lastTs = Number(sessionStorage.getItem(SESSION_LAST_TS_KEY) || 0);
+      const count  = Number(sessionStorage.getItem(SESSION_COUNT_KEY) || 0);
+      if (now - lastTs < SUBMISSION_COOLDOWN_MS) return false;
+      if (count >= MAX_SESSION_SUBMISSION_EMAILS) return false;
+      sessionStorage.setItem(SESSION_LAST_TS_KEY, String(now));
+      sessionStorage.setItem(SESSION_COUNT_KEY, String(count + 1));
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
 
   function init() {
     if (initialized) return;
-    if (typeof emailjs === 'undefined') return;
+    if (typeof emailjs === 'undefined' || !isAllowedOrigin()) return;
     try {
       emailjs.init(EMAILJS_PUBLIC_KEY);
       initialized = true;
@@ -23,13 +56,22 @@
   }
 
   function isConfigured() {
-    return Boolean(EMAILJS_SERVICE_ID && !EMAILJS_SERVICE_ID.startsWith('YOUR_') && typeof emailjs !== 'undefined');
+    return Boolean(
+      isAllowedOrigin() &&
+      EMAILJS_SERVICE_ID &&
+      !EMAILJS_SERVICE_ID.startsWith('YOUR_') &&
+      typeof emailjs !== 'undefined'
+    );
   }
 
   function sendSubmissionConfirmation(data) {
     init();
     if (!isConfigured()) {
-      Logger.info(LAYER, 'EmailJS not configured — skipping confirmation email.');
+      Logger.info(LAYER, 'EmailJS not configured or unauthorized origin — skipping confirmation email.');
+      return;
+    }
+    if (!canSendPublicSubmissionEmail()) {
+      Logger.warn(LAYER, 'EmailJS rate limit reached for this session — skipping duplicate confirmation email.');
       return;
     }
 

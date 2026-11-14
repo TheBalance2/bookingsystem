@@ -41,17 +41,113 @@
   }
 
   function openReceiptImage(url) {
-    if (url && url.startsWith('data:image/')) {
-      const win = window.open();
+    const safeUrl = Utils.sanitizeUrl(url);
+    if (!safeUrl) return;
+    if (safeUrl.startsWith('data:image/')) {
+      const win = window.open('', '_blank');
       if (win) {
-        win.document.write('<html><head><title>Receipt</title></head><body style="margin:0;display:flex;justify-content:center;align-items:center;background:#000;height:100vh;"><img src="' + url + '" style="max-width:100%;max-height:100%;object-fit:contain;"></body></html>');
+        win.document.write('<!DOCTYPE html><html><head><title>Receipt</title></head><body style="margin:0;display:flex;justify-content:center;align-items:center;background:#000;height:100vh;"></body></html>');
         win.document.close();
+        const img = win.document.createElement('img');
+        img.src = safeUrl;
+        img.alt = 'Payment Receipt';
+        img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
+        win.document.body.appendChild(img);
       } else {
         alert('Pop-up blocked. Please allow pop-ups for this site.');
       }
-    } else if (url) {
-      window.open(url, '_blank');
+    } else {
+      window.open(safeUrl, '_blank', 'noopener');
     }
+  }
+
+  // Prompts the currently signed-in True Admin to re-enter their password
+  // before executing a destructive operation. Resolves true if verified, false if cancelled.
+  function requirePassword(actionLabel = 'perform this sensitive action') {
+    return new Promise((resolve) => {
+      const modal       = document.getElementById('passwordReauthModal');
+      const form        = document.getElementById('passwordReauthForm');
+      const descEl      = document.getElementById('passwordReauthActionLabel');
+      const inputEl     = document.getElementById('passwordReauthInput');
+      const errEl       = document.getElementById('passwordReauthError');
+      const cancelBtn   = document.getElementById('passwordReauthCancelBtn');
+      const submitBtn   = document.getElementById('passwordReauthSubmitBtn');
+
+      if (!modal || !form || !inputEl || !window.AuthModel || typeof AuthModel.reauthenticate !== 'function') {
+        resolve(false);
+        return;
+      }
+
+      if (descEl) descEl.textContent = actionLabel;
+      inputEl.value = '';
+      if (errEl) {
+        errEl.textContent = '';
+        errEl.style.display = 'none';
+      }
+      modal.classList.add('visible');
+      setTimeout(() => inputEl.focus(), 50);
+
+      let settled = false;
+      const cleanup = (result) => {
+        if (settled) return;
+        settled = true;
+        modal.classList.remove('visible');
+        inputEl.value = '';
+        form.removeEventListener('submit', onSubmit);
+        if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+        modal.removeEventListener('click', onOverlayClick);
+        resolve(result);
+      };
+
+      const onCancel = () => cleanup(false);
+      const onOverlayClick = (e) => {
+        if (e.target === modal) cleanup(false);
+      };
+
+      const onSubmit = async (e) => {
+        e.preventDefault();
+        const pwd = inputEl.value;
+        if (!pwd) {
+          if (errEl) {
+            errEl.textContent = 'Please enter your current password.';
+            errEl.style.display = 'block';
+          }
+          inputEl.focus();
+          return;
+        }
+
+        if (submitBtn) {
+          submitBtn.innerHTML = '<span class="spinner"></span> Verifying...';
+          submitBtn.classList.add('loading');
+          submitBtn.disabled = true;
+        }
+        if (errEl) errEl.style.display = 'none';
+
+        try {
+          await AuthModel.reauthenticate(pwd);
+          cleanup(true);
+        } catch (err) {
+          if (errEl) {
+            errEl.textContent =
+              err && err.code === 'auth/too-many-requests'
+                ? 'Too many failed attempts. Please wait before trying again.'
+                : 'Incorrect password. Please try again.';
+            errEl.style.display = 'block';
+          }
+          inputEl.select();
+        } finally {
+          if (submitBtn) {
+            submitBtn.innerHTML = 'Verify & Continue';
+            submitBtn.classList.remove('loading');
+            submitBtn.disabled = false;
+          }
+        }
+      };
+
+      form.addEventListener('submit', onSubmit);
+      if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+      modal.addEventListener('click', onOverlayClick);
+    });
   }
 
   window.showAdminToast = showToast;
@@ -59,7 +155,8 @@
 
   window.UiView = {
     showToast,
-    openReceiptImage
+    openReceiptImage,
+    requirePassword
   };
 })();
 

@@ -248,6 +248,8 @@
   }
 
   // ---- Restore from JSON Backup ----
+  const MAX_BACKUP_JSON_BYTES = 10 * 1024 * 1024; // 10 MB limit
+
   if (restoreJsonFileInput) {
     restoreJsonFileInput.addEventListener('change', (e) => {
       const file = e.target.files && e.target.files[0];
@@ -256,6 +258,14 @@
 
       if (!file) {
         if (restorePreviewBox) restorePreviewBox.style.display = 'none';
+        return;
+      }
+
+      if (file.size > MAX_BACKUP_JSON_BYTES) {
+        if (restorePreviewBox) {
+          restorePreviewBox.style.display = 'block';
+          restorePreviewBox.innerHTML = `<span style="color:var(--danger); font-weight:600;">Backup file is too large (max 10 MB).</span>`;
+        }
         return;
       }
 
@@ -310,7 +320,10 @@
       if (!Session.requireAdmin('restore bookings')) return;
       if (!parsedRestoreItems || parsedRestoreItems.length === 0) return;
 
-      if (!confirm(`Restore bookings from this backup file? Existing bookings will not be overwritten.`)) {
+      if (window.UiView && typeof UiView.requirePassword === 'function') {
+        const verified = await UiView.requirePassword(`restore bookings from backup file (${parsedRestoreItems.length} record(s))`);
+        if (!verified) return;
+      } else if (!confirm(`Restore bookings from this backup file? Existing bookings will not be overwritten.`)) {
         return;
       }
 
@@ -454,6 +467,11 @@
       const ym     = massDeleteMonthInput ? massDeleteMonthInput.value : defaultMonth;
       const status = massDeleteStatusFilter ? massDeleteStatusFilter.value : 'all';
 
+      if (window.UiView && typeof UiView.requirePassword === 'function') {
+        const verified = await UiView.requirePassword(`mass delete ${matching.length} booking(s) scheduled in ${ym}`);
+        if (!verified) return;
+      }
+
       executeMassDeleteBtn.innerHTML = '<span class="spinner"></span> Deleting...';
       executeMassDeleteBtn.classList.add('loading');
       executeMassDeleteBtn.disabled = true;
@@ -492,10 +510,127 @@
     });
   }
 
+  // ---- System Security Controls: Testing Mode Switch & Public Schedule Sync ----
+  const testingModeStatusBadge        = document.getElementById('testingModeStatusBadge');
+  const testingModeDescText           = document.getElementById('testingModeDescText');
+  const toggleTestingModeBtn          = document.getElementById('toggleTestingModeBtn');
+  const syncPublicScheduleBtn         = document.getElementById('syncPublicScheduleBtn');
+  const syncPublicScheduleCountText   = document.getElementById('syncPublicScheduleCountText');
+  const syncPublicScheduleProgressWrap= document.getElementById('syncPublicScheduleProgressWrap');
+  const syncPublicScheduleProgressBar = document.getElementById('syncPublicScheduleProgressBar');
+  const syncPublicScheduleProgressText= document.getElementById('syncPublicScheduleProgressText');
+
+  let currentTestingMode = Boolean(window.SIC_TESTING_MODE);
+
+  function renderTestingModeUi(isTesting) {
+    currentTestingMode = Boolean(isTesting);
+    if (testingModeStatusBadge) {
+      testingModeStatusBadge.className = 'status-badge ' + (currentTestingMode ? 'pending' : 'approved');
+      testingModeStatusBadge.innerHTML = `<span class="status-dot"></span> ${currentTestingMode ? 'Testing Mode: ON (24/7 & Backdating Enabled)' : 'Production Mode: ON (8AM–5PM & 3-Day Notice Enforced)'}`;
+    }
+    if (testingModeDescText) {
+      testingModeDescText.innerHTML = currentTestingMode
+        ? 'Currently <strong>ON</strong>: Public users can submit bookings 24/7 and pick any date for capstone testing/seeding. Turn this <strong>OFF</strong> before live deployment.'
+        : 'Currently <strong>OFF (Production Strict Mode)</strong>: Public bookings are restricted to working hours (8:00 AM – 5:00 PM PHT) and require 3-day advance notice.';
+    }
+    if (toggleTestingModeBtn) {
+      toggleTestingModeBtn.textContent = currentTestingMode
+        ? 'Switch to Production Strict Mode (Turn OFF Testing Mode)'
+        : 'Enable Testing / Backdate Mode';
+      toggleTestingModeBtn.className = currentTestingMode ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
+    }
+  }
+
+  if (window.SettingsModel && typeof SettingsModel.listenSystemConfig === 'function') {
+    SettingsModel.listenSystemConfig(cfg => {
+      renderTestingModeUi(cfg && cfg.testingMode);
+    });
+  } else {
+    renderTestingModeUi(currentTestingMode);
+  }
+
+  if (toggleTestingModeBtn) {
+    toggleTestingModeBtn.addEventListener('click', async () => {
+      if (!Session.requireAdmin('change system testing mode')) return;
+      const nextState = !currentTestingMode;
+      toggleTestingModeBtn.disabled = true;
+      try {
+        await SettingsModel.setTestingMode(nextState);
+        renderTestingModeUi(nextState);
+        if (window.ActivityLogModel) {
+          await ActivityLogModel.log('SETTINGS_TESTING_MODE_TOGGLE', 'Settings', {
+            targetId:    'system',
+            targetLabel: nextState ? 'Testing Mode ON' : 'Production Mode ON (Testing OFF)',
+            details:     { testingMode: nextState }
+          });
+        }
+        UiView.showToast(
+          nextState ? 'warning' : 'success',
+          nextState ? 'Testing Mode Enabled' : 'Production Mode Enabled',
+          nextState
+            ? '24/7 submissions and past-date backdating are now enabled for testing.'
+            : '8:00 AM – 5:00 PM working hours and 3-day advance notice are now strictly enforced.'
+        );
+      } catch (err) {
+        Logger.error(LAYER, 'Toggle testing mode failed:', err);
+        UiView.showToast('error', 'Update Failed', 'Could not update settings/system. Make sure updated firestore.rules is published.');
+      } finally {
+        toggleTestingModeBtn.disabled = false;
+      }
+    });
+  }
+
+  if (syncPublicScheduleBtn) {
+    syncPublicScheduleBtn.addEventListener('click', async () => {
+      if (!Session.requireAdmin('sync public schedule')) return;
+      const all = window._allBookings || [];
+      if (all.length === 0) {
+        UiView.showToast('info', 'No Bookings to Sync', 'There are currently no bookings in the database.');
+        return;
+      }
+
+      syncPublicScheduleBtn.innerHTML = '<span class="spinner"></span> Syncing...';
+      syncPublicScheduleBtn.classList.add('loading');
+      syncPublicScheduleBtn.disabled = true;
+      if (syncPublicScheduleProgressWrap) syncPublicScheduleProgressWrap.style.display = 'block';
+
+      try {
+        const synced = await BookingModel.syncPublicSchedule(all, (done, total) => {
+          const pct = total > 0 ? Math.round((done / total) * 100) : 100;
+          if (syncPublicScheduleProgressBar)  syncPublicScheduleProgressBar.style.width = `${pct}%`;
+          if (syncPublicScheduleProgressText) syncPublicScheduleProgressText.textContent = `Synced ${done} of ${total} booking(s)...`;
+        });
+
+        if (window.ActivityLogModel) {
+          await ActivityLogModel.log('DATA_SYNC_PUBLIC_SCHEDULE', 'Data', {
+            targetId:    'public_schedule',
+            targetLabel: `Synced ${synced} booking(s)`,
+            details:     { count: synced }
+          });
+        }
+        UiView.showToast('success', 'Public Schedule Synced', `Synchronized ${synced} booking(s) to public_schedule and booking_lookup.`);
+      } catch (err) {
+        Logger.error(LAYER, 'Sync public schedule failed:', err);
+        UiView.showToast('error', 'Sync Failed', 'Make sure the updated firestore.rules has been published in Firebase Console first.');
+      } finally {
+        syncPublicScheduleBtn.innerHTML = 'Sync Public Schedule & Lookup Index';
+        syncPublicScheduleBtn.classList.remove('loading');
+        syncPublicScheduleBtn.disabled = false;
+        setTimeout(() => {
+          if (syncPublicScheduleProgressWrap) syncPublicScheduleProgressWrap.style.display = 'none';
+        }, 1500);
+      }
+    });
+  }
+
   function refreshView() {
     populateYearOptions();
     updateBackupPreview();
     renderMassDeletePreview();
+    if (syncPublicScheduleCountText) {
+      const count = (window._allBookings || []).length;
+      syncPublicScheduleCountText.textContent = `${count} total booking(s) in database ready to sync.`;
+    }
   }
 
   window.DataManagementController = {

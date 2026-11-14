@@ -10,7 +10,7 @@
   'use strict';
 
   const LAYER = 'BookingController';
-  const TESTING_MODE = Boolean(window.SIC_TESTING_MODE);
+  let TESTING_MODE = Boolean(window.SIC_TESTING_MODE);
   const VEHICLE_OPTION = BookingFormView.VEHICLE_OPTION;
 
   // ---- DOM References ----
@@ -44,22 +44,49 @@
   AddressService.init(extForm);
 
   // ---- User Type Toggle ----
+  function switchBookingTab(type) {
+    toggleBtns.forEach(b => {
+      const isMatch = b.dataset.type === type;
+      b.classList.toggle('active', isMatch);
+      b.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+    });
+
+    if (type === 'internal') {
+      if (internalForm) internalForm.style.display = 'block';
+      if (externalForm) externalForm.style.display = 'none';
+      if (receiptUploadSection) receiptUploadSection.style.display = 'none';
+    } else if (type === 'external') {
+      if (internalForm) internalForm.style.display = 'none';
+      if (externalForm) externalForm.style.display = 'block';
+      if (receiptUploadSection) receiptUploadSection.style.display = 'none';
+    } else if (type === 'receipt') {
+      if (internalForm) internalForm.style.display = 'none';
+      if (externalForm) externalForm.style.display = 'none';
+      if (receiptUploadSection) receiptUploadSection.style.display = 'block';
+    }
+  }
+
   toggleBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      toggleBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      if (btn.dataset.type === 'internal') {
-        internalForm.style.display = 'block';
-        externalForm.style.display = 'none';
-        if (receiptUploadSection) receiptUploadSection.style.display = 'none';
-      } else {
-        internalForm.style.display = 'none';
-        externalForm.style.display = 'block';
-        if (receiptUploadSection) receiptUploadSection.style.display = 'block';
-      }
+      switchBookingTab(btn.dataset.type);
     });
   });
+
+  const goToReceiptTabBtn = document.getElementById('goToReceiptTabBtn');
+  if (goToReceiptTabBtn) {
+    goToReceiptTabBtn.addEventListener('click', () => {
+      const generatedRef = extBookingRefId ? extBookingRefId.textContent.trim() : '';
+      if (extSuccessModal) extSuccessModal.classList.remove('visible');
+      switchBookingTab('receipt');
+      const receiptRefInput = document.getElementById('receiptRefId');
+      if (receiptRefInput && generatedRef && generatedRef !== '—') {
+        receiptRefInput.value = generatedRef;
+      }
+      if (receiptUploadSection) {
+        receiptUploadSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
 
   // ---- Load Dynamic Facilities, Classrooms & Vehicles via Models ----
   let loadedFacilities = [];
@@ -132,10 +159,23 @@
   loadDepartments();
   syncReceiptRefPlaceholder();
 
-  // ---- Pre-fill from URL Query Params (?date=...&facility=...) ----
+  if (window.SettingsModel && typeof SettingsModel.listenSystemConfig === 'function') {
+    SettingsModel.listenSystemConfig(cfg => {
+      TESTING_MODE = Boolean(cfg && cfg.testingMode);
+      applyDateRangeMinConstraints('intStartDate', 'intEndDate');
+      applyDateRangeMinConstraints('extStartDate', 'extEndDate');
+    });
+  }
+
+  // ---- Pre-fill from URL Query Params (?date=...&facility=...&tab=...) ----
   const urlParams       = new URLSearchParams(window.location.search);
   const prefillDate     = urlParams.get('date');
   const prefillFacility = urlParams.get('facility');
+  const prefillTab      = (urlParams.get('tab') || urlParams.get('type') || '').toLowerCase();
+
+  if (prefillTab === 'receipt' || prefillTab === 'external' || prefillTab === 'internal') {
+    switchBookingTab(prefillTab);
+  }
 
   function applyPrefillFacilityIfNeeded() {
     if (!prefillFacility) return;
@@ -263,7 +303,7 @@
   minDateObj.setDate(minDateObj.getDate() + 3);
   const minDateStr = Utils.getLocalDateStr(minDateObj);
 
-  function linkDateRange(startId, endId) {
+  function applyDateRangeMinConstraints(startId, endId) {
     const startEl = document.getElementById(startId);
     const endEl   = document.getElementById(endId);
     if (!startEl || !endEl) return;
@@ -277,8 +317,16 @@
       }
     } else {
       startEl.setAttribute('min', minDateStr);
-      endEl.setAttribute('min', minDateStr);
+      endEl.setAttribute('min', startEl.value && startEl.value > minDateStr ? startEl.value : minDateStr);
     }
+  }
+
+  function linkDateRange(startId, endId) {
+    const startEl = document.getElementById(startId);
+    const endEl   = document.getElementById(endId);
+    if (!startEl || !endEl) return;
+
+    applyDateRangeMinConstraints(startId, endId);
 
     startEl.addEventListener('change', () => {
       if (startEl.value) {
@@ -294,11 +342,7 @@
     if (startEl.form) {
       startEl.form.addEventListener('reset', () => {
         setTimeout(() => {
-          if (TESTING_MODE) {
-            endEl.removeAttribute('min');
-          } else {
-            endEl.min = minDateStr;
-          }
+          applyDateRangeMinConstraints(startId, endId);
         }, 0);
       });
     }
@@ -411,6 +455,139 @@
     });
   });
 
+  // ---- Letter of Intent (PDF) Upload (External Form) ----
+  const extLoiFileInput    = document.getElementById('extLoiFileInput');
+  const extLoiDropZone     = document.getElementById('extLoiDropZone');
+  const extLoiFileName     = document.getElementById('extLoiFileName');
+  const extLoiFileSelected = document.getElementById('extLoiFileSelected');
+  const extLoiRemoveBtn    = document.getElementById('extLoiRemoveBtn');
+  const MAX_LOI_PDF_BYTES  = 700 * 1024; // 700 KB raw (~935 KB base64, safely under Firestore 1 MiB limit)
+
+  function isPdfFile(file) {
+    if (!file) return false;
+    return file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
+  }
+
+  // Inspects the first 5 bytes of the uploaded file to verify the '%PDF-' header signature
+  function hasPdfMagicBytes(file) {
+    if (!file || typeof file.slice !== 'function') return Promise.resolve(false);
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const bytes = new Uint8Array(ev.target.result || new ArrayBuffer(0));
+          // '%PDF-' in ASCII: 0x25, 0x50, 0x44, 0x46, 0x2D
+          const isValid =
+            bytes.length >= 5 &&
+            bytes[0] === 0x25 &&
+            bytes[1] === 0x50 &&
+            bytes[2] === 0x44 &&
+            bytes[3] === 0x46 &&
+            bytes[4] === 0x2D;
+          resolve(isValid);
+        } catch (_) {
+          resolve(false);
+        }
+      };
+      reader.onerror = () => resolve(false);
+      reader.readAsArrayBuffer(file.slice(0, 5));
+    });
+  }
+
+  function resetExtLoiUploadUi() {
+    if (extLoiFileInput) extLoiFileInput.value = '';
+    if (extLoiFileName) extLoiFileName.textContent = '';
+    if (extLoiFileSelected) extLoiFileSelected.style.display = 'none';
+    if (extLoiDropZone) {
+      extLoiDropZone.classList.remove('has-file', 'error');
+    }
+    const errEl = document.getElementById('extLoiFileError');
+    if (errEl) errEl.classList.remove('visible');
+  }
+
+  async function handleExtLoiFileChange() {
+    const file = extLoiFileInput && extLoiFileInput.files ? extLoiFileInput.files[0] : null;
+    const errEl = document.getElementById('extLoiFileError');
+    if (errEl) errEl.classList.remove('visible');
+    if (extLoiDropZone) extLoiDropZone.classList.remove('error');
+
+    if (!file) {
+      if (extLoiFileName) extLoiFileName.textContent = '';
+      if (extLoiFileSelected) extLoiFileSelected.style.display = 'none';
+      if (extLoiDropZone) extLoiDropZone.classList.remove('has-file');
+      return;
+    }
+
+    if (!isPdfFile(file)) {
+      resetExtLoiUploadUi();
+      BookingFormView.showError('extLoiFileError', 'Invalid file format. Please upload your Letter of Intent in PDF format (.pdf) only.');
+      return;
+    }
+
+    if (file.size > MAX_LOI_PDF_BYTES) {
+      resetExtLoiUploadUi();
+      BookingFormView.showError('extLoiFileError', 'PDF file size must be 700 KB or smaller so it can be stored in the system.');
+      return;
+    }
+
+    const isGenuinePdf = await hasPdfMagicBytes(file);
+    if (!isGenuinePdf) {
+      resetExtLoiUploadUi();
+      BookingFormView.showError('extLoiFileError', 'The selected file is not a valid PDF document (invalid %PDF header). Please export or save your Letter of Intent as a genuine PDF.');
+      return;
+    }
+
+    const sizeKb = Math.max(1, Math.round(file.size / 1024));
+    if (extLoiFileName) {
+      extLoiFileName.textContent = `✓ ${file.name} (${sizeKb} KB)`;
+    }
+    if (extLoiFileSelected) {
+      extLoiFileSelected.style.display = 'inline-flex';
+    }
+    if (extLoiDropZone) {
+      extLoiDropZone.classList.add('has-file');
+    }
+  }
+
+  if (extLoiFileInput) {
+    extLoiFileInput.addEventListener('change', handleExtLoiFileChange);
+  }
+
+  if (extLoiRemoveBtn) {
+    extLoiRemoveBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetExtLoiUploadUi();
+    });
+  }
+
+  if (extLoiDropZone && extLoiFileInput) {
+    extLoiDropZone.addEventListener('click', (e) => {
+      if (e.target === extLoiRemoveBtn || (extLoiRemoveBtn && extLoiRemoveBtn.contains(e.target))) return;
+      extLoiFileInput.click();
+    });
+    extLoiDropZone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        extLoiFileInput.click();
+      }
+    });
+    extLoiDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      extLoiDropZone.style.borderColor = 'var(--navy)';
+    });
+    extLoiDropZone.addEventListener('dragleave', () => {
+      extLoiDropZone.style.borderColor = '';
+    });
+    extLoiDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      extLoiDropZone.style.borderColor = '';
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        extLoiFileInput.files = e.dataTransfer.files;
+        handleExtLoiFileChange();
+      }
+    });
+  }
+
   if (intForm) {
     intForm.addEventListener('reset', () => {
       setTimeout(() => {
@@ -427,6 +604,7 @@
       setTimeout(() => {
         BookingFormView.updateExtAgencyOtherVisibility();
         BookingFormView.updateClassroomVisibility('ext');
+        resetExtLoiUploadUi();
         BookingFormView.clearErrors('ext');
         document.getElementById('extConflictWarning').classList.remove('visible');
       }, 0);
@@ -641,6 +819,7 @@
       const equipment       = getEquipmentWithQuantities('extEquipment');
       const otherEquipment  = document.getElementById('extOtherEquipment').value.trim();
       const considerations  = document.getElementById('extConsiderations').value.trim();
+      const loiFile         = extLoiFileInput && extLoiFileInput.files ? extLoiFileInput.files[0] : null;
 
       let valid = true;
       if (!firstName)                     { BookingFormView.showError('extFirstNameError');     valid = false; }
@@ -661,6 +840,19 @@
       if (!validateSchedule('ext', startDate, endDate, startTime, endTime)) valid = false;
       if (!Utils.isValidPersonCount(numPersonsRaw)) { BookingFormView.showError('extNumPersonsError'); valid = false; }
       if (!purpose)                       { BookingFormView.showError('extPurposeError');       valid = false; }
+      if (!loiFile) {
+        BookingFormView.showError('extLoiFileError', 'Please upload your Letter of Intent in PDF format (.pdf).');
+        valid = false;
+      } else if (!isPdfFile(loiFile)) {
+        BookingFormView.showError('extLoiFileError', 'Invalid file format. Please upload your Letter of Intent in PDF format (.pdf) only.');
+        valid = false;
+      } else if (loiFile.size > MAX_LOI_PDF_BYTES) {
+        BookingFormView.showError('extLoiFileError', 'PDF file size must be 700 KB or smaller so it can be stored in the system.');
+        valid = false;
+      } else if (!(await hasPdfMagicBytes(loiFile))) {
+        BookingFormView.showError('extLoiFileError', 'The selected file is not a valid PDF document (invalid %PDF header).');
+        valid = false;
+      }
 
       if (!valid) {
         BookingFormView.focusFirstError(extForm);
@@ -678,27 +870,43 @@
       const filingDateStr = Utils.formatFilingDate(new Date());
 
       try {
+        const loiBase64DataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const rawResult = String(ev.target.result || '');
+            // Normalize MIME prefix to data:application/pdf;base64,... in case browser used application/octet-stream
+            const base64Part = rawResult.includes(',') ? rawResult.split(',')[1] : '';
+            if (!base64Part) {
+              reject(new Error('Could not read Letter of Intent PDF file.'));
+              return;
+            }
+            resolve(`data:application/pdf;base64,${base64Part}`);
+          };
+          reader.onerror = () => reject(new Error('Failed to read Letter of Intent PDF file.'));
+          reader.readAsDataURL(loiFile);
+        });
+
         const refId = await BookingModel.create({
-          userType:       'External',
+          userType:               'External',
           firstName,
           lastName,
           middleInitial,
-          contactPerson:  combinedName,
-          name:           combinedName,
+          contactPerson:          combinedName,
+          name:                   combinedName,
           agencyType,
           agencyName,
           officeName,
-          organization:   combinedOrg,
-          agency:         agencyName,
+          organization:           combinedOrg,
+          agency:                 agencyName,
           position,
-          contactNumber:  contact,
+          contactNumber:          contact,
           address,
           shortAddress,
-          addressDetails: addressInfo.parts,
+          addressDetails:         addressInfo.parts,
           email,
           facility,
           classroom,
-          date:           startDate,
+          date:                   startDate,
           startDate,
           endDate,
           startTime,
@@ -708,8 +916,13 @@
           equipment,
           otherEquipment,
           considerations,
-          dateSubmitted:  filingDateStr,
-          status:         'Pending Payment'
+          hasLetterOfIntent:      true,
+          letterOfIntentFileName: loiFile.name,
+          dateSubmitted:          filingDateStr,
+          status:                 'Pending Payment'
+        }, {
+          dataUrl:  loiBase64DataUrl,
+          fileName: loiFile.name
         });
 
         const bookingData = {
@@ -834,7 +1047,10 @@
       if (!email || !Utils.isValidEmail(email)) { BookingFormView.showError('receiptEmailError'); valid = false; }
       if (!file) { BookingFormView.showError('receiptFileError'); valid = false; }
 
-      if (file && file.size > 5 * 1024 * 1024) {
+      if (file && !(/^image\/(jpeg|jpg|png|webp)$/i.test(file.type) || /\.(jpe?g|png|webp)$/i.test(file.name || ''))) {
+        BookingFormView.showError('receiptFileError', 'Receipt must be an image file (JPG or PNG)');
+        valid = false;
+      } else if (file && file.size > 5 * 1024 * 1024) {
         BookingFormView.showError('receiptFileError', 'File size must be under 5MB');
         valid = false;
       }
@@ -846,7 +1062,9 @@
       btn.classList.add('loading');
 
       try {
-        const bookingData = await BookingModel.findByReferenceAndEmail(refId, email);
+        const bookingData = typeof BookingModel.findForReceipt === 'function'
+          ? await BookingModel.findForReceipt(refId, email)
+          : await BookingModel.findByReferenceAndEmail(refId, email);
         if (!bookingData) {
           alert('No booking found with that Reference ID and Email. Please check your details and try again.');
           return;

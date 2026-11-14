@@ -75,6 +75,25 @@
         Logger.error(LAYER, 'Password reset email failed:', err);
         throw err;
       }
+    },
+
+    // Re-authenticates the currently signed-in user with their password before
+    // destructive administrative actions (mass delete, account delete, restore, log purge).
+    async reauthenticate(password) {
+      if (!auth || !auth.currentUser) {
+        throw new Error('No authenticated user session found.');
+      }
+      const user = auth.currentUser;
+      const email = user.email || (window.Session && Session.profile && Session.profile.email) || '';
+      if (!email) {
+        throw new Error('Current user email is unavailable for re-authentication.');
+      }
+      if (!password) {
+        throw new Error('Password is required.');
+      }
+      const credential = firebase.auth.EmailAuthProvider.credential(email, String(password));
+      await user.reauthenticateWithCredential(credential);
+      return true;
     }
   };
 

@@ -339,6 +339,7 @@
       } else if (isFicRole && showActions) {
         actionsHtml = `
           <div class="table-actions">
+            <button class="action-btn facility-edit" onclick="viewBookingDetails('${safeId}')">View</button>
             <button class="action-btn approve" onclick="approveBooking('${safeId}')">Approve</button>
             <button class="action-btn reject" onclick="rejectBooking('${safeId}')">Reject</button>
           </div>
@@ -366,7 +367,7 @@
     }).join('');
   }
 
-  function renderBookingDetailsModal(booking, receiptUrl, { onApprove, onReject, onDelete, onClose }) {
+  function renderBookingDetailsModal(booking, receiptUrl, { onApprove, onReject, onDelete, onClose, loiData, onOpenLoiPdf, onDownloadLoiPdf }) {
     const detailsModal   = document.getElementById('detailsModal');
     const detailsContent = document.getElementById('detailsContent');
     if (!detailsModal || !detailsContent || !booking) return;
@@ -455,6 +456,34 @@
     ).join('');
 
     if (booking.userType === 'External') {
+      const loiFileName = (loiData && loiData.fileName) || booking.letterOfIntentFileName || `Letter_of_Intent_${booking.referenceId || 'Booking'}.pdf`;
+      if (loiData && loiData.dataUrl) {
+        html += `
+          <div class="gcash-receipt-section loi-pdf-section">
+            <div class="gcash-receipt-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b02a1e" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>Letter of Intent (PDF)</span>
+              <span class="loi-modal-badge">PDF Attached</span>
+            </div>
+            <div class="loi-modal-file-row">
+              <span class="loi-modal-file-name" title="${Utils.escapeHtml(loiFileName)}">📄 ${Utils.escapeHtml(loiFileName)}</span>
+            </div>
+            <div class="loi-modal-actions">
+              <button type="button" id="detailsOpenLoiPdfBtn" class="gcash-view-full-btn loi-action-btn primary">Open PDF in New Tab</button>
+              <button type="button" id="detailsDownloadLoiPdfBtn" class="gcash-view-full-btn loi-action-btn secondary">Download PDF</button>
+            </div>
+          </div>`;
+      } else {
+        html += `
+          <div class="gcash-receipt-section no-receipt">
+            <div class="gcash-receipt-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span>Letter of Intent (PDF)</span>
+            </div>
+            <p class="gcash-no-receipt-text">No Letter of Intent PDF was uploaded for this booking.</p>
+          </div>`;
+      }
+
       if (receiptUrl) {
         html += `
           <div class="gcash-receipt-section">
@@ -531,6 +560,16 @@
     }
 
     detailsContent.innerHTML = html;
+
+    const openLoiBtn     = document.getElementById('detailsOpenLoiPdfBtn');
+    const downloadLoiBtn = document.getElementById('detailsDownloadLoiPdfBtn');
+    if (openLoiBtn && loiData && loiData.dataUrl && typeof onOpenLoiPdf === 'function') {
+      openLoiBtn.onclick = () => onOpenLoiPdf(loiData.dataUrl);
+    }
+    if (downloadLoiBtn && loiData && loiData.dataUrl && typeof onDownloadLoiPdf === 'function') {
+      const downloadName = loiData.fileName || booking.letterOfIntentFileName || `Letter_of_Intent_${booking.referenceId || 'Booking'}.pdf`;
+      downloadLoiBtn.onclick = () => onDownloadLoiPdf(loiData.dataUrl, downloadName);
+    }
 
     const approveBtn = document.getElementById('modalApproveBtn');
     const rejectBtn  = document.getElementById('modalRejectBtn');

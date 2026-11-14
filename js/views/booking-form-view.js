@@ -153,7 +153,7 @@
     if (field) {
       field.classList.add('error');
     } else if (group) {
-      const grid = group.querySelector('.equipment-grid');
+      const grid = group.querySelector('.equipment-grid, .receipt-file-upload');
       if (grid) grid.classList.add('error');
     }
   }
@@ -163,7 +163,7 @@
       if (el.classList.contains('error-message')) el.classList.remove('visible');
     });
     const containerId = prefix === 'int' ? 'internalForm' : 'externalForm';
-    document.querySelectorAll(`#${containerId} input, #${containerId} select, #${containerId} textarea, #${containerId} .equipment-grid`)
+    document.querySelectorAll(`#${containerId} input, #${containerId} select, #${containerId} textarea, #${containerId} .equipment-grid, #${containerId} .receipt-file-upload`)
       .forEach(inp => inp.classList.remove('error'));
   }
 
