@@ -258,28 +258,61 @@
     }
   }
 
-  function renderBookingsTable(filtered, baseTotal, filtersActive) {
-    const tableBody             = document.getElementById('bookingsTableBody');
-    const emptyState            = document.getElementById('emptyState');
-    const emptyStateTitle       = document.getElementById('emptyStateTitle');
-    const emptyStateText        = document.getElementById('emptyStateText');
+  function buildPageNumbers(currentPage, totalPages) {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages = [1];
+    const start = Math.max(2, currentPage - 1);
+    const end   = Math.min(totalPages - 1, currentPage + 1);
+    if (start > 2) pages.push('...');
+    for (let p = start; p <= end; p++) pages.push(p);
+    if (end < totalPages - 1) pages.push('...');
+    pages.push(totalPages);
+    return pages;
+  }
+
+  function renderBookingsTable(filtered, baseTotal, filtersActive, pagination = {}) {
+    const tableBody              = document.getElementById('bookingsTableBody');
+    const emptyState             = document.getElementById('emptyState');
+    const emptyStateTitle        = document.getElementById('emptyStateTitle');
+    const emptyStateText         = document.getElementById('emptyStateText');
     const clearBookingFiltersBtn = document.getElementById('clearBookingFiltersBtn');
-    const bookingResultsSummary = document.getElementById('bookingResultsSummary');
+    const bookingResultsSummary  = document.getElementById('bookingResultsSummary');
+    const paginationContainer    = document.getElementById('bookingsPagination');
+
+    const pageSize    = Number(pagination.pageSize) > 0 ? Number(pagination.pageSize) : 10;
+    const totalItems  = filtered.length;
+    const totalPages  = Math.max(1, Math.ceil(totalItems / pageSize));
+    const currentPage = Math.min(Math.max(1, Number(pagination.currentPage) || 1), totalPages);
+    const startIdx    = totalItems === 0 ? 0 : (currentPage - 1) * pageSize;
+    const endIdx      = Math.min(startIdx + pageSize, totalItems);
+    const pageItems   = filtered.slice(startIdx, endIdx);
 
     if (clearBookingFiltersBtn) {
       clearBookingFiltersBtn.disabled = !filtersActive;
     }
 
     if (bookingResultsSummary) {
-      const countWord = baseTotal === 1 ? 'reservation' : 'reservations';
-      bookingResultsSummary.textContent = `Showing ${filtered.length} of ${baseTotal} ${countWord}`;
+      const countWord = totalItems === 1 ? 'reservation' : 'reservations';
+      if (totalItems === 0) {
+        bookingResultsSummary.textContent = `Showing 0 of ${baseTotal} ${baseTotal === 1 ? 'reservation' : 'reservations'}`;
+      } else if (filtersActive && totalItems !== baseTotal) {
+        bookingResultsSummary.textContent = `Showing ${startIdx + 1}–${endIdx} of ${totalItems} ${countWord} (filtered from ${baseTotal})`;
+      } else {
+        bookingResultsSummary.textContent = `Showing ${startIdx + 1}–${endIdx} of ${totalItems} ${countWord}`;
+      }
     }
 
     if (!tableBody || !emptyState) return;
 
-    if (filtered.length === 0) {
+    if (totalItems === 0) {
       tableBody.innerHTML = '';
       emptyState.style.display = 'block';
+      if (paginationContainer) {
+        paginationContainer.style.display = 'none';
+        paginationContainer.innerHTML = '';
+      }
       if (emptyStateTitle && emptyStateText) {
         if (filtersActive) {
           emptyStateTitle.textContent = 'No reservations match your search/filters';
@@ -294,7 +327,7 @@
 
     emptyState.style.display = 'none';
 
-    tableBody.innerHTML = filtered.map(b => {
+    tableBody.innerHTML = pageItems.map(b => {
       const statusClass = (b.status || '').toLowerCase().replace(/\s+/g, '-');
       const typeClass = (b.userType || 'Internal').toLowerCase();
       const showActions = b.status === 'Pending' || b.status === 'Payment Under Review';
@@ -365,6 +398,45 @@
         </tr>
       `;
     }).join('');
+
+    if (paginationContainer) {
+      const pageButtonsHtml = buildPageNumbers(currentPage, totalPages).map(p => {
+        if (p === '...') {
+          return `<span class="pagination-btn pagination-ellipsis" aria-hidden="true">&hellip;</span>`;
+        }
+        const isActive = p === currentPage;
+        return `<button type="button" class="pagination-btn ${isActive ? 'active' : ''}" data-page="${p}" ${isActive ? 'aria-current="page"' : ''} aria-label="Page ${p}">${p}</button>`;
+      }).join('');
+
+      paginationContainer.style.display = 'flex';
+      paginationContainer.innerHTML = `
+        <div class="pagination-info">
+          Showing <strong>${startIdx + 1}&ndash;${endIdx}</strong> of <strong>${totalItems}</strong> ${totalItems === 1 ? 'reservation' : 'reservations'}
+          <span class="pagination-page-indicator">(Page ${currentPage} of ${totalPages})</span>
+        </div>
+        <div class="pagination-controls">
+          <button type="button" class="pagination-btn pagination-nav-btn" data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''} aria-label="Previous page">
+            &larr; Previous
+          </button>
+          ${pageButtonsHtml}
+          <button type="button" class="pagination-btn pagination-nav-btn" data-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''} aria-label="Next page">
+            Next &rarr;
+          </button>
+        </div>
+      `;
+
+      paginationContainer.querySelectorAll('button[data-page]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (btn.disabled) return;
+          const targetPage = parseInt(btn.getAttribute('data-page'), 10);
+          if (Number.isFinite(targetPage) && targetPage >= 1 && targetPage <= totalPages && targetPage !== currentPage) {
+            if (typeof pagination.onPageChange === 'function') {
+              pagination.onPageChange(targetPage);
+            }
+          }
+        });
+      });
+    }
   }
 
   function renderBookingDetailsModal(booking, receiptUrl, { onApprove, onReject, onDelete, onClose, loiData, onOpenLoiPdf, onDownloadLoiPdf }) {

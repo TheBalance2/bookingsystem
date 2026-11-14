@@ -382,9 +382,27 @@
     return { filtered: sorted, baseTotal: statusBase.length };
   }
 
+  const BOOKINGS_PAGE_SIZE = 10;
+  let currentBookingsPage  = 1;
+
   function renderTable() {
     const { filtered, baseTotal } = getFilteredBookings();
-    DashboardView.renderBookingsTable(filtered, baseTotal, hasActiveSearchOrFilter());
+    const totalPages = Math.max(1, Math.ceil(filtered.length / BOOKINGS_PAGE_SIZE));
+    if (currentBookingsPage > totalPages) currentBookingsPage = totalPages;
+    if (currentBookingsPage < 1) currentBookingsPage = 1;
+
+    DashboardView.renderBookingsTable(filtered, baseTotal, hasActiveSearchOrFilter(), {
+      currentPage: currentBookingsPage,
+      pageSize:    BOOKINGS_PAGE_SIZE,
+      onPageChange: (nextPage) => {
+        currentBookingsPage = nextPage;
+        renderTable();
+        const tableCard = document.querySelector('.table-card');
+        if (tableCard && typeof tableCard.scrollIntoView === 'function') {
+          tableCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    });
   }
 
   // ---- Search & Filter Listeners ----
@@ -399,6 +417,7 @@
       clearTimeout(searchDebounceTimer);
       searchDebounceTimer = setTimeout(() => {
         filterState.search = val;
+        currentBookingsPage = 1;
         renderTable();
       }, 200);
     });
@@ -410,6 +429,7 @@
       bookingSearchInput.value = '';
       bookingSearchClearBtn.style.display = 'none';
       filterState.search = '';
+      currentBookingsPage = 1;
       renderTable();
       bookingSearchInput.focus();
     });
@@ -418,6 +438,7 @@
   if (filterFacilityVehicle) {
     filterFacilityVehicle.addEventListener('change', () => {
       filterState.facility = filterFacilityVehicle.value;
+      currentBookingsPage = 1;
       renderTable();
     });
   }
@@ -425,6 +446,7 @@
   if (filterUserType) {
     filterUserType.addEventListener('change', () => {
       filterState.userType = filterUserType.value;
+      currentBookingsPage = 1;
       renderTable();
     });
   }
@@ -432,6 +454,7 @@
   if (filterDeptOrg) {
     filterDeptOrg.addEventListener('change', () => {
       filterState.deptOrg = filterDeptOrg.value;
+      currentBookingsPage = 1;
       renderTable();
     });
   }
@@ -439,6 +462,7 @@
   if (filterDateFrom) {
     filterDateFrom.addEventListener('change', () => {
       filterState.dateFrom = filterDateFrom.value;
+      currentBookingsPage = 1;
       renderTable();
     });
   }
@@ -446,6 +470,7 @@
   if (filterDateTo) {
     filterDateTo.addEventListener('change', () => {
       filterState.dateTo = filterDateTo.value;
+      currentBookingsPage = 1;
       renderTable();
     });
   }
@@ -453,6 +478,7 @@
   if (filterSort) {
     filterSort.addEventListener('change', () => {
       filterState.sort = filterSort.value || 'submitted_desc';
+      currentBookingsPage = 1;
       renderTable();
     });
   }
@@ -467,6 +493,7 @@
       filterState.dateFrom = '';
       filterState.dateTo   = '';
       filterState.sort     = 'submitted_desc';
+      currentBookingsPage  = 1;
 
       if (bookingSearchInput) bookingSearchInput.value = '';
       if (bookingSearchClearBtn) bookingSearchClearBtn.style.display = 'none';
@@ -489,6 +516,7 @@
       filterTabs.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       activeFilter = tab.dataset.filter;
+      currentBookingsPage = 1;
 
       sidebarLinks.forEach(l => {
         l.classList.toggle('active', l.dataset.filter === activeFilter);
@@ -506,6 +534,7 @@
       }
       const filter = link.dataset.filter;
       activeFilter = filter;
+      currentBookingsPage = 1;
 
       sidebarLinks.forEach(l => l.classList.remove('active'));
       link.classList.add('active');

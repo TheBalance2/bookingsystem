@@ -27,6 +27,8 @@
 
   // ---- Restore DOM ----
   const restoreJsonFileInput   = document.getElementById('restoreJsonFileInput');
+  const restoreJsonDropzone    = document.getElementById('restoreJsonDropzone');
+  const restoreJsonFileNameLbl = document.getElementById('restoreJsonFileNameLabel');
   const restorePreviewBox      = document.getElementById('restorePreviewBox');
   const confirmRestoreJsonBtn  = document.getElementById('confirmRestoreJsonBtn');
   let parsedRestoreItems       = [];
@@ -103,56 +105,86 @@
     const approved = items.filter(b => b.status === 'Approved').length;
     const pending  = items.filter(b => b.status === 'Pending' || b.status === 'Pending Payment' || b.status === 'Payment Under Review').length;
     const rejected = items.filter(b => b.status === 'Rejected').length;
-    backupPreviewText.innerHTML = `<strong>${items.length}</strong> reservation(s) scheduled in <strong>${Utils.escapeHtml(scopeDescription)}</strong> — Approved: ${approved}, Pending/Review: ${pending}, Rejected: ${rejected}.`;
+    backupPreviewText.innerHTML = `
+      <div class="dm-preview-headline">
+        <strong>${items.length}</strong> reservation(s) scheduled in <strong>${Utils.escapeHtml(scopeDescription)}</strong>
+      </div>
+      <div class="dm-kpi-chips">
+        <span class="dm-kpi-chip dm-kpi-approved">Approved: <strong>${approved}</strong></span>
+        <span class="dm-kpi-chip dm-kpi-pending">Pending / Review: <strong>${pending}</strong></span>
+        <span class="dm-kpi-chip dm-kpi-rejected">Rejected: <strong>${rejected}</strong></span>
+      </div>
+    `;
   }
 
-  function formatEquipmentText(eq) {
-    if (!Array.isArray(eq) || eq.length === 0) return 'None';
-    return eq.map(e => (typeof e === 'string' ? e : `${e.item} (x${e.qty})`)).join(', ');
+  function formatEquipmentText(eq, otherEq) {
+    if (window.ExcelReportBuilder && typeof window.ExcelReportBuilder.formatEquipmentCell === 'function') {
+      return window.ExcelReportBuilder.formatEquipmentCell(eq, otherEq);
+    }
+    if (!Array.isArray(eq) || eq.length === 0) return otherEq ? `Other: ${otherEq}` : 'None';
+    const base = eq.map(e => (typeof e === 'string' ? e : `${e.item} (x${e.qty})`)).join(', ');
+    return otherEq ? `${base}, Other: ${otherEq}` : base;
   }
 
-  function exportBookingsToExcel(items, periodLabel) {
+  function exportBookingsToExcel(items, periodLabel, scopeDescription = '') {
+    const filename = `SIC_Bookings_Backup_${periodLabel}.xlsx`;
+    if (window.ExcelReportBuilder && typeof window.ExcelReportBuilder.buildAndDownloadExcelWorkbook === 'function') {
+      return window.ExcelReportBuilder.buildAndDownloadExcelWorkbook(items, {
+        reportTitle:   `RESERVATION BACKUP ARCHIVE — ${(scopeDescription || periodLabel).toUpperCase()}`,
+        periodLabel:   scopeDescription || periodLabel,
+        filterSummary: 'Full Backup Export (All Statuses, Facilities & Vehicles)',
+        sheetName:     `Backup_${periodLabel}`,
+        filename:      filename
+      });
+    }
+
     if (typeof XLSX === 'undefined') {
       UiView.showToast('error', 'Error', 'Excel library (SheetJS) is not loaded.');
       return null;
     }
 
-    const rows = items.map(b => ({
-      'Reference ID':           b.referenceId || '',
-      'Status':                 b.status || '',
-      'User Type':              b.userType || '',
-      'Requester Name':         Utils.getBookingRequesterName(b),
-      'First Name':             b.firstName || '',
-      'Last Name':              b.lastName || '',
-      'Middle Initial':         b.middleInitial || '',
-      'Department / Agency':    b.userType === 'External' ? (b.agencyName || b.agency || b.organization || '') : (b.parentDepartment || b.department || ''),
-      'Office / School':        b.userType === 'External' ? (b.officeName || '') : (b.collegeSchool || b.department || ''),
-      'Dean / Office Head':     b.officeHead || '',
-      'Position / Designation': b.position || '',
-      'Contact Number':         b.contactNumber || '',
-      'Email Address':          b.email || '',
-      'Address':                b.address || '',
-      'Facility Requested':     b.facility || '',
-      'Classroom':              b.classroom || '',
-      'Vehicle(s) Requested':   Utils.formatVehicleList(b.vehicle) || '',
-      'Destination':            b.destination || '',
-      'Assigned Driver':        b.assignedDriverName || '',
-      'Driver Phone':           b.assignedDriverPhone || '',
-      'Start Date':             b.startDate || b.date || '',
-      'End Date':               b.endDate || b.startDate || b.date || '',
-      'Start Time':             b.startTime ? Utils.formatTime12(b.startTime) : '',
-      'End Time':               b.endTime ? Utils.formatTime12(b.endTime) : '',
-      'Participants':           b.numPersons || '',
-      'Equipment Needed':       formatEquipmentText(b.equipment),
-      'Purpose of Activity':    b.purpose || '',
-      'Other Considerations':   b.considerations || '',
-      'Date Submitted':         b.dateSubmitted || toIsoStringSafe(b.createdAt)
-    }));
+    const rows = items.map((b, idx) => {
+      const isVeh = Utils.isVehicleBooking(b);
+      const vList = Utils.formatVehicleList(b.vehicle);
+      const primaryFacility = isVeh
+        ? (vList ? `Vehicle — ${vList}` : 'Vehicle / Transportation')
+        : (b.facility && b.classroom ? `${b.facility} (${b.classroom})` : (b.facility || '—'));
+
+      return {
+        'No.':                         idx + 1,
+        'Reference ID':                b.referenceId || '',
+        'Status':                      b.status || '',
+        'User Type':                   b.userType || '',
+        'Facility / Vehicle Reserved': primaryFacility,
+        'Facility Requested':          isVeh ? (vList ? `Vehicle (${vList})` : 'Vehicle') : (b.facility || '—'),
+        'Classroom':                   b.classroom || 'N/A',
+        'Vehicle(s) Requested':        vList || 'N/A',
+        'Destination':                 isVeh ? (b.destination || 'Specified in Purpose') : 'On-Campus',
+        'Assigned Driver':             b.assignedDriverName || (isVeh ? 'Unassigned' : 'N/A'),
+        'Driver Phone':                b.assignedDriverPhone || 'N/A',
+        'Start Date':                  b.startDate || b.date || '',
+        'End Date':                    b.endDate || b.startDate || b.date || '',
+        'Start Time':                  b.startTime ? Utils.formatTime12(b.startTime) : '',
+        'End Time':                    b.endTime ? Utils.formatTime12(b.endTime) : '',
+        'Participants':                b.numPersons || '',
+        'Requester Name':              Utils.getBookingRequesterName(b),
+        'Department / Agency':         b.userType === 'External' ? (b.agencyName || b.agency || b.organization || '') : (b.parentDepartment || b.department || ''),
+        'Office / School':             b.userType === 'External' ? (b.officeName || '') : (b.collegeSchool || b.department || ''),
+        'Dean / Office Head':          b.officeHead || 'N/A',
+        'Position / Designation':      b.position || '',
+        'Contact Number':              b.contactNumber || '',
+        'Email Address':               b.email || '',
+        'Address':                     b.address || '',
+        'Equipment Needed':            formatEquipmentText(b.equipment, b.otherEquipment),
+        'Purpose of Activity':         b.purpose || '',
+        'Other Considerations':        b.considerations || '',
+        'Date Submitted':              b.dateSubmitted || toIsoStringSafe(b.createdAt)
+      };
+    });
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, `Backup_${periodLabel}`);
-    const filename = `SIC_Bookings_Backup_${periodLabel}.xlsx`;
     XLSX.writeFile(wb, filename);
     return filename;
   }
@@ -215,7 +247,7 @@
         UiView.showToast('warning', 'No Bookings Found', `No bookings scheduled in ${scopeDescription}.`);
         return;
       }
-      const filename = exportBookingsToExcel(items, label);
+      const filename = exportBookingsToExcel(items, label, scopeDescription);
       if (filename && window.ActivityLogModel) {
         await ActivityLogModel.log('BOOKING_BACKUP', 'Data', {
           targetId:    label,
@@ -257,9 +289,14 @@
       if (confirmRestoreJsonBtn) confirmRestoreJsonBtn.disabled = true;
 
       if (!file) {
+        if (restoreJsonFileNameLbl) restoreJsonFileNameLbl.textContent = 'No backup file selected';
+        if (restoreJsonDropzone) restoreJsonDropzone.classList.remove('has-file');
         if (restorePreviewBox) restorePreviewBox.style.display = 'none';
         return;
       }
+
+      if (restoreJsonFileNameLbl) restoreJsonFileNameLbl.textContent = file.name;
+      if (restoreJsonDropzone) restoreJsonDropzone.classList.add('has-file');
 
       if (file.size > MAX_BACKUP_JSON_BYTES) {
         if (restorePreviewBox) {
@@ -296,10 +333,12 @@
           if (restorePreviewBox) {
             restorePreviewBox.style.display = 'block';
             restorePreviewBox.innerHTML = `
-              <strong>Backup File Loaded:</strong> ${Utils.escapeHtml(file.name)}<br>
-              Total records in file: <strong>${items.length}</strong> •
-              Ready to restore: <strong style="color:var(--success);">${newCount}</strong> •
-              Already in system (will be skipped): <strong>${duplicateCount}</strong>
+              <div class="dm-preview-headline"><strong>Archive Verified:</strong> ${Utils.escapeHtml(file.name)}</div>
+              <div class="dm-kpi-chips">
+                <span class="dm-kpi-chip">Total in File: <strong>${items.length}</strong></span>
+                <span class="dm-kpi-chip dm-kpi-approved">Ready to Restore: <strong>${newCount}</strong></span>
+                <span class="dm-kpi-chip dm-kpi-pending">Skipped (Existing): <strong>${duplicateCount}</strong></span>
+              </div>
             `;
           }
           if (confirmRestoreJsonBtn) confirmRestoreJsonBtn.disabled = (newCount === 0);
@@ -347,6 +386,8 @@
 
         UiView.showToast('success', 'Backup Restored', `Restored ${restoredCount} booking(s) (${skippedCount} existing skipped).`);
         if (restoreJsonFileInput) restoreJsonFileInput.value = '';
+        if (restoreJsonFileNameLbl) restoreJsonFileNameLbl.textContent = 'No backup file selected';
+        if (restoreJsonDropzone) restoreJsonDropzone.classList.remove('has-file');
         if (restorePreviewBox) restorePreviewBox.style.display = 'none';
         parsedRestoreItems = [];
       } catch (err) {
@@ -433,7 +474,7 @@
         UiView.showToast('warning', 'Nothing to Backup', 'No bookings match the selected month.');
         return;
       }
-      exportBookingsToExcel(matching, ym);
+      exportBookingsToExcel(matching, ym, `Month ${ym}`);
       exportBookingsToJson(matching, ym, `Month ${ym}`);
       if (window.ActivityLogModel) {
         await ActivityLogModel.log('BOOKING_BACKUP', 'Data', {
