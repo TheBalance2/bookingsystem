@@ -168,9 +168,9 @@
     "semantic_hash": "5b4c8bad2c5cfaa2017fd19da7c50c5b"
   },
   "js/services/email-service.js": {
-    "mtime": 1795436417.0953746,
-    "seen": 1795436600.911807,
-    "ast_hash": "42c96f7eb26a2ddf2505e187fe8bf139",
+    "mtime": 1795437134.4931166,
+    "seen": 1795437165.395739,
+    "ast_hash": "47ec4fe18dfb7e07ec67724e31d1da01",
     "semantic_hash": ""
   },
   "js/services/notification-service.js": {
@@ -180,8 +180,8 @@
     "semantic_hash": "01db585ad54b0469c017089dc2bbe53c"
   },
   "js/services/pdf-service.js": {
-    "mtime": 1795436592.5490327,
-    "seen": 1795436600.9118104,
+    "mtime": 1795436648.6262455,
+    "seen": 1795437165.395743,
     "ast_hash": "39a20eee49587c6eb967cc11618a4924",
     "semantic_hash": ""
   },
@@ -264,15 +264,15 @@
     "semantic_hash": "d54fb074e04f1fe6d54347f7b54149d1"
   },
   "booking.html": {
-    "mtime": 1795436416.8054066,
-    "seen": 1795436600.911836,
-    "ast_hash": "55e73da67b1910356b8d18197367613f",
+    "mtime": 1795437142.3025303,
+    "seen": 1795437165.395764,
+    "ast_hash": "3907a88fe02138883b020c018335a064",
     "semantic_hash": ""
   },
   "dashboard.html": {
-    "mtime": 1795436416.8792686,
-    "seen": 1795436600.911838,
-    "ast_hash": "5abe58343621c5f8e8e0188048ee7dc6",
+    "mtime": 1795437152.653966,
+    "seen": 1795437165.3957658,
+    "ast_hash": "9c66de22dbfc578255a61d74e900e4ce",
     "semantic_hash": ""
   },
   "index.html": {

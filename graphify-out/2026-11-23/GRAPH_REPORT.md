@@ -1,7 +1,7 @@
 # Graph Report - bookingsystem  (2026-11-23)
 
 ## Corpus Check
-- 43 files · ~63,620 words
+- 43 files · ~63,658 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: .css 7, (none) 1, .rules 1)
 
@@ -85,10 +85,10 @@
   booking.html → images/logo.jpg
 - `Public Landing Page HTML` --references--> `San Isidro College Logo`  [EXTRACTED]
   index.html → images/logo.jpg
-- `Staff Portal Login Page` --references--> `San Isidro College Logo`  [EXTRACTED]
-  admin.html → images/logo.jpg
 - `Landing Hero Section (#hero)` --references--> `San Isidro College Campus Background Image`  [EXTRACTED]
   index.html → images/campus-bg.jpg
+- `Staff Portal Login Page` --references--> `San Isidro College Logo`  [EXTRACTED]
+  admin.html → images/logo.jpg
 
 ## Import Cycles
 - None detected.

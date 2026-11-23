@@ -81,11 +81,12 @@
       ? 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Please print TWO (2) copies of the downloaded PDF booking form and route it to the respective offices for signatures. You will receive an email notification once your reservation is approved.'
       : 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Please print the downloaded PDF booking summary and present it to the Business Office of San Isidro College for payment assessment. After paying, return to the booking page and upload your receipt to confirm your reservation.';
 
+    const cleanFacility = Utils.getBookingLocation(data, data.facility || '—').replace(/\s*\/\s*/g, ' - ');
     try {
       emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_APPROVE, {
         to_email:          data.email,
         to_name:           recipientName,
-        facility:          Utils.getBookingLocation(data, data.facility || '—'),
+        facility:          cleanFacility,
         vehicle:           Utils.formatVehicleList(data.vehicle) || '—',
         driver_name:       '—',
         driver_phone:      '—',
@@ -139,10 +140,11 @@
       ? Utils.formatDateRange(bookingData.startDate, bookingData.endDate)
       : bookingData.date;
 
+    const cleanFacility = Utils.getBookingLocation(bookingData).replace(/\s*\/\s*/g, ' - ');
     const baseParams = {
       to_email:         bookingData.email,
       to_name:          bookingData.name || bookingData.contactPerson || Utils.getBookingRequesterName(bookingData),
-      facility:         Utils.getBookingLocation(bookingData),
+      facility:         cleanFacility,
       vehicle:          Utils.formatVehicleList(bookingData.vehicle),
       driver_name:      bookingData.assignedDriverName || '—',
       driver_phone:     bookingData.assignedDriverPhone || '—',
@@ -153,7 +155,9 @@
       reference_id:     bookingData.referenceId || '—',
       status:           status,
       message:          messageText,
-      pdf_download_url: pdfDownloadUrl
+      pdf_download_url: pdfDownloadUrl,
+      download_link:    pdfDownloadUrl,
+      pdf_url:          pdfDownloadUrl
     };
 
     try {

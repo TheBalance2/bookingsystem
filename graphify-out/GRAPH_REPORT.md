@@ -1,7 +1,7 @@
 # Graph Report - bookingsystem  (2026-11-23)
 
 ## Corpus Check
-- 43 files · ~63,658 words
+- 43 files · ~63,676 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: .css 7, (none) 1, .rules 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d99ec28c`
+- Built from commit: `5addb720`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -72,11 +72,11 @@
 3. `init()` - 15 edges
 4. `Public Landing Page HTML` - 15 edges
 5. `FIC Operational Manual & System Overview` - 13 edges
-6. `buildStandardBookingPdf()` - 10 edges
-7. `notify()` - 10 edges
+6. `notify()` - 10 edges
+7. `buildStandardBookingPdf()` - 10 edges
 8. `Sidebar Navigation Component` - 10 edges
 9. `Staff Portal Login Page` - 10 edges
-10. `buildBookingPdfDoc()` - 9 edges
+10. `init()` - 9 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Zero Double-Bookings Automated Conflict Detection` --conceptually_related_to--> `hasScheduleConflict()`  [INFERRED]
