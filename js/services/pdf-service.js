@@ -67,6 +67,7 @@
     if (typeof SettingsModel !== 'undefined' && typeof SettingsModel.listenSignatories === 'function') {
       SettingsModel.listenSignatories(applySignatoriesData);
     }
+    loadLogoAsset();
   }
 
   function ensureSignatoriesLoaded() {
@@ -527,7 +528,7 @@
     doc.text(doc.splitTextToSize(declP2, tableW - 4.4), leftX + 2.2, y + 14.2);
     y += declH;
 
-    // ---- SIGNATORIES BLOCK (Single outer bordered container, 6 signature lines) ----
+    // ---- SIGNATORIES BLOCK (Single outer bordered container, 5 signature lines: 3 in Row 1, 2 in Row 2) ----
     const sigBoxH = 59.0;
     doc.setFillColor(...COLOR_WHITE);
     doc.rect(leftX, y, tableW, sigBoxH, 'FD');
@@ -536,7 +537,7 @@
     const autoRequesterName = requesterName;
     const autoOfficeHead    = isInternal ? String(data.officeHead || '').trim() : '';
 
-    // Column X bounds for the 3 signature lines
+    // Column X bounds for signature lines
     const c1Start = leftX + 2.0;
     const c1End   = leftX + 62.3;
     const c1Mid   = (c1Start + c1End) / 2;
@@ -581,7 +582,7 @@
     doc.text('Dean / Principal / Office Head', c2Mid, lineY1 + 3.5, { align: 'center' });
     doc.text('Facility In-charge', c3Mid, lineY1 + 3.5, { align: 'center' });
 
-    // Row 2 Prefixes ("Verified by", "Approved by")
+    // Row 2 Prefixes ("Verified by" on left, "Approved by" on right aligned with Facility In-charge)
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
     doc.text('Verified by', c1Start, y + 36.0);
@@ -589,29 +590,31 @@
 
     const lineY2 = y + 49.0;
     doc.line(c1Start, lineY2, c1End, lineY2);
-    doc.line(c2Start, lineY2, c2End, lineY2);
     doc.line(c3Start, lineY2, c3End, lineY2);
 
-    // Row 2 Printed Names (Comptroller, General Admin Service Coordinator, VP Admin & Finance)
+    // Row 2 Printed Names:
+    // Left: Comptroller
+    // Right: General Admin Service Coordinator (Internal) OR VP for Administration & Finance (External)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.3);
     if (sigs.comptroller) {
       doc.text(fitSingleLineText(doc, sigs.comptroller, c1End - c1Start - 2), c1Mid, lineY2 - 1.4, { align: 'center' });
     }
-    if (sigs.generalAdminCoordinator) {
-      doc.text(fitSingleLineText(doc, sigs.generalAdminCoordinator, c2End - c2Start - 2), c2Mid, lineY2 - 1.4, { align: 'center' });
-    }
-    if (sigs.vpAdminFinance) {
-      doc.text(fitSingleLineText(doc, sigs.vpAdminFinance, c3End - c3Start - 2), c3Mid, lineY2 - 1.4, { align: 'center' });
+    const approverName = isInternal ? sigs.generalAdminCoordinator : sigs.vpAdminFinance;
+    if (approverName) {
+      doc.text(fitSingleLineText(doc, approverName, c3End - c3Start - 2), c3Mid, lineY2 - 1.4, { align: 'center' });
     }
 
     // Row 2 Role Titles
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.8);
     doc.text('Comptroller', c1Mid, lineY2 + 3.5, { align: 'center' });
-    doc.text('General Admin Service Coordinator', c2Mid, lineY2 + 3.5, { align: 'center' });
-    doc.text('Vice President for Administration &', c3Mid, lineY2 + 3.5, { align: 'center' });
-    doc.text('Finance', c3Mid, lineY2 + 7.0, { align: 'center' });
+    if (isInternal) {
+      doc.text('General Admin Service Coordinator', c3Mid, lineY2 + 3.5, { align: 'center' });
+    } else {
+      doc.text('Vice President for Administration &', c3Mid, lineY2 + 3.5, { align: 'center' });
+      doc.text('Finance', c3Mid, lineY2 + 7.0, { align: 'center' });
+    }
 
     y += sigBoxH;
 
@@ -720,65 +723,295 @@
     );
   }
 
-  function renderAndSavePdf(data, userType) {
-    ensureSignatoriesLoaded().then(sigs => {
-      const enrichedData = {
-        ...data,
-        userType,
-        signatories: { ...sigs, ...(data && data.signatories ? data.signatories : {}) }
-      };
+  let cachedLogoPromise = null;
 
-      if (userType === 'Internal') {
-        lastInternalPdfDoc  = null;
-        lastInternalPdfData = enrichedData;
-      } else {
-        lastExternalPdfDoc  = null;
-        lastExternalPdfData = enrichedData;
-      }
+  function rasterizeLogoToCompressedDataUrl(img) {
+    try {
+      const targetSize = 220; // ~275 DPI at 20.5mm x 20.5mm print size, keeps PDF < 20 KB
+      const canvas = document.createElement('canvas');
+      canvas.width  = targetSize;
+      canvas.height = targetSize;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return { img, format: 'PNG' };
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, targetSize, targetSize);
+      ctx.drawImage(img, 0, 0, targetSize, targetSize);
+      return { img: canvas.toDataURL('image/jpeg', 0.88), format: 'JPEG' };
+    } catch (_) {
+      return { img, format: 'PNG' };
+    }
+  }
 
-      const { jsPDF } = window.jspdf;
-      // Create Long Bond Paper (8.5" x 13" / 215.9mm x 330.2mm) portrait document
-      const doc = new jsPDF({
-        orientation: 'p',
-        unit: 'mm',
-        format: [PAGE_WIDTH_MM, PAGE_HEIGHT_MM]
-      });
-
-      const finalize = (logoImg, logoFormat) => {
-        buildStandardBookingPdf(doc, enrichedData, logoImg, logoFormat, userType);
-        if (userType === 'Internal') {
-          lastInternalPdfDoc = doc;
-        } else {
-          lastExternalPdfDoc = doc;
-        }
-        doc.save(getBookingPdfFilename(userType, enrichedData.referenceId));
-      };
-
+  function loadLogoAsset() {
+    if (cachedLogoPromise) return cachedLogoPromise;
+    cachedLogoPromise = new Promise(resolve => {
       try {
         const logoImg = new Image();
         logoImg.crossOrigin = 'anonymous';
-        logoImg.onload  = () => finalize(logoImg, 'PNG');
+        logoImg.onload  = () => resolve(rasterizeLogoToCompressedDataUrl(logoImg));
         logoImg.onerror = () => {
           const fallbackImg = new Image();
           fallbackImg.crossOrigin = 'anonymous';
-          fallbackImg.onload  = () => finalize(fallbackImg, 'JPEG');
-          fallbackImg.onerror = () => finalize(null, null);
+          fallbackImg.onload  = () => resolve(rasterizeLogoToCompressedDataUrl(fallbackImg));
+          fallbackImg.onerror = () => resolve({ img: null, format: null });
           fallbackImg.src = 'images/logo.jpg';
         };
         logoImg.src = 'images/sic-header-logo.png';
       } catch (err) {
         Logger.warn(LAYER, 'Could not load logo for PDF:', err);
-        finalize(null, null);
+        resolve({ img: null, format: null });
       }
+    });
+    return cachedLogoPromise;
+  }
+
+  function normalizeBookingForPdf(rawData, fallbackUserType) {
+    const d = rawData || {};
+    const userType = d.userType === 'External' || fallbackUserType === 'External' ? 'External' : 'Internal';
+    const rawDate  = String(d.date || '').trim();
+    const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate);
+    const startDate = d.startDate || (isIsoDate ? rawDate : '');
+    const endDate   = d.endDate || startDate;
+    const formattedDate = (startDate && typeof Utils !== 'undefined' && typeof Utils.formatDateRange === 'function')
+      ? Utils.formatDateRange(startDate, endDate)
+      : rawDate;
+
+    const requesterName = d.name || d.contactPerson || (typeof Utils !== 'undefined' && typeof Utils.getBookingRequesterName === 'function'
+      ? Utils.getBookingRequesterName(d, '')
+      : '');
+
+    const organization = d.organization || [d.agencyName || d.agency, d.officeName].filter(Boolean).join(' - ') || '';
+    const contact = d.contactNumber || d.contact || '';
+    const shortAddress = d.shortAddress || resolveExternalShortAddress(d);
+
+    return {
+      ...d,
+      userType,
+      name:          requesterName,
+      contactPerson: d.contactPerson || requesterName,
+      organization,
+      contact,
+      contactNumber: contact,
+      shortAddress,
+      date:          formattedDate || rawDate
+    };
+  }
+
+  function buildBookingPdfDoc(data, explicitUserType) {
+    const resolvedType = explicitUserType || (data && data.userType) || 'Internal';
+    return Promise.all([ensureSignatoriesLoaded(), loadLogoAsset()]).then(([sigs, logoAsset]) => {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        throw new Error('jsPDF library is not loaded.');
+      }
+      const normalized = normalizeBookingForPdf(data, resolvedType);
+      const userType   = normalized.userType;
+      const enrichedData = {
+        ...normalized,
+        userType,
+        signatories: { ...sigs, ...(data && data.signatories ? data.signatories : {}) }
+      };
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: [PAGE_WIDTH_MM, PAGE_HEIGHT_MM],
+        compress: true
+      });
+
+      buildStandardBookingPdf(doc, enrichedData, logoAsset.img, logoAsset.format, userType);
+
+      if (userType === 'Internal') {
+        lastInternalPdfDoc  = doc;
+        lastInternalPdfData = enrichedData;
+      } else {
+        lastExternalPdfDoc  = doc;
+        lastExternalPdfData = enrichedData;
+      }
+
+      const fileName = getBookingPdfFilename(userType, enrichedData.referenceId);
+      return { doc, enrichedData, userType, fileName };
     });
   }
 
+  function renderAndSavePdf(data, userType) {
+    return buildBookingPdfDoc(data, userType)
+      .then(({ doc, fileName }) => {
+        doc.save(fileName);
+      })
+      .catch(err => {
+        Logger.error(LAYER, 'Failed to render and save PDF:', err);
+      });
+  }
+
   function generateExternalBookingPDF(data) {
-    renderAndSavePdf(data, 'External');
+    return renderAndSavePdf(data, 'External');
   }
 
   function generateInternalBookingPDF(data) {
-    renderAndSavePdf(data, 'Internal');
+    return renderAndSavePdf(data, 'Internal');
+  }
+
+  function downloadBookingPdf(bookingData) {
+    const userType = (bookingData && bookingData.userType) || 'Internal';
+    return renderAndSavePdf(bookingData, userType);
+  }
+
+  function openBookingPdfInNewTab(bookingData) {
+    const userType = (bookingData && bookingData.userType) || 'Internal';
+    const pdfTab = window.open('', '_blank');
+    if (pdfTab && pdfTab.document) {
+      try {
+        pdfTab.document.write('<!DOCTYPE html><html><head><title>Loading Official Request Form PDF...</title></head><body style="font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:90vh;color:#0f1d35;">Generating Official Request Form (PDF)...</body></html>');
+      } catch (_) {}
+    }
+
+    return buildBookingPdfDoc(bookingData, userType).then(({ doc }) => {
+      const blob = doc.output('blob');
+      const blobUrl = URL.createObjectURL(blob);
+      if (pdfTab && !pdfTab.closed) {
+        pdfTab.location.replace(blobUrl);
+      } else {
+        window.open(blobUrl, '_blank');
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
+      return blobUrl;
+    }).catch(err => {
+      if (pdfTab && !pdfTab.closed) {
+        try { pdfTab.close(); } catch (_) {}
+      }
+      throw err;
+    });
+  }
+
+  function getBookingPdfDataUri(bookingData) {
+    const userType = (bookingData && bookingData.userType) || 'Internal';
+    return buildBookingPdfDoc(bookingData, userType).then(({ doc, fileName }) => {
+      const rawUri = String(doc.output('datauristring') || '');
+      const base64Part = rawUri.includes(',') ? rawUri.split(',')[1] : '';
+      const dataUri = base64Part ? `data:application/pdf;base64,${base64Part}` : '';
+      const sizeBytes = base64Part ? Math.floor((base64Part.length * 3) / 4) : 0;
+      return { dataUri, base64: base64Part, fileName, sizeBytes };
+    });
+  }
+
+  function encodeBookingPdfLinkPayload(bookingData) {
+    try {
+      const d = normalizeBookingForPdf(bookingData);
+      const compact = {
+        r:  d.referenceId || '',
+        u:  d.userType === 'External' ? 'E' : 'I',
+        n:  d.name || '',
+        dp: d.department || '',
+        pd: d.parentDepartment || '',
+        cs: d.collegeSchool || '',
+        oh: d.officeHead || '',
+        og: d.organization || '',
+        p:  d.position || '',
+        c:  d.contactNumber || d.contact || '',
+        e:  d.email || '',
+        a:  d.shortAddress || '',
+        f:  d.facility || '',
+        cl: d.classroom || '',
+        v:  d.vehicle || [],
+        dn: d.destination || '',
+        dr: d.assignedDriverName || '',
+        ph: d.assignedDriverPhone || '',
+        dt: d.date || '',
+        sd: d.startDate || '',
+        ed: d.endDate || '',
+        st: d.startTime || '',
+        et: d.endTime || '',
+        np: d.numPersons || '',
+        pu: d.purpose || '',
+        eq: d.equipment || [],
+        oe: d.otherEquipment || '',
+        co: d.considerations || ''
+      };
+      Object.keys(compact).forEach(k => {
+        const val = compact[k];
+        if (val === '' || val === null || val === undefined || (Array.isArray(val) && val.length === 0)) {
+          delete compact[k];
+        }
+      });
+      const json = JSON.stringify(compact);
+      return btoa(unescape(encodeURIComponent(json)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+    } catch (err) {
+      Logger.warn(LAYER, 'Failed to encode booking PDF payload:', err);
+      return '';
+    }
+  }
+
+  function decodeBookingPdfLinkPayload(token) {
+    try {
+      const cleaned = String(token || '').trim();
+      if (!cleaned) return null;
+      const base64 = cleaned.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '==='.slice((base64.length + 3) % 4);
+      const json = decodeURIComponent(escape(atob(padded)));
+      const c = JSON.parse(json);
+      if (!c || typeof c !== 'object') return null;
+      const userType = c.u === 'E' ? 'External' : 'Internal';
+      return normalizeBookingForPdf({
+        referenceId:         c.r || '',
+        userType,
+        name:                c.n || '',
+        contactPerson:       c.n || '',
+        department:          c.dp || '',
+        parentDepartment:    c.pd || '',
+        collegeSchool:       c.cs || '',
+        officeHead:          c.oh || '',
+        organization:        c.og || '',
+        position:            c.p || '',
+        contactNumber:       c.c || '',
+        contact:             c.c || '',
+        email:               c.e || '',
+        shortAddress:        c.a || '',
+        address:             c.a || '',
+        facility:            c.f || '',
+        classroom:           c.cl || '',
+        vehicle:             c.v || [],
+        destination:         c.dn || '',
+        assignedDriverName:  c.dr || '',
+        assignedDriverPhone: c.ph || '',
+        date:                c.dt || '',
+        startDate:           c.sd || '',
+        endDate:             c.ed || '',
+        startTime:           c.st || '',
+        endTime:             c.et || '',
+        numPersons:          c.np || '',
+        purpose:             c.pu || '',
+        equipment:           c.eq || [],
+        otherEquipment:      c.oe || '',
+        considerations:      c.co || ''
+      }, userType);
+    } catch (err) {
+      Logger.warn(LAYER, 'Failed to decode booking PDF payload:', err);
+      return null;
+    }
+  }
+
+  function buildBookingPdfDownloadUrl(bookingData) {
+    let base = (typeof window !== 'undefined' && window.APP_PUBLIC_BASE_URL) || 'https://thebalance2.github.io/bookingsystem/';
+    if (typeof window !== 'undefined' && window.location) {
+      const host = (window.location.hostname || '').toLowerCase();
+      // If already running on GitHub Pages or custom domain, use the current active origin & path
+      if (host.endsWith('github.io') || host.endsWith('web.app') || host.endsWith('firebaseapp.com')) {
+        const basePath = window.location.pathname.replace(/\/[^/]*$/, '/');
+        base = `${window.location.origin}${basePath}`;
+      }
+    }
+    if (!base.endsWith('/')) base += '/';
+
+    if (bookingData && bookingData.id) {
+      return `${base}booking.html?form=${encodeURIComponent(bookingData.id)}`;
+    }
+    const token = encodeBookingPdfLinkPayload(bookingData);
+    if (!token) return '';
+    return `${base}booking.html?pdf=${encodeURIComponent(token)}`;
   }
 
   function downloadLastExternalPDF(fallbackRefId) {
@@ -802,8 +1035,16 @@
 
   window.PdfService = {
     initSignatoriesListener,
+    buildBookingPdfDoc,
+    normalizeBookingForPdf,
     generateExternalBookingPDF,
     generateInternalBookingPDF,
+    downloadBookingPdf,
+    openBookingPdfInNewTab,
+    getBookingPdfDataUri,
+    encodeBookingPdfLinkPayload,
+    decodeBookingPdfLinkPayload,
+    buildBookingPdfDownloadUrl,
     downloadLastExternalPDF,
     downloadLastInternalPDF,
     getBookingPdfFilename

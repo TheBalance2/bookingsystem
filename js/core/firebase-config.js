@@ -23,6 +23,13 @@ const db   = firebase.firestore();
 const auth = typeof firebase.auth === 'function' ? firebase.auth() : null;
 
 /* ============================================================
+   Application Public Base URL (for email links)
+   ============================================================
+*/
+const APP_PUBLIC_BASE_URL = 'https://thebalance2.github.io/bookingsystem/';
+window.APP_PUBLIC_BASE_URL = APP_PUBLIC_BASE_URL;
+
+/* ============================================================
    EmailJS Configuration
    ============================================================
 */

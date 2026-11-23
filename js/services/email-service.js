@@ -75,18 +75,29 @@
       return;
     }
 
+    const isInternal = data && data.userType === 'Internal';
+    const recipientName = (data && (data.contactPerson || data.name)) || Utils.getBookingRequesterName(data);
+    const submissionMessage = isInternal
+      ? 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Please print TWO (2) copies of the downloaded PDF booking form and route it to the respective offices for signatures. You will receive an email notification once your reservation is approved.'
+      : 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Please print the downloaded PDF booking summary and present it to the Business Office of San Isidro College for payment assessment. After paying, return to the booking page and upload your receipt to confirm your reservation.';
+
     try {
       emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_APPROVE, {
-        to_email:     data.email,
-        to_name:      data.contactPerson,
-        facility:     Utils.getBookingLocation(data, data.facility || '—'),
-        date:         data.date,
-        start_time:   Utils.formatTime12(data.startTime),
-        end_time:     Utils.formatTime12(data.endTime),
-        purpose:      data.purpose,
-        status:       'Booking Submitted',
-        reference_id: data.referenceId,
-        message:      'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Please print the downloaded PDF booking summary and present it to the Business Office of San Isidro College for payment assessment. After paying, return to the booking page and upload your receipt to confirm your reservation.'
+        to_email:          data.email,
+        to_name:           recipientName,
+        facility:          Utils.getBookingLocation(data, data.facility || '—'),
+        vehicle:           Utils.formatVehicleList(data.vehicle) || '—',
+        driver_name:       '—',
+        driver_phone:      '—',
+        date:              data.date,
+        start_time:        Utils.formatTime12(data.startTime),
+        end_time:          Utils.formatTime12(data.endTime),
+        purpose:           data.purpose,
+        status:            'Booking Submitted',
+        reference_id:      data.referenceId,
+        message:           submissionMessage,
+        booking_form:      '',
+        booking_form_name: ''
       }).then(() => {
         Logger.info(LAYER, 'Confirmation email sent to', data.email);
       }).catch(err => {
@@ -97,7 +108,7 @@
     }
   }
 
-  function sendStatusNotification(bookingData, status) {
+  function sendStatusNotification(bookingData, status, pdfAttachment = null) {
     init();
     if (!isConfigured()) {
       Logger.info(LAYER, 'EmailJS not configured — skipping status email.');
@@ -105,29 +116,48 @@
     }
 
     const templateId = status === 'Approved' ? EMAILJS_TEMPLATE_APPROVE : EMAILJS_TEMPLATE_REJECT;
+    const isInternal = bookingData && bookingData.userType === 'Internal';
     const driverInfoText = (status === 'Approved' && bookingData.assignedDriverName)
       ? ` Assigned Driver: ${bookingData.assignedDriverName}${bookingData.assignedDriverPhone ? ' (Contact: ' + bookingData.assignedDriverPhone + ')' : ''}.`
       : '';
+
+    const pdfDownloadUrl = (status === 'Approved' && window.PdfService && typeof PdfService.buildBookingPdfDownloadUrl === 'function')
+      ? PdfService.buildBookingPdfDownloadUrl(bookingData)
+      : '';
+    const pdfLinkLine = pdfDownloadUrl
+      ? `\n\nClick the link below to open and download your Official Request Form (PDF):\n${pdfDownloadUrl}`
+      : '';
+
+    const copiesInstruction = isInternal
+      ? ' Please download, print, and accomplish TWO (2) copies of your official Request for the Use of Facilities Form (Requesting Person, Facility In-Charge) and secure the required signatures before your scheduled use.'
+      : ' Please download, print, and accomplish FOUR (4) copies of your official Request for the Use of Facilities Form (Requesting Person, School Guard, Facility In-Charge, Comptroller) and attach the original copy of your Letter of Intent.';
     const messageText = status === 'Approved'
-      ? 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been APPROVED by the administrator.' + driverInfoText
-      : 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been REJECTED by the administrator.';
+      ? 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been APPROVED by the Facility-In-Charge.' + driverInfoText + copiesInstruction + pdfLinkLine
+      : 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been REJECTED by the Facility-In-Charge.';
+
+    const formattedDate = (bookingData.startDate && bookingData.endDate && typeof Utils !== 'undefined' && typeof Utils.formatDateRange === 'function')
+      ? Utils.formatDateRange(bookingData.startDate, bookingData.endDate)
+      : bookingData.date;
+
+    const baseParams = {
+      to_email:         bookingData.email,
+      to_name:          bookingData.name || bookingData.contactPerson || Utils.getBookingRequesterName(bookingData),
+      facility:         Utils.getBookingLocation(bookingData),
+      vehicle:          Utils.formatVehicleList(bookingData.vehicle),
+      driver_name:      bookingData.assignedDriverName || '—',
+      driver_phone:     bookingData.assignedDriverPhone || '—',
+      date:             formattedDate,
+      start_time:       Utils.formatTime12(bookingData.startTime),
+      end_time:         Utils.formatTime12(bookingData.endTime),
+      purpose:          bookingData.purpose,
+      reference_id:     bookingData.referenceId || '—',
+      status:           status,
+      message:          messageText,
+      pdf_download_url: pdfDownloadUrl
+    };
 
     try {
-      emailjs.send(EMAILJS_SERVICE_ID, templateId, {
-        to_email:     bookingData.email,
-        to_name:      bookingData.name,
-        facility:     Utils.getBookingLocation(bookingData),
-        vehicle:      Utils.formatVehicleList(bookingData.vehicle),
-        driver_name:  bookingData.assignedDriverName || '—',
-        driver_phone: bookingData.assignedDriverPhone || '—',
-        date:         bookingData.date,
-        start_time:   Utils.formatTime12(bookingData.startTime),
-        end_time:     Utils.formatTime12(bookingData.endTime),
-        purpose:      bookingData.purpose,
-        reference_id: bookingData.referenceId || '—',
-        status:       status,
-        message:      messageText
-      }).then(() => {
+      emailjs.send(EMAILJS_SERVICE_ID, templateId, baseParams).then(() => {
         Logger.info(LAYER, 'Status email sent successfully to', bookingData.email);
       }).catch(err => {
         Logger.warn(LAYER, 'EmailJS status send failed:', err);

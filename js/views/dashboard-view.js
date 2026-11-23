@@ -439,7 +439,7 @@
     }
   }
 
-  function renderBookingDetailsModal(booking, receiptUrl, { onApprove, onReject, onDelete, onClose, loiData, onOpenLoiPdf, onDownloadLoiPdf }) {
+  function renderBookingDetailsModal(booking, receiptUrl, { onApprove, onReject, onDelete, onClose, loiData, onOpenLoiPdf, onDownloadLoiPdf, onOpenBookingForm, onDownloadBookingForm }) {
     const detailsModal   = document.getElementById('detailsModal');
     const detailsContent = document.getElementById('detailsContent');
     if (!detailsModal || !detailsContent || !booking) return;
@@ -526,6 +526,30 @@
     let html = rows.map(([label, value]) =>
       `<div class="detail-row"><span class="detail-label">${Utils.escapeHtml(label)}</span><span class="detail-value">${Utils.escapeHtml(value)}</span></div>`
     ).join('');
+
+    const bookingFormFileName = (window.PdfService && typeof PdfService.getBookingPdfFilename === 'function')
+      ? PdfService.getBookingPdfFilename(booking.userType || 'Internal', booking.referenceId)
+      : `${booking.userType === 'External' ? 'External' : 'Internal'}-SIC-${booking.referenceId || '001'}.pdf`;
+    const approverBadgeText = booking.userType === 'External'
+      ? 'Approved by: VP for Admin & Finance'
+      : 'Approved by: General Admin Service Coordinator';
+
+    html += `
+      <div class="gcash-receipt-section loi-pdf-section booking-form-pdf-section">
+        <div class="gcash-receipt-header">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>Request for the Use of Facilities Form (PDF)</span>
+          <span class="loi-modal-badge">Downloadable Form</span>
+        </div>
+        <div class="loi-modal-file-row">
+          <span class="loi-modal-file-name" title="${Utils.escapeHtml(bookingFormFileName)}">📄 ${Utils.escapeHtml(bookingFormFileName)}</span>
+          <span style="font-size:0.72rem; color:var(--gray-400); white-space:nowrap; margin-left:8px;">${Utils.escapeHtml(approverBadgeText)}</span>
+        </div>
+        <div class="loi-modal-actions">
+          <button type="button" id="detailsOpenBookingFormPdfBtn" class="gcash-view-full-btn loi-action-btn primary">Open PDF in New Tab</button>
+          <button type="button" id="detailsDownloadBookingFormPdfBtn" class="gcash-view-full-btn loi-action-btn secondary">Download PDF</button>
+        </div>
+      </div>`;
 
     if (booking.userType === 'External') {
       const loiFileName = (loiData && loiData.fileName) || booking.letterOfIntentFileName || `Letter_of_Intent_${booking.referenceId || 'Booking'}.pdf`;
@@ -632,6 +656,15 @@
     }
 
     detailsContent.innerHTML = html;
+
+    const openBookingFormBtn     = document.getElementById('detailsOpenBookingFormPdfBtn');
+    const downloadBookingFormBtn = document.getElementById('detailsDownloadBookingFormPdfBtn');
+    if (openBookingFormBtn && typeof onOpenBookingForm === 'function') {
+      openBookingFormBtn.onclick = () => onOpenBookingForm(booking);
+    }
+    if (downloadBookingFormBtn && typeof onDownloadBookingForm === 'function') {
+      downloadBookingFormBtn.onclick = () => onDownloadBookingForm(booking);
+    }
 
     const openLoiBtn     = document.getElementById('detailsOpenLoiPdfBtn');
     const downloadLoiBtn = document.getElementById('detailsDownloadLoiPdfBtn');

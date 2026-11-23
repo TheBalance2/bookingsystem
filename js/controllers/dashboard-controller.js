@@ -12,6 +12,9 @@
   const LAYER = 'DashboardController';
 
   EmailService.init();
+  if (window.PdfService && typeof PdfService.initSignatoriesListener === 'function') {
+    PdfService.initSignatoriesListener();
+  }
 
   // ---- State ----
   let allBookings       = [];
@@ -677,6 +680,32 @@
     }
   }
 
+  async function openBookingFormPdf(booking) {
+    if (!window.PdfService || typeof PdfService.openBookingPdfInNewTab !== 'function') {
+      UiView.showToast('error', 'PDF Error', 'PDF Service is not available.');
+      return;
+    }
+    try {
+      await PdfService.openBookingPdfInNewTab(booking);
+    } catch (err) {
+      Logger.error(LAYER, 'Could not open Booking Form PDF:', err);
+      UiView.showToast('error', 'PDF Error', 'Could not open the Booking Form PDF.');
+    }
+  }
+
+  async function downloadBookingFormPdf(booking) {
+    if (!window.PdfService || typeof PdfService.downloadBookingPdf !== 'function') {
+      UiView.showToast('error', 'PDF Error', 'PDF Service is not available.');
+      return;
+    }
+    try {
+      await PdfService.downloadBookingPdf(booking);
+    } catch (err) {
+      Logger.error(LAYER, 'Could not download Booking Form PDF:', err);
+      UiView.showToast('error', 'PDF Error', 'Could not download the Booking Form PDF.');
+    }
+  }
+
   window.viewBookingDetails = async function (docId) {
     const booking = allBookings.find(b => b.id === docId);
     if (!booking) return;
@@ -700,13 +729,15 @@
     }
 
     DashboardView.renderBookingDetailsModal(booking, receiptUrl, {
-      onApprove:        window.approveBooking,
-      onReject:         window.rejectBooking,
-      onDelete:         window.deleteBooking,
-      onClose:          window.closeDetailsModal,
-      loiData:          loiData,
-      onOpenLoiPdf:     openLetterOfIntentPdf,
-      onDownloadLoiPdf: downloadLetterOfIntentPdf
+      onApprove:             window.approveBooking,
+      onReject:              window.rejectBooking,
+      onDelete:              window.deleteBooking,
+      onClose:               window.closeDetailsModal,
+      loiData:               loiData,
+      onOpenLoiPdf:          openLetterOfIntentPdf,
+      onDownloadLoiPdf:      downloadLetterOfIntentPdf,
+      onOpenBookingForm:     openBookingFormPdf,
+      onDownloadBookingForm: downloadBookingFormPdf
     });
   };
 

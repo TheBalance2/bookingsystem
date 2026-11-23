@@ -808,7 +808,7 @@
         <div class="facility-mgmt-header">
           <div>
             <h2 class="facility-mgmt-title">PDF Signatories</h2>
-            <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Set the printed names for the Standard Facility Request PDF (Facility In-charge, Comptroller, General Admin Service Coordinator, and VP for Administration &amp; Finance)</p>
+            <p style="color:var(--gray-400); font-size:0.9rem; margin-top:2px;">Set the printed names for the Standard Facility Request PDF (Facility In-charge, Comptroller, General Admin Service Coordinator for Internal, and VP for Administration &amp; Finance for External)</p>
           </div>
           <button type="button" class="btn btn-outline btn-sm" onclick="switchToBookingsView()">
             &larr; Back to Bookings
@@ -820,7 +820,7 @@
           <div class="id-settings-card">
             <div class="id-settings-card-header">
               <h3>Signatory Names</h3>
-              <p>Names entered below are automatically printed above their respective signature lines on the unified Request for the Use of Facilities PDF (both Internal and External).</p>
+              <p>Names entered below are automatically printed above their respective signature lines on the Request for the Use of Facilities PDF based on booking type (Internal vs. External).</p>
             </div>
 
             <form id="signatoriesForm" novalidate>
@@ -828,25 +828,25 @@
                 <div class="form-group">
                   <label for="sigFacilitiesInCharge">Noted by: Facility In-charge</label>
                   <input type="text" id="sigFacilitiesInCharge" maxlength="80" placeholder="e.g. ENGR. JUAN P. DELA CRUZ">
-                  <small class="id-field-hint">Printed above the <strong>Facility In-charge</strong> (Noted by) line</small>
+                  <small class="id-field-hint">Printed above the <strong>Facility In-charge</strong> (Noted by) line on both Internal &amp; External PDFs</small>
                 </div>
 
                 <div class="form-group">
                   <label for="sigComptroller">Verified by: Comptroller</label>
                   <input type="text" id="sigComptroller" maxlength="80" placeholder="e.g. MARIA C. SANTOS, CPA">
-                  <small class="id-field-hint">Printed above the <strong>Comptroller</strong> (Verified by) line</small>
+                  <small class="id-field-hint">Printed above the <strong>Comptroller</strong> (Verified by) line on both Internal &amp; External PDFs</small>
                 </div>
 
                 <div class="form-group">
-                  <label for="sigGeneralAdmin">General Admin Service Coordinator</label>
+                  <label for="sigGeneralAdmin">Approved by (Internal): General Admin Service Coordinator</label>
                   <input type="text" id="sigGeneralAdmin" maxlength="80" placeholder="e.g. PEDRO R. REYES, MBA">
-                  <small class="id-field-hint">Printed above the <strong>General Admin Service Coordinator</strong> line</small>
+                  <small class="id-field-hint">Printed above the <strong>General Admin Service Coordinator</strong> (Approved by) line on <strong>Internal</strong> booking PDFs</small>
                 </div>
 
                 <div class="form-group">
-                  <label for="sigVpAdminFinance">Approved by: Vice President for Administration &amp; Finance</label>
+                  <label for="sigVpAdminFinance">Approved by (External): Vice President for Administration &amp; Finance</label>
                   <input type="text" id="sigVpAdminFinance" maxlength="80" placeholder="e.g. REV. FR. JOSE M. SANTOS, PhD">
-                  <small class="id-field-hint">Printed above the <strong>Vice President for Administration &amp; Finance</strong> (Approved by) line</small>
+                  <small class="id-field-hint">Printed above the <strong>Vice President for Administration &amp; Finance</strong> (Approved by) line on <strong>External</strong> booking PDFs</small>
                 </div>
               </div>
 
@@ -855,6 +855,8 @@
                   <li>Capitalization is kept exactly as typed (supports titles like <em>Engr.</em>, <em>Dr.</em>, <em>CPA</em>, <em>MBA</em>, or <em>ALL CAPS</em>).</li>
                   <li><strong>Requesting Personnel</strong> is automatically filled with the requester's submitted name.</li>
                   <li><strong>Dean / Principal / Office Head</strong> is automatically filled for Internal bookings from the selected Office/School in <strong>Manage Departments</strong> (blank for External bookings).</li>
+                  <li><strong>Internal PDFs</strong> do not include the VP for Administration &amp; Finance; <strong>Approved by</strong> is on the <strong>General Admin Service Coordinator</strong>.</li>
+                  <li><strong>External PDFs</strong> do not include the General Admin Service Coordinator; <strong>Approved by</strong> is on the <strong>Vice President for Administration &amp; Finance</strong>.</li>
                 </ul>
               </div>
 
@@ -875,73 +877,138 @@
             </form>
           </div>
 
-          <!-- Card 2: Live PDF Signature Section Preview -->
+          <!-- Card 2: Live PDF Signature Section Previews (Internal & External) -->
           <div class="id-settings-card">
             <div class="id-settings-card-header">
-              <h3>Live Standard PDF Signatory Preview</h3>
-              <p>Preview of the Section IV 6-box signatory table on the Standard Request for the Use of Facilities PDF.</p>
+              <h3>Live Standard PDF Signatory Previews</h3>
+              <p>Separate live previews of the Section IV signature block for Internal and External Request Forms.</p>
             </div>
 
-            <div class="sig-pdf-preview-sheet" aria-label="Standard PDF signature block preview">
-              <!-- Row 1: Requesting Personnel (Auto), Dean/Principal/Office Head (Auto Internal), Facility In-charge -->
-              <div class="sig-preview-row" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                <div class="sig-preview-block">
-                  <div class="sig-preview-line-wrap">
-                    <div class="sig-preview-name" style="color:var(--info); font-size:0.74rem;">(Auto: Requester Name)</div>
-                    <div class="sig-preview-line"></div>
-                    <div class="sig-preview-role">Signature over Printed Name of Requesting Personnel</div>
+            <!-- Preview 1: Internal Booking PDF -->
+            <div style="margin-bottom:var(--space-md);">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                <span style="font-size:0.8rem; font-weight:700; color:var(--navy); text-transform:uppercase; letter-spacing:0.04em;">Internal Booking PDF Preview</span>
+                <span class="role-badge role-badge-fic" style="font-size:0.65rem;">Approved by: General Admin Service Coordinator</span>
+              </div>
+              <div class="sig-pdf-preview-sheet" aria-label="Internal PDF signature block preview">
+                <!-- Row 1: Requesting Personnel (Auto), Dean/Principal/Office Head (Auto Internal), Facility In-charge -->
+                <div class="sig-preview-row" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                  <div class="sig-preview-block">
+                    <div class="sig-preview-line-wrap">
+                      <div class="sig-preview-name" style="color:var(--info); font-size:0.74rem;">(Auto: Requester Name)</div>
+                      <div class="sig-preview-line"></div>
+                      <div class="sig-preview-role">Signature over Printed Name of Requesting Personnel</div>
+                    </div>
+                  </div>
+
+                  <div class="sig-preview-block">
+                    <div class="sig-preview-line-wrap">
+                      <div class="sig-preview-name" style="color:var(--info); font-size:0.74rem;">(Auto: Office Head / Dean)</div>
+                      <div class="sig-preview-line"></div>
+                      <div class="sig-preview-role">Dean / Principal / Office Head</div>
+                    </div>
+                  </div>
+
+                  <div class="sig-preview-block is-editable">
+                    <span class="sig-preview-prefix">Noted by:</span>
+                    <div class="sig-preview-line-wrap">
+                      <div class="sig-preview-name" id="previewSigFacilitiesInCharge"></div>
+                      <div class="sig-preview-line"></div>
+                      <div class="sig-preview-role">Facility In-charge</div>
+                    </div>
                   </div>
                 </div>
 
-                <div class="sig-preview-block">
-                  <div class="sig-preview-line-wrap">
-                    <div class="sig-preview-name" style="color:var(--info); font-size:0.74rem;">(Auto: Office Head / Dean)</div>
-                    <div class="sig-preview-line"></div>
-                    <div class="sig-preview-role">Dean / Principal / Office Head</div>
+                <!-- Row 2 (Internal): Comptroller (left), General Admin Service Coordinator (right, under Facility In-charge) -->
+                <div class="sig-preview-row" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                  <div class="sig-preview-block is-editable">
+                    <span class="sig-preview-prefix">Verified by:</span>
+                    <div class="sig-preview-line-wrap">
+                      <div class="sig-preview-name" id="previewSigComptroller"></div>
+                      <div class="sig-preview-line"></div>
+                      <div class="sig-preview-role">Comptroller</div>
+                    </div>
+                  </div>
+
+                  <div class="sig-preview-block" aria-hidden="true"></div>
+
+                  <div class="sig-preview-block is-editable">
+                    <span class="sig-preview-prefix">Approved by:</span>
+                    <div class="sig-preview-line-wrap">
+                      <div class="sig-preview-name" id="previewSigGeneralAdmin"></div>
+                      <div class="sig-preview-line"></div>
+                      <div class="sig-preview-role">General Admin Service Coordinator</div>
+                    </div>
                   </div>
                 </div>
 
-                <div class="sig-preview-block is-editable">
-                  <span class="sig-preview-prefix">Noted by:</span>
-                  <div class="sig-preview-line-wrap">
-                    <div class="sig-preview-name" id="previewSigFacilitiesInCharge"></div>
-                    <div class="sig-preview-line"></div>
-                    <div class="sig-preview-role">Facility In-charge</div>
-                  </div>
+                <div class="sig-preview-note">
+                  Internal Users: Print 2 copies (Requesting Person, Facility In-Charge)
                 </div>
               </div>
+            </div>
 
-              <!-- Row 2: Comptroller, General Admin Service Coordinator, VP for Administration & Finance -->
-              <div class="sig-preview-row" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                <div class="sig-preview-block is-editable">
-                  <span class="sig-preview-prefix">Verified by:</span>
-                  <div class="sig-preview-line-wrap">
-                    <div class="sig-preview-name" id="previewSigComptroller"></div>
-                    <div class="sig-preview-line"></div>
-                    <div class="sig-preview-role">Comptroller</div>
-                  </div>
-                </div>
-
-                <div class="sig-preview-block is-editable">
-                  <div class="sig-preview-line-wrap">
-                    <div class="sig-preview-name" id="previewSigGeneralAdmin"></div>
-                    <div class="sig-preview-line"></div>
-                    <div class="sig-preview-role">General Admin Service Coordinator</div>
-                  </div>
-                </div>
-
-                <div class="sig-preview-block is-editable">
-                  <span class="sig-preview-prefix">Approved by:</span>
-                  <div class="sig-preview-line-wrap">
-                    <div class="sig-preview-name" id="previewSigVpAdminFinance"></div>
-                    <div class="sig-preview-line"></div>
-                    <div class="sig-preview-role">Vice President for Administration &amp; Finance</div>
-                  </div>
-                </div>
+            <!-- Preview 2: External Booking PDF -->
+            <div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                <span style="font-size:0.8rem; font-weight:700; color:var(--navy); text-transform:uppercase; letter-spacing:0.04em;">External Booking PDF Preview</span>
+                <span class="role-badge role-badge-admin" style="font-size:0.65rem;">Approved by: VP for Admin &amp; Finance</span>
               </div>
+              <div class="sig-pdf-preview-sheet" aria-label="External PDF signature block preview">
+                <!-- Row 1: Requesting Personnel (Auto), Dean/Principal/Office Head (Blank), Facility In-charge -->
+                <div class="sig-preview-row" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                  <div class="sig-preview-block">
+                    <div class="sig-preview-line-wrap">
+                      <div class="sig-preview-name" style="color:var(--info); font-size:0.74rem;">(Auto: Requester Name)</div>
+                      <div class="sig-preview-line"></div>
+                      <div class="sig-preview-role">Signature over Printed Name of Requesting Personnel</div>
+                    </div>
+                  </div>
 
-              <div class="sig-preview-note">
-                External Users: Print 4 copies &amp; attach original Letter of Intent | Internal Users: Print 2 copies
+                  <div class="sig-preview-block">
+                    <div class="sig-preview-line-wrap">
+                      <div class="sig-preview-name is-placeholder">(Blank line)</div>
+                      <div class="sig-preview-line"></div>
+                      <div class="sig-preview-role">Dean / Principal / Office Head</div>
+                    </div>
+                  </div>
+
+                  <div class="sig-preview-block is-editable">
+                    <span class="sig-preview-prefix">Noted by:</span>
+                    <div class="sig-preview-line-wrap">
+                      <div class="sig-preview-name" id="previewSigExtFacilitiesInCharge"></div>
+                      <div class="sig-preview-line"></div>
+                      <div class="sig-preview-role">Facility In-charge</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Row 2 (External): Comptroller (left), VP for Administration & Finance (right, under Facility In-charge) -->
+                <div class="sig-preview-row" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                  <div class="sig-preview-block is-editable">
+                    <span class="sig-preview-prefix">Verified by:</span>
+                    <div class="sig-preview-line-wrap">
+                      <div class="sig-preview-name" id="previewSigExtComptroller"></div>
+                      <div class="sig-preview-line"></div>
+                      <div class="sig-preview-role">Comptroller</div>
+                    </div>
+                  </div>
+
+                  <div class="sig-preview-block" aria-hidden="true"></div>
+
+                  <div class="sig-preview-block is-editable">
+                    <span class="sig-preview-prefix">Approved by:</span>
+                    <div class="sig-preview-line-wrap">
+                      <div class="sig-preview-name" id="previewSigVpAdminFinance"></div>
+                      <div class="sig-preview-line"></div>
+                      <div class="sig-preview-role">Vice President for Administration &amp; Finance</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sig-preview-note">
+                  External Users: Print 4 copies &amp; attach original Letter of Intent
+                </div>
               </div>
             </div>
           </div>
@@ -2153,6 +2220,9 @@
   <!-- EmailJS SDK (pinned version) -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"></script>
 
+  <!-- jsPDF for Standard Booking Form PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <!-- SheetJS for Excel export (pinned version) -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
@@ -2175,30 +2245,31 @@
   <script src="js/models/vehicle-model.js"></script>
   <script src="js/models/driver-model.js"></script>
   <script src="js/models/department-model.js"></script>
-  <script src="js/models/settings-model.js"></script>
-  <script src="js/models/booking-model.js"></script>
+  <script src="js/models/settings-model.js?v=12"></script>
+  <script src="js/models/booking-model.js?v=12"></script>
 
   <!-- MVC Services -->
-  <script src="js/services/email-service.js"></script>
-  <script src="js/services/notification-service.js"></script>
+  <script src="js/services/pdf-service.js?v=12"></script>
+  <script src="js/services/email-service.js?v=12"></script>
+  <script src="js/services/notification-service.js?v=12"></script>
 
   <!-- MVC Views -->
-  <script src="js/views/ui-view.js?v=9"></script>
-  <script src="js/views/dashboard-view.js?v=9"></script>
-  <script src="js/views/admin-crud-view.js?v=9"></script>
+  <script src="js/views/ui-view.js?v=12"></script>
+  <script src="js/views/dashboard-view.js?v=12"></script>
+  <script src="js/views/admin-crud-view.js?v=12"></script>
 
   <!-- MVC Controllers -->
-  <script src="js/controllers/facility-controller.js?v=9"></script>
-  <script src="js/controllers/vehicle-controller.js?v=9"></script>
-  <script src="js/controllers/department-controller.js?v=9"></script>
-  <script src="js/controllers/special-booking-controller.js?v=9"></script>
-  <script src="js/controllers/settings-controller.js?v=9"></script>
-  <script src="js/controllers/account-controller.js?v=9"></script>
-  <script src="js/controllers/activity-log-controller.js?v=9"></script>
-  <script src="js/controllers/data-management-controller.js?v=9"></script>
-  <script src="js/controllers/dashboard-controller.js?v=9"></script>
+  <script src="js/controllers/facility-controller.js?v=12"></script>
+  <script src="js/controllers/vehicle-controller.js?v=12"></script>
+  <script src="js/controllers/department-controller.js?v=12"></script>
+  <script src="js/controllers/special-booking-controller.js?v=12"></script>
+  <script src="js/controllers/settings-controller.js?v=12"></script>
+  <script src="js/controllers/account-controller.js?v=12"></script>
+  <script src="js/controllers/activity-log-controller.js?v=12"></script>
+  <script src="js/controllers/data-management-controller.js?v=12"></script>
+  <script src="js/controllers/dashboard-controller.js?v=12"></script>
 
   <!-- Vue 3 Reports App -->
-  <script src="js/vue-apps/reports-app.js?v=9"></script>
+  <script src="js/vue-apps/reports-app.js?v=12"></script>
 </body>
 </html>

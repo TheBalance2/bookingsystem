@@ -54,6 +54,38 @@
   </div>
 
   <!-- ============================================================
+       APPROVED PDF FORM DOWNLOAD SECTION (Shown when opened via ?form=... or ?pdf=...)
+       ============================================================ -->
+  <div class="container" id="emailPdfDownloadSection" style="display:none; max-width:640px; margin-top:var(--space-lg); margin-bottom:var(--space-xl);">
+    <div class="form-card" style="text-align:center; padding:var(--space-xl) var(--space-lg);">
+      <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(22,163,74,0.12); color:#15803d; border:1px solid rgba(22,163,74,0.3); padding:5px 14px; border-radius:999px; font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:var(--space-md);">
+        ✓ Approved Reservation Form
+      </div>
+      <h2 id="emailPdfCardTitle" style="margin-bottom:6px;">Official Request Form (PDF)</h2>
+      <p id="emailPdfCardSubtitle" class="form-subtitle" style="margin-bottom:var(--space-md);">Your reservation has been approved. Click the button below to download or view your official Request for the Use of Facilities, Vehicles &amp; Equipment form.</p>
+
+      <div class="reference-id" id="emailPdfRefId" style="margin:0 auto var(--space-md); max-width:280px;">—</div>
+
+      <div id="emailPdfSummaryBox" style="text-align:left; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:var(--radius-md); padding:14px 18px; margin-bottom:var(--space-lg); font-size:0.88rem; line-height:1.65; color:var(--navy);">
+        Loading reservation form details...
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px; align-items:center; max-width:380px; margin:0 auto;">
+        <button type="button" class="btn-download-pdf" id="emailDownloadPdfBtn" style="width:100%; justify-content:center;">
+          📥 Download Booking Form (PDF)
+        </button>
+        <button type="button" class="btn btn-outline" id="emailOpenPdfNewTabBtn" style="width:100%; justify-content:center;">
+          📄 View PDF Form in New Tab
+        </button>
+        <p id="emailPdfCopyNote" style="font-size:0.8rem; color:var(--gray-400); text-align:center; line-height:1.5; margin-top:6px;">
+          Please print the required copies of this form and secure the necessary signatures before your scheduled use.
+        </p>
+        <a href="index.html" class="btn btn-primary" style="margin-top:var(--space-xs); width:100%; justify-content:center;">Back to Home</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
        USER TYPE TOGGLE
        ============================================================ -->
   <div class="container">
@@ -753,20 +785,20 @@
   <script src="js/core/utils.js"></script>
 
   <!-- MVC Models -->
-  <script src="js/models/facility-model.js"></script>
-  <script src="js/models/classroom-model.js"></script>
-  <script src="js/models/vehicle-model.js"></script>
-  <script src="js/models/department-model.js"></script>
-  <script src="js/models/settings-model.js"></script>
-  <script src="js/models/booking-model.js"></script>
+  <script src="js/models/facility-model.js?v=12"></script>
+  <script src="js/models/classroom-model.js?v=12"></script>
+  <script src="js/models/vehicle-model.js?v=12"></script>
+  <script src="js/models/department-model.js?v=12"></script>
+  <script src="js/models/settings-model.js?v=12"></script>
+  <script src="js/models/booking-model.js?v=12"></script>
 
   <!-- MVC Services -->
-  <script src="js/services/address-service.js"></script>
-  <script src="js/services/pdf-service.js"></script>
-  <script src="js/services/email-service.js"></script>
+  <script src="js/services/address-service.js?v=12"></script>
+  <script src="js/services/pdf-service.js?v=12"></script>
+  <script src="js/services/email-service.js?v=12"></script>
 
   <!-- MVC Views & Controllers -->
-  <script src="js/views/booking-form-view.js"></script>
-  <script src="js/controllers/booking-controller.js"></script>
+  <script src="js/views/booking-form-view.js?v=12"></script>
+  <script src="js/controllers/booking-controller.js?v=12"></script>
 </body>
 </html>

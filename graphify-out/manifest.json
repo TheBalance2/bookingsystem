@@ -18,10 +18,10 @@
     "semantic_hash": "88aa36d15a1f8ab6f169c3254f2d5a7d"
   },
   "js/controllers/booking-controller.js": {
-    "mtime": 1794626774.082687,
-    "seen": 1795433508.546683,
-    "ast_hash": "81bc174666515779bd11ff7710612a75",
-    "semantic_hash": "81bc174666515779bd11ff7710612a75"
+    "mtime": 1795436416.941373,
+    "seen": 1795436600.9117563,
+    "ast_hash": "9c71de8f5e1226d4e0bc382c7a163741",
+    "semantic_hash": ""
   },
   "js/controllers/calendar-controller.js": {
     "mtime": 1794626774.1399698,
@@ -30,10 +30,10 @@
     "semantic_hash": "0a4256ba9c08fdb72ebbc137a61252f2"
   },
   "js/controllers/dashboard-controller.js": {
-    "mtime": 1794631273.2073388,
-    "seen": 1795433508.5466857,
-    "ast_hash": "1271bc93544ba23f1ceeb666f76c9970",
-    "semantic_hash": "1271bc93544ba23f1ceeb666f76c9970"
+    "mtime": 1795436417.0203717,
+    "seen": 1795436600.9117625,
+    "ast_hash": "a7057d536d12f8e496b2674399dc3e38",
+    "semantic_hash": ""
   },
   "js/controllers/data-management-controller.js": {
     "mtime": 1794631273.266566,
@@ -54,10 +54,10 @@
     "semantic_hash": "3ec9dc988871255abe754205d8bd26e5"
   },
   "js/controllers/settings-controller.js": {
-    "mtime": 1794573369.6987422,
-    "seen": 1795433508.5466902,
-    "ast_hash": "f8b89c1334469225ffb84178b3fb761b",
-    "semantic_hash": "f8b89c1334469225ffb84178b3fb761b"
+    "mtime": 1795435228.081122,
+    "seen": 1795435649.87701,
+    "ast_hash": "ced279f98b01606c8556596a50bbfc57",
+    "semantic_hash": ""
   },
   "js/controllers/special-booking-controller.js": {
     "mtime": 1794577663.3451068,
@@ -72,10 +72,10 @@
     "semantic_hash": "ce2933c494de4b8a71669fc65f2c5ada"
   },
   "js/core/firebase-config.js": {
-    "mtime": 1794493702.1960452,
-    "seen": 1795433508.5466938,
-    "ast_hash": "3c02cac20523020c90700261ec189369",
-    "semantic_hash": "3c02cac20523020c90700261ec189369"
+    "mtime": 1795436585.4455998,
+    "seen": 1795436600.9117765,
+    "ast_hash": "95e6b8eeda453b49788c0e2e226ef3da",
+    "semantic_hash": ""
   },
   "js/core/idle-timeout.js": {
     "mtime": 1794626767.119079,
@@ -114,10 +114,10 @@
     "semantic_hash": "3bbc252001e19508f8aa64ff04479fd8"
   },
   "js/models/booking-model.js": {
-    "mtime": 1794629107.8852944,
-    "seen": 1795433508.5467012,
-    "ast_hash": "6af7ff15aa7a42a361868558ca058a50",
-    "semantic_hash": "6af7ff15aa7a42a361868558ca058a50"
+    "mtime": 1795436417.0553722,
+    "seen": 1795436600.9117897,
+    "ast_hash": "67ddb3f0874876da2da8562ad8d688c9",
+    "semantic_hash": ""
   },
   "js/models/classroom-model.js": {
     "mtime": 1794534959.969317,
@@ -168,10 +168,10 @@
     "semantic_hash": "5b4c8bad2c5cfaa2017fd19da7c50c5b"
   },
   "js/services/email-service.js": {
-    "mtime": 1794628668.8910482,
-    "seen": 1795433508.5467114,
-    "ast_hash": "4522dae988606976b259eef3b64c215b",
-    "semantic_hash": "4522dae988606976b259eef3b64c215b"
+    "mtime": 1795436417.0953746,
+    "seen": 1795436600.911807,
+    "ast_hash": "42c96f7eb26a2ddf2505e187fe8bf139",
+    "semantic_hash": ""
   },
   "js/services/notification-service.js": {
     "mtime": 1794493702.2030451,
@@ -180,10 +180,10 @@
     "semantic_hash": "01db585ad54b0469c017089dc2bbe53c"
   },
   "js/services/pdf-service.js": {
-    "mtime": 1794542179.792778,
-    "seen": 1795433508.5467136,
-    "ast_hash": "8bef065ea055ba607ce548b0558c3609",
-    "semantic_hash": "8bef065ea055ba607ce548b0558c3609"
+    "mtime": 1795436592.5490327,
+    "seen": 1795436600.9118104,
+    "ast_hash": "39a20eee49587c6eb967cc11618a4924",
+    "semantic_hash": ""
   },
   "js/views/admin-crud-view.js": {
     "mtime": 1794626774.5329351,
@@ -204,10 +204,10 @@
     "semantic_hash": "e58a68c35f09ae0b40dd8d94fbfdac3b"
   },
   "js/views/dashboard-view.js": {
-    "mtime": 1794631273.3125794,
-    "seen": 1795433508.5467176,
-    "ast_hash": "9e15dc89fa28c8e815c28264718a1351",
-    "semantic_hash": "9e15dc89fa28c8e815c28264718a1351"
+    "mtime": 1795435228.253937,
+    "seen": 1795435649.877058,
+    "ast_hash": "b5f40471fccd08d77f042a5db50a7e3b",
+    "semantic_hash": ""
   },
   "js/views/ui-view.js": {
     "mtime": 1794626774.5735922,
@@ -246,10 +246,10 @@
     "semantic_hash": "98087aedd18375666dbb093c859b2949"
   },
   "FACILITY_IN_CHARGE_MANUAL.md": {
-    "mtime": 1794895398.9645627,
-    "seen": 1795433508.546725,
-    "ast_hash": "2217791a8d30258ada5334ebd0c58753",
-    "semantic_hash": "2217791a8d30258ada5334ebd0c58753"
+    "mtime": 1795435227.8406703,
+    "seen": 1795435649.8770714,
+    "ast_hash": "4d2373c512268ab0d127a99a2e098bbd",
+    "semantic_hash": ""
   },
   "README.md": {
     "mtime": 1794535057.8051481,
@@ -264,21 +264,39 @@
     "semantic_hash": "d54fb074e04f1fe6d54347f7b54149d1"
   },
   "booking.html": {
-    "mtime": 1794629107.6795013,
-    "seen": 1795433508.5467286,
-    "ast_hash": "4cfede3fe02f35be7e18f13b4e71813d",
-    "semantic_hash": "4cfede3fe02f35be7e18f13b4e71813d"
+    "mtime": 1795436416.8054066,
+    "seen": 1795436600.911836,
+    "ast_hash": "55e73da67b1910356b8d18197367613f",
+    "semantic_hash": ""
   },
   "dashboard.html": {
-    "mtime": 1794631273.1140125,
-    "seen": 1795433508.5467298,
-    "ast_hash": "f0e7861ac41ef8675ba351696775fe0e",
-    "semantic_hash": "f0e7861ac41ef8675ba351696775fe0e"
+    "mtime": 1795436416.8792686,
+    "seen": 1795436600.911838,
+    "ast_hash": "5abe58343621c5f8e8e0188048ee7dc6",
+    "semantic_hash": ""
   },
   "index.html": {
     "mtime": 1794629107.8377814,
     "seen": 1795433508.546731,
     "ast_hash": "bb25f24503694eb0cfd4e9a882f09686",
     "semantic_hash": "bb25f24503694eb0cfd4e9a882f09686"
+  },
+  "images/campus-bg.jpg": {
+    "mtime": 1778376071.6522868,
+    "seen": 1795435042.281134,
+    "ast_hash": "39463e9a6850e32f31f12d799973182d",
+    "semantic_hash": ""
+  },
+  "images/logo.jpg": {
+    "mtime": 1775509302.0,
+    "seen": 1795435042.2811356,
+    "ast_hash": "8005f46a4e929115fa1aaca9bff6a4ef",
+    "semantic_hash": ""
+  },
+  "images/sic-header-logo.png": {
+    "mtime": 315504000.0,
+    "seen": 1795435042.2811372,
+    "ast_hash": "ceda216fcebb1a1eb9101041a81bbc1c",
+    "semantic_hash": ""
   }
 }

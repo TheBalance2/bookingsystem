@@ -165,11 +165,12 @@ flowchart TD
    * The status switches to `Payment Under Review`, triggering an audio chime and notification badge in your dashboard.
 3. **Reviewing the Submission in Modal:**
    * Open the reservation details.
-   * Under **Letter of Intent**, click **View LOI (PDF)** or **Download LOI** to inspect their official written request.
+   * Under **Request for the Use of Facilities Form (PDF)**, click **Open PDF in New Tab** or **Download PDF** to view or print the generated standard request form.
+   * Under **Letter of Intent**, click **Open PDF in New Tab** or **Download PDF** to inspect their official written request.
    * Under **Payment Receipt**, click the receipt preview image to inspect the payment reference number, date, and amount in high-resolution full view.
 4. **Action:**
    * If valid: Click **Approve**.
-   * The system automatically generates and dispatches an official approval confirmation email to the client.
+   * The system automatically generates and dispatches an official approval confirmation email (with the downloadable Request Form PDF attached) to the client.
 
 ---
 
@@ -294,14 +295,14 @@ Located under **Booking ID Settings**:
 
 ### 9.2 Standard PDF Signatories
 Located under **PDF Signatories**:
-Customize the official names that automatically print on the unified Request Form (RFUFVE):
+Customize the official names that automatically print on the Request for the Use of Facilities Form (RFUFVE) based on whether the reservation is **Internal** or **External**:
 
-1. **Noted by:** *Facility In-charge* (Your name and title)
-2. **Verified by:** *Comptroller*
-3. **Endorsed by:** *General Admin Service Coordinator*
-4. **Approved by:** *Vice President for Administration & Finance*
+1. **Noted by:** *Facility In-charge* (Printed on both Internal & External forms)
+2. **Verified by:** *Comptroller* (Printed on both Internal & External forms)
+3. **Approved by (Internal Bookings):** *General Admin Service Coordinator* (Internal forms do not include the VP for Administration & Finance)
+4. **Approved by (External Bookings):** *Vice President for Administration & Finance* (External forms do not include the General Admin Service Coordinator)
 
-* **Live Interactive Preview:** As you edit names and designations, the preview box displays the exact 6-box signature layout printed at the bottom of official PDF forms.
+* **Dual Live Interactive Previews:** As you edit names and designations, two separate preview cards display the exact 5-line signature layouts for **Internal** and **External** PDF forms.
 * Click **Save Signatories** to apply changes immediately.
 
 ---

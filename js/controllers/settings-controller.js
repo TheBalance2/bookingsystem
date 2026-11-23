@@ -308,10 +308,12 @@
   const saveSignatoriesBtn         = document.getElementById('saveSignatoriesBtn');
   const revertSignatoriesBtn       = document.getElementById('revertSignatoriesBtn');
   const clearSignatoriesBtn        = document.getElementById('clearSignatoriesBtn');
-  const previewSigFacilitiesEl     = document.getElementById('previewSigFacilitiesInCharge');
-  const previewSigComptrollerEl    = document.getElementById('previewSigComptroller');
-  const previewSigGeneralAdminEl   = document.getElementById('previewSigGeneralAdmin');
-  const previewSigVpAdminFinanceEl = document.getElementById('previewSigVpAdminFinance');
+  const previewSigFacilitiesEl       = document.getElementById('previewSigFacilitiesInCharge');
+  const previewSigComptrollerEl      = document.getElementById('previewSigComptroller');
+  const previewSigGeneralAdminEl     = document.getElementById('previewSigGeneralAdmin');
+  const previewSigExtFacilitiesEl    = document.getElementById('previewSigExtFacilitiesInCharge');
+  const previewSigExtComptrollerEl   = document.getElementById('previewSigExtComptroller');
+  const previewSigVpAdminFinanceEl   = document.getElementById('previewSigVpAdminFinance');
 
   function renderPreviewSignatorySlot(el, value) {
     if (!el) return;
@@ -334,6 +336,8 @@
     renderPreviewSignatorySlot(previewSigFacilitiesEl, facVal);
     renderPreviewSignatorySlot(previewSigComptrollerEl, compVal);
     renderPreviewSignatorySlot(previewSigGeneralAdminEl, genVal);
+    renderPreviewSignatorySlot(previewSigExtFacilitiesEl, facVal);
+    renderPreviewSignatorySlot(previewSigExtComptrollerEl, compVal);
     renderPreviewSignatorySlot(previewSigVpAdminFinanceEl, vpVal);
   }
 

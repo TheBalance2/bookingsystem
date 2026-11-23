@@ -731,13 +731,14 @@
           status:           'Pending'
         });
 
-        PdfService.generateInternalBookingPDF({
+        const internalBookingData = {
           referenceId:      refId,
           userType:         'Internal',
           firstName,
           lastName,
           middleInitial,
           name:             combinedName,
+          contactPerson:    combinedName,
           department:       finalDepartment,
           parentDepartment: departmentRaw,
           collegeSchool:    collegeSchool || '',
@@ -761,7 +762,10 @@
           destination,
           considerations,
           dateSubmitted:    filingDateStr
-        });
+        };
+
+        PdfService.generateInternalBookingPDF(internalBookingData);
+        EmailService.sendSubmissionConfirmation(internalBookingData);
 
         bookingRefId.textContent = refId;
         successModal.classList.add('visible');
@@ -992,6 +996,93 @@
       PdfService.downloadLastInternalPDF(bookingRefId ? bookingRefId.textContent : 'booking');
     });
   }
+
+  // ---- Direct PDF Form Download / View Page from Approval Email Link (?form=... or ?pdf=...) ----
+  (async function handleEmailPdfDownloadLink() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const formDocId = params.get('form');
+      const pdfToken  = params.get('pdf');
+      if (!formDocId && !pdfToken) return;
+
+      const emailPdfSection      = document.getElementById('emailPdfDownloadSection');
+      const userTypeToggleEl     = document.getElementById('userTypeToggle');
+      const pageHeaderTitleEl    = document.querySelector('.page-header h1');
+      const pageHeaderSubEl      = document.querySelector('.page-header p');
+      const emailPdfRefIdEl      = document.getElementById('emailPdfRefId');
+      const emailPdfSummaryBoxEl = document.getElementById('emailPdfSummaryBox');
+      const emailDownloadPdfBtn  = document.getElementById('emailDownloadPdfBtn');
+      const emailOpenPdfNewTabBtn = document.getElementById('emailOpenPdfNewTabBtn');
+      const emailPdfCopyNoteEl   = document.getElementById('emailPdfCopyNote');
+
+      // Switch page into dedicated PDF Form Download mode
+      if (userTypeToggleEl) userTypeToggleEl.style.display = 'none';
+      if (internalForm) internalForm.style.display = 'none';
+      if (externalForm) externalForm.style.display = 'none';
+      if (receiptUploadSection) receiptUploadSection.style.display = 'none';
+      if (emailPdfSection) emailPdfSection.style.display = 'block';
+      if (pageHeaderTitleEl) pageHeaderTitleEl.textContent = 'Download Approved Booking Form';
+      if (pageHeaderSubEl) pageHeaderSubEl.textContent = 'View or download your official San Isidro College Request for the Use of Facilities, Vehicles & Equipment PDF.';
+
+      let decodedBooking = null;
+      if (pdfToken && window.PdfService && typeof PdfService.decodeBookingPdfLinkPayload === 'function') {
+        decodedBooking = PdfService.decodeBookingPdfLinkPayload(pdfToken);
+      }
+      if (!decodedBooking && formDocId && window.BookingModel && typeof BookingModel.getApprovedPdfPayload === 'function') {
+        decodedBooking = await BookingModel.getApprovedPdfPayload(formDocId);
+      }
+
+      if (!decodedBooking) {
+        if (emailPdfSummaryBoxEl) {
+          emailPdfSummaryBoxEl.innerHTML = '<p style="color:var(--danger); margin:0; text-align:center;">Could not load the booking form details from this link. Please check that you opened the complete link from your approval email.</p>';
+        }
+        if (emailDownloadPdfBtn) emailDownloadPdfBtn.disabled = true;
+        if (emailOpenPdfNewTabBtn) emailOpenPdfNewTabBtn.disabled = true;
+        return;
+      }
+
+      if (emailPdfRefIdEl) {
+        emailPdfRefIdEl.textContent = decodedBooking.referenceId || '—';
+      }
+
+      const isExternal = decodedBooking.userType === 'External';
+      const requester  = decodedBooking.name || decodedBooking.contactPerson || '—';
+      const location   = Utils.getBookingLocation(decodedBooking, decodedBooking.facility || '—');
+      const dateStr    = decodedBooking.date || Utils.formatDateRange(decodedBooking.startDate, decodedBooking.endDate) || '—';
+      const timeStr    = (decodedBooking.startTime && decodedBooking.endTime)
+        ? `${Utils.formatTime12(decodedBooking.startTime)} – ${Utils.formatTime12(decodedBooking.endTime)}`
+        : '—';
+
+      if (emailPdfSummaryBoxEl) {
+        emailPdfSummaryBoxEl.innerHTML = `
+          <div><strong>Requester:</strong> ${Utils.escapeHtml(requester)} (${Utils.escapeHtml(decodedBooking.userType || 'Internal')})</div>
+          <div><strong>Facility / Vehicle:</strong> ${Utils.escapeHtml(location)}</div>
+          <div><strong>Date &amp; Time:</strong> ${Utils.escapeHtml(dateStr)} | ${Utils.escapeHtml(timeStr)}</div>
+          ${decodedBooking.purpose ? `<div><strong>Purpose:</strong> ${Utils.escapeHtml(decodedBooking.purpose)}</div>` : ''}
+          ${decodedBooking.assignedDriverName ? `<div><strong>Assigned Driver:</strong> ${Utils.escapeHtml(decodedBooking.assignedDriverName)}${decodedBooking.assignedDriverPhone ? ' (' + Utils.escapeHtml(decodedBooking.assignedDriverPhone) + ')' : ''}</div>` : ''}
+        `;
+      }
+
+      if (emailPdfCopyNoteEl) {
+        emailPdfCopyNoteEl.innerHTML = isExternal
+          ? 'Please print and accomplish <strong>FOUR (4) COPIES</strong> of this form (Requesting Person, School Guard, Facility In-Charge, Comptroller) and attach the <strong>ORIGINAL COPY of the Letter of Intent</strong>.'
+          : 'Please print and accomplish <strong>TWO (2) COPIES</strong> of this form (Requesting Person, Facility In-Charge) and secure the necessary approvals before the scheduled use.';
+      }
+
+      if (emailDownloadPdfBtn) {
+        emailDownloadPdfBtn.onclick = () => {
+          PdfService.downloadBookingPdf(decodedBooking);
+        };
+      }
+      if (emailOpenPdfNewTabBtn) {
+        emailOpenPdfNewTabBtn.onclick = () => {
+          PdfService.openBookingPdfInNewTab(decodedBooking);
+        };
+      }
+    } catch (err) {
+      Logger.warn(LAYER, 'Could not process email PDF download link:', err);
+    }
+  })();
 
   // ---- Receipt Upload ----
   const receiptFileInput = document.getElementById('receiptFileInput');

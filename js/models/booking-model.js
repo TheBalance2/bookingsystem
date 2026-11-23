@@ -369,8 +369,13 @@
 
         if (updated) {
           try {
+            const publicData = toPublicSchedule(updated);
+            if (newStatus === 'Approved' && window.PdfService && typeof PdfService.encodeBookingPdfLinkPayload === 'function') {
+              publicData.pdfFormToken = PdfService.encodeBookingPdfLinkPayload(updated);
+              publicData.referenceId  = String(updated.referenceId || '');
+            }
             await db.collection(PUBLIC_SCHEDULE_COLLECTION).doc(docId).set(
-              toPublicSchedule(updated),
+              publicData,
               { merge: true }
             );
           } catch (mirrorErr) {
@@ -382,6 +387,28 @@
         Logger.error(LAYER, 'Status update failed:', err);
         throw err;
       }
+    },
+
+    async getApprovedPdfPayload(docId) {
+      if (!docId) return null;
+      try {
+        const snap = await db.collection(PUBLIC_SCHEDULE_COLLECTION).doc(docId).get();
+        if (snap.exists) {
+          const data = snap.data() || {};
+          if (data.pdfFormToken && window.PdfService && typeof PdfService.decodeBookingPdfLinkPayload === 'function') {
+            const decoded = PdfService.decodeBookingPdfLinkPayload(data.pdfFormToken);
+            if (decoded) {
+              return { id: docId, ...decoded };
+            }
+          }
+          if (data.status === 'Approved') {
+            return { id: docId, ...data };
+          }
+        }
+      } catch (err) {
+        Logger.warn(LAYER, 'Could not load approved PDF payload from public_schedule:', err);
+      }
+      return null;
     },
 
     async remove(docId, hasReceipt = false, hasLetterOfIntent = false, lookupKey = '') {
