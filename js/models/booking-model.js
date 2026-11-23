@@ -391,6 +391,7 @@
 
     async getApprovedPdfPayload(docId) {
       if (!docId) return null;
+      let fallbackPublicData = null;
       try {
         const snap = await db.collection(PUBLIC_SCHEDULE_COLLECTION).doc(docId).get();
         if (snap.exists) {
@@ -402,13 +403,23 @@
             }
           }
           if (data.status === 'Approved') {
-            return { id: docId, ...data };
+            fallbackPublicData = { id: docId, ...data };
           }
         }
       } catch (err) {
-        Logger.warn(LAYER, 'Could not load approved PDF payload from public_schedule:', err);
+        Logger.info(LAYER, 'public_schedule read unavailable for PDF form, trying bookings fallback:', err?.code || err);
       }
-      return null;
+
+      try {
+        const bookingSnap = await db.collection('bookings').doc(docId).get();
+        if (bookingSnap.exists) {
+          return { id: bookingSnap.id, ...bookingSnap.data() };
+        }
+      } catch (err) {
+        Logger.info(LAYER, 'Direct bookings doc read restricted (expected for unauthenticated users):', err?.code || err);
+      }
+
+      return fallbackPublicData;
     },
 
     async remove(docId, hasReceipt = false, hasLetterOfIntent = false, lookupKey = '') {

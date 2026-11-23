@@ -998,8 +998,8 @@
     let base = (typeof window !== 'undefined' && window.APP_PUBLIC_BASE_URL) || 'https://thebalance2.github.io/bookingsystem/';
     if (typeof window !== 'undefined' && window.location) {
       const host = (window.location.hostname || '').toLowerCase();
-      // If already running on GitHub Pages or custom domain, use the current active origin & path
-      if (host.endsWith('github.io') || host.endsWith('web.app') || host.endsWith('firebaseapp.com')) {
+      // If running on any live hosted domain (GitHub Pages, Firebase, Hostinger, etc.), use the active origin & path
+      if (host && host !== 'localhost' && host !== '127.0.0.1') {
         const basePath = window.location.pathname.replace(/\/[^/]*$/, '/');
         base = `${window.location.origin}${basePath}`;
       }

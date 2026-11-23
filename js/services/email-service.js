@@ -26,7 +26,21 @@
   function isAllowedOrigin() {
     if (typeof window === 'undefined' || !window.location) return false;
     const host = String(window.location.hostname || '').toLowerCase();
-    return ALLOWED_HOSTS.has(host) || host.endsWith('.github.io') || host.endsWith('.web.app') || host.endsWith('.firebaseapp.com');
+    if (!host) return false;
+    let configuredHost = '';
+    try {
+      if (window.APP_PUBLIC_BASE_URL) {
+        configuredHost = new URL(window.APP_PUBLIC_BASE_URL).hostname.toLowerCase();
+      }
+    } catch (_) {}
+    return (
+      ALLOWED_HOSTS.has(host) ||
+      (configuredHost && host === configuredHost) ||
+      host.endsWith('.github.io') ||
+      host.endsWith('.web.app') ||
+      host.endsWith('.firebaseapp.com') ||
+      host.endsWith('.hostingersite.com')
+    );
   }
 
   function canSendPublicSubmissionEmail() {
