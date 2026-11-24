@@ -146,9 +146,35 @@
 
     const isInternal = data.userType === 'Internal';
     const recipientName = (data.contactPerson || data.name) || Utils.getBookingRequesterName(data);
+
+    // For External users, include the PDF file attachment & download link early in the submission email
+    // so they can have their Office Head sign it and bring it to the Business Office for payment assessment.
+    let pdfBase64 = '';
+    let pdfFilename = '';
+    let pdfDownloadUrl = '';
+    if (!isInternal && window.PdfService) {
+      if (typeof PdfService.buildBookingPdfDownloadUrl === 'function') {
+        pdfDownloadUrl = PdfService.buildBookingPdfDownloadUrl(data);
+      }
+      if (typeof PdfService.getBookingPdfDataUri === 'function') {
+        try {
+          pdfBase64 = await PdfService.getBookingPdfDataUri(data);
+        } catch (err) {
+          Logger.warn(LAYER, 'Could not build External PDF attachment for submission email:', err);
+        }
+      }
+      if (typeof PdfService.getBookingPdfFilename === 'function') {
+        pdfFilename = PdfService.getBookingPdfFilename('External', data.referenceId);
+      }
+    }
+
+    const extPdfLinkLine = (!isInternal && pdfDownloadUrl)
+      ? `\n\nClick the link below to open and download your Official Request Form (PDF):\n${pdfDownloadUrl}`
+      : '';
+
     const submissionMessage = isInternal
-      ? 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Please print TWO (2) copies of the downloaded PDF booking form and route it to the respective offices for signatures. You will receive an email notification once your reservation is approved.'
-      : 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Please print the downloaded PDF booking summary and present it to the Business Office of San Isidro College for payment assessment. After paying, return to the booking page and upload your receipt to confirm your reservation.';
+      ? 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully and is currently pending review. You will receive an email notification with your official Request Form (PDF) once your reservation is approved.'
+      : 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Your Official Request for the Use of Facilities Form (PDF) is attached to this email so you can secure your Office Head\'s signature early. Please print FOUR (4) copies of the form, attach the original copy of your Letter of Intent, and present them to the Business Office of San Isidro College for payment assessment. After paying, return to the booking page and upload your receipt to confirm your reservation.' + extPdfLinkLine;
 
     const cleanFacility = Utils.getBookingLocation(data, data.facility || '—').replace(/\s*\/\s*/g, ' - ');
     const payload = {
@@ -165,6 +191,11 @@
       status:            'Booking Submitted',
       reference_id:      data.referenceId,
       message:           submissionMessage,
+      pdf_download_url:  pdfDownloadUrl,
+      download_link:     pdfDownloadUrl,
+      pdf_url:           pdfDownloadUrl,
+      pdf_base64:        pdfBase64,
+      pdf_filename:      pdfFilename || (isInternal ? '' : 'External-SIC-Request-Form.pdf'),
       booking_form:      '',
       booking_form_name: ''
     };

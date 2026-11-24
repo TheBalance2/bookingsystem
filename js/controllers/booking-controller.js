@@ -1021,7 +1021,7 @@
       if (externalForm) externalForm.style.display = 'none';
       if (receiptUploadSection) receiptUploadSection.style.display = 'none';
       if (emailPdfSection) emailPdfSection.style.display = 'block';
-      if (pageHeaderTitleEl) pageHeaderTitleEl.textContent = 'Download Approved Booking Form';
+      if (pageHeaderTitleEl) pageHeaderTitleEl.textContent = 'Download Official Booking Form';
       if (pageHeaderSubEl) pageHeaderSubEl.textContent = 'View or download your official San Isidro College Request for the Use of Facilities, Vehicles & Equipment PDF.';
 
       let decodedBooking = null;

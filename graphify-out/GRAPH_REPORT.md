@@ -1,7 +1,7 @@
 # Graph Report - bookingsystem  (2026-11-24)
 
 ## Corpus Check
-- 44 files · ~65,520 words
+- 44 files · ~65,698 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: .css 7, (none) 1, .rules 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `06d4d838`
+- Built from commit: `62d7b80c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -81,12 +81,12 @@
   FACILITY_IN_CHARGE_MANUAL.md → js/models/booking-model.js
 - `Reservation Booking Page` --references--> `San Isidro College Logo`  [EXTRACTED]
   booking.html → images/logo.jpg
+- `Staff Portal Login Page` --references--> `San Isidro College Logo`  [EXTRACTED]
+  admin.html → images/logo.jpg
 - `Landing Hero Section (#hero)` --references--> `San Isidro College Campus Background Image`  [EXTRACTED]
   index.html → images/campus-bg.jpg
 - `Public Landing Page HTML` --references--> `San Isidro College Logo`  [EXTRACTED]
   index.html → images/logo.jpg
-- `Staff Portal Login Page` --references--> `San Isidro College Logo`  [EXTRACTED]
-  admin.html → images/logo.jpg
 
 ## Import Cycles
 - None detected.

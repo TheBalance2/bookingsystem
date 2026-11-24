@@ -141,22 +141,25 @@ if ($vehicle !== '' && $vehicle !== '—' && strtolower($vehicle) !== 'none') {
 }
 
 $pdfActionHtml = '';
-if ($status === 'Approved' && $pdfUrl !== '') {
+if ($pdfUrl !== '' || $pdfBinary !== null) {
     $attachmentNotice = $pdfBinary !== null
-        ? '<p style="margin:10px 0 0;font-size:12px;color:#166534;"><strong>Note:</strong> A copy of your Official Request Form PDF (<code>' . $esc($pdfFilename) . '</code>) is also attached directly to this email.</p>'
+        ? '<p style="margin:10px 0 0;font-size:12px;color:#166534;"><strong>Note:</strong> A copy of your Official Request Form PDF (<code>' . $esc($pdfFilename) . '</code>) is attached directly to this email.</p>'
+        : '';
+    $buttonHtml = $pdfUrl !== ''
+        ? '<a href="' . $esc($pdfUrl) . '" target="_blank" rel="noopener" style="display:inline-block;padding:11px 22px;background-color:#0c165a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;border-radius:6px;">Open &amp; Download Official Request Form (PDF)</a>
+      <p style="margin:10px 0 0;font-size:12px;color:#4b5563;word-break:break-all;">Direct Link: <a href="' . $esc($pdfUrl) . '" style="color:#1d4ed8;">' . $esc($pdfUrl) . '</a></p>'
         : '';
     $pdfActionHtml = '
     <div style="margin:22px 0;padding:18px;background-color:#f0f5ff;border:1px solid #bfdbfe;border-radius:8px;text-align:center;">
       <p style="margin:0 0 12px;font-size:14px;color:#1e3a8a;font-weight:600;">Official Request for the Use of Facilities Form (PDF)</p>
-      <a href="' . $esc($pdfUrl) . '" target="_blank" rel="noopener" style="display:inline-block;padding:11px 22px;background-color:#0c165a;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;border-radius:6px;">Open &amp; Download Official Request Form (PDF)</a>
-      <p style="margin:10px 0 0;font-size:12px;color:#4b5563;word-break:break-all;">Direct Link: <a href="' . $esc($pdfUrl) . '" style="color:#1d4ed8;">' . $esc($pdfUrl) . '</a></p>
+      ' . $buttonHtml . '
       ' . $attachmentNotice . '
     </div>';
 }
 
 // Format paragraph message without duplicate raw URL line in HTML if button is rendered
 $cleanHtmlMessage = $messageText;
-if ($status === 'Approved' && $pdfUrl !== '') {
+if ($pdfUrl !== '') {
     $cleanHtmlMessage = preg_replace('/\s*Click the link below to open and download your Official Request Form \(PDF\):\s*' . preg_quote($pdfUrl, '/') . '/i', '', $cleanHtmlMessage);
 }
 

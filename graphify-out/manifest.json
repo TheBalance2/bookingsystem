@@ -18,9 +18,9 @@
     "semantic_hash": "88aa36d15a1f8ab6f169c3254f2d5a7d"
   },
   "js/controllers/booking-controller.js": {
-    "mtime": 1795436416.941373,
-    "seen": 1795436600.9117563,
-    "ast_hash": "9c71de8f5e1226d4e0bc382c7a163741",
+    "mtime": 1795526240.1219146,
+    "seen": 1795526273.4430637,
+    "ast_hash": "e4a61199177b6bbe12ec5b98495b073e",
     "semantic_hash": ""
   },
   "js/controllers/calendar-controller.js": {
@@ -168,9 +168,9 @@
     "semantic_hash": "5b4c8bad2c5cfaa2017fd19da7c50c5b"
   },
   "js/services/email-service.js": {
-    "mtime": 1795524020.9628348,
-    "seen": 1795524067.8978121,
-    "ast_hash": "56fb36c2f9d63a6faa887fb02f958de7",
+    "mtime": 1795526238.1229572,
+    "seen": 1795526273.443115,
+    "ast_hash": "498932a64924b5521859e7e80eeb08bc",
     "semantic_hash": ""
   },
   "js/services/notification-service.js": {
@@ -264,15 +264,15 @@
     "semantic_hash": "d54fb074e04f1fe6d54347f7b54149d1"
   },
   "booking.html": {
-    "mtime": 1795524022.5638874,
-    "seen": 1795524067.8978362,
-    "ast_hash": "26fcd5b9b7a132f4859de18863a3aa52",
+    "mtime": 1795526241.3121347,
+    "seen": 1795526273.4431453,
+    "ast_hash": "80054f839ffd9e59a15ce8694973d5b1",
     "semantic_hash": ""
   },
   "dashboard.html": {
-    "mtime": 1795524025.2533672,
-    "seen": 1795524067.8978379,
-    "ast_hash": "468272af8548d2ef9d0001cf48a5ad8c",
+    "mtime": 1795526242.2484224,
+    "seen": 1795526273.4431472,
+    "ast_hash": "ad2f07f96baf7299d5a89b75f84e5a95",
     "semantic_hash": ""
   },
   "index.html": {
@@ -300,9 +300,9 @@
     "semantic_hash": ""
   },
   "api/send-email.php": {
-    "mtime": 1795524015.23736,
-    "seen": 1795524067.897754,
-    "ast_hash": "5ee3b60a64d6bd3eef6b64d5838fd9e9",
+    "mtime": 1795526239.0874038,
+    "seen": 1795526273.4430418,
+    "ast_hash": "0df15282cc3952100c2e23f3932c340f",
     "semantic_hash": ""
   }
 }
