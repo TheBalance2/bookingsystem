@@ -1,8 +1,10 @@
 /* ============================================================
    Email Service — San Isidro College Reservation System
    Service Layer (js/services/email-service.js)
-   Centralizes EmailJS initialization and email dispatch for
-   submission confirmations, approvals, and rejections.
+   Dispatches reservation emails primarily through Hostinger's
+   native PHP Mail/SMTP endpoint (api/send-email.php) with rich
+   HTML + direct PDF attachments, falling back to EmailJS only
+   if PHP mail is unreachable.
    ============================================================ */
 
 (function () {
@@ -18,10 +20,10 @@
     'sic-booking-system.web.app',
     'sic-booking-system.firebaseapp.com'
   ]);
-  const SUBMISSION_COOLDOWN_MS = 30 * 1000; // 30s cooldown between public confirmation emails
-  const MAX_SESSION_SUBMISSION_EMAILS = 5;
-  const SESSION_COUNT_KEY = 'sic_emailjs_sub_count';
-  const SESSION_LAST_TS_KEY = 'sic_emailjs_last_ts';
+  const SUBMISSION_COOLDOWN_MS = 15 * 1000; // 15s cooldown between duplicate clicks
+  const MAX_SESSION_SUBMISSION_EMAILS = 25;
+  const SESSION_COUNT_KEY = 'sic_email_sub_count';
+  const SESSION_LAST_TS_KEY = 'sic_email_last_ts';
 
   let initialized = false;
 
@@ -62,78 +64,121 @@
 
   function init() {
     if (initialized) return;
-    if (typeof emailjs === 'undefined' || !isAllowedOrigin()) return;
+    if (!isAllowedOrigin()) return;
     try {
-      emailjs.init(EMAILJS_PUBLIC_KEY);
+      if (typeof emailjs !== 'undefined' && typeof EMAILJS_PUBLIC_KEY !== 'undefined') {
+        emailjs.init(EMAILJS_PUBLIC_KEY);
+      }
       initialized = true;
     } catch (err) {
-      Logger.warn(LAYER, 'EmailJS not loaded or not configured:', err);
+      Logger.warn(LAYER, 'EmailJS fallback init warning:', err);
     }
   }
 
-  function isConfigured() {
-    return Boolean(
-      isAllowedOrigin() &&
-      EMAILJS_SERVICE_ID &&
-      !EMAILJS_SERVICE_ID.startsWith('YOUR_') &&
-      typeof emailjs !== 'undefined'
-    );
+  function getHostingerEmailEndpoint() {
+    if (typeof window !== 'undefined' && window.location) {
+      const host = (window.location.hostname || '').toLowerCase();
+      // When running on Hostinger domain directly, use relative endpoint
+      if (host === 'sicreservations.com' || host === 'www.sicreservations.com' || host.endsWith('.hostingersite.com')) {
+        return 'api/send-email.php';
+      }
+    }
+    const base = (typeof window !== 'undefined' && window.APP_PUBLIC_BASE_URL) || 'https://sicreservations.com/';
+    return (base.endsWith('/') ? base : base + '/') + 'api/send-email.php';
   }
 
-  function sendSubmissionConfirmation(data) {
+  async function sendViaHostingerPhp(payload) {
+    if (typeof fetch !== 'function') return false;
+    const endpoint = getHostingerEmailEndpoint();
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        Logger.warn(LAYER, 'Hostinger email endpoint returned HTTP ' + response.status + ':', errData.error || '');
+        return false;
+      }
+      const res = await response.json();
+      if (res && res.ok) {
+        Logger.info(LAYER, 'Email sent via Hostinger (' + (res.provider || 'php') + ') to', payload.to_email);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      Logger.warn(LAYER, 'Hostinger PHP email endpoint unreachable, checking fallback:', err);
+      return false;
+    }
+  }
+
+  function sendViaEmailJsFallback(templateId, params) {
     init();
-    if (!isConfigured()) {
-      Logger.info(LAYER, 'EmailJS not configured or unauthorized origin — skipping confirmation email.');
+    if (
+      typeof emailjs === 'undefined' ||
+      typeof EMAILJS_SERVICE_ID === 'undefined' ||
+      !EMAILJS_SERVICE_ID ||
+      EMAILJS_SERVICE_ID.startsWith('YOUR_')
+    ) {
       return;
     }
+    try {
+      const cleanParams = { ...params };
+      delete cleanParams.pdf_base64;
+      delete cleanParams.pdf_filename;
+      emailjs.send(EMAILJS_SERVICE_ID, templateId, cleanParams).then(() => {
+        Logger.info(LAYER, 'Email sent via EmailJS fallback to', params.to_email);
+      }).catch(err => {
+        Logger.warn(LAYER, 'EmailJS fallback send failed:', err);
+      });
+    } catch (err) {
+      Logger.warn(LAYER, 'EmailJS fallback error:', err);
+    }
+  }
+
+  async function sendSubmissionConfirmation(data) {
+    if (!isAllowedOrigin() || !data || !data.email) return;
     if (!canSendPublicSubmissionEmail()) {
-      Logger.warn(LAYER, 'EmailJS rate limit reached for this session — skipping duplicate confirmation email.');
+      Logger.warn(LAYER, 'Rate limit reached for this session — skipping duplicate confirmation email.');
       return;
     }
 
-    const isInternal = data && data.userType === 'Internal';
-    const recipientName = (data && (data.contactPerson || data.name)) || Utils.getBookingRequesterName(data);
+    const isInternal = data.userType === 'Internal';
+    const recipientName = (data.contactPerson || data.name) || Utils.getBookingRequesterName(data);
     const submissionMessage = isInternal
       ? 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Please print TWO (2) copies of the downloaded PDF booking form and route it to the respective offices for signatures. You will receive an email notification once your reservation is approved.'
       : 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Please print the downloaded PDF booking summary and present it to the Business Office of San Isidro College for payment assessment. After paying, return to the booking page and upload your receipt to confirm your reservation.';
 
     const cleanFacility = Utils.getBookingLocation(data, data.facility || '—').replace(/\s*\/\s*/g, ' - ');
-    try {
-      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_APPROVE, {
-        to_email:          data.email,
-        to_name:           recipientName,
-        facility:          cleanFacility,
-        vehicle:           Utils.formatVehicleList(data.vehicle) || '—',
-        driver_name:       '—',
-        driver_phone:      '—',
-        date:              data.date,
-        start_time:        Utils.formatTime12(data.startTime),
-        end_time:          Utils.formatTime12(data.endTime),
-        purpose:           data.purpose,
-        status:            'Booking Submitted',
-        reference_id:      data.referenceId,
-        message:           submissionMessage,
-        booking_form:      '',
-        booking_form_name: ''
-      }).then(() => {
-        Logger.info(LAYER, 'Confirmation email sent to', data.email);
-      }).catch(err => {
-        Logger.warn(LAYER, 'EmailJS confirmation send failed:', err);
-      });
-    } catch (err) {
-      Logger.warn(LAYER, 'EmailJS confirmation error:', err);
+    const payload = {
+      to_email:          data.email,
+      to_name:           recipientName,
+      facility:          cleanFacility,
+      vehicle:           Utils.formatVehicleList(data.vehicle) || '—',
+      driver_name:       '—',
+      driver_phone:      '—',
+      date:              data.date,
+      start_time:        Utils.formatTime12(data.startTime),
+      end_time:          Utils.formatTime12(data.endTime),
+      purpose:           data.purpose,
+      status:            'Booking Submitted',
+      reference_id:      data.referenceId,
+      message:           submissionMessage,
+      booking_form:      '',
+      booking_form_name: ''
+    };
+
+    const sent = await sendViaHostingerPhp(payload);
+    if (!sent && typeof EMAILJS_TEMPLATE_APPROVE !== 'undefined') {
+      sendViaEmailJsFallback(EMAILJS_TEMPLATE_APPROVE, payload);
     }
   }
 
-  function sendStatusNotification(bookingData, status, pdfAttachment = null) {
-    init();
-    if (!isConfigured()) {
-      Logger.info(LAYER, 'EmailJS not configured — skipping status email.');
-      return;
-    }
+  async function sendStatusNotification(bookingData, status, pdfAttachment = null) {
+    if (!isAllowedOrigin() || !bookingData || !bookingData.email) return;
 
-    const templateId = status === 'Approved' ? EMAILJS_TEMPLATE_APPROVE : EMAILJS_TEMPLATE_REJECT;
-    const isInternal = bookingData && bookingData.userType === 'Internal';
+    const isInternal = bookingData.userType === 'Internal';
     const driverInfoText = (status === 'Approved' && bookingData.assignedDriverName)
       ? ` Assigned Driver: ${bookingData.assignedDriverName}${bookingData.assignedDriverPhone ? ' (Contact: ' + bookingData.assignedDriverPhone + ')' : ''}.`
       : '';
@@ -156,8 +201,24 @@
       ? Utils.formatDateRange(bookingData.startDate, bookingData.endDate)
       : bookingData.date;
 
+    // Generate compact PDF (~14 KB) to attach directly to Hostinger email on Approval
+    let pdfBase64 = pdfAttachment || '';
+    let pdfFilename = '';
+    if (status === 'Approved' && window.PdfService) {
+      if (!pdfBase64 && typeof PdfService.getBookingPdfDataUri === 'function') {
+        try {
+          pdfBase64 = await PdfService.getBookingPdfDataUri(bookingData);
+        } catch (err) {
+          Logger.warn(LAYER, 'Could not build PDF attachment for email:', err);
+        }
+      }
+      if (typeof PdfService.getBookingPdfFilename === 'function') {
+        pdfFilename = PdfService.getBookingPdfFilename(bookingData.userType, bookingData.referenceId);
+      }
+    }
+
     const cleanFacility = Utils.getBookingLocation(bookingData).replace(/\s*\/\s*/g, ' - ');
-    const baseParams = {
+    const payload = {
       to_email:         bookingData.email,
       to_name:          bookingData.name || bookingData.contactPerson || Utils.getBookingRequesterName(bookingData),
       facility:         cleanFacility,
@@ -173,17 +234,15 @@
       message:          messageText,
       pdf_download_url: pdfDownloadUrl,
       download_link:    pdfDownloadUrl,
-      pdf_url:          pdfDownloadUrl
+      pdf_url:          pdfDownloadUrl,
+      pdf_base64:       pdfBase64,
+      pdf_filename:     pdfFilename || 'SIC-Request-Form.pdf'
     };
 
-    try {
-      emailjs.send(EMAILJS_SERVICE_ID, templateId, baseParams).then(() => {
-        Logger.info(LAYER, 'Status email sent successfully to', bookingData.email);
-      }).catch(err => {
-        Logger.warn(LAYER, 'EmailJS status send failed:', err);
-      });
-    } catch (err) {
-      Logger.warn(LAYER, 'EmailJS status error:', err);
+    const sent = await sendViaHostingerPhp(payload);
+    if (!sent && typeof EMAILJS_TEMPLATE_APPROVE !== 'undefined') {
+      const templateId = status === 'Approved' ? EMAILJS_TEMPLATE_APPROVE : EMAILJS_TEMPLATE_REJECT;
+      sendViaEmailJsFallback(templateId, payload);
     }
   }
 
@@ -193,4 +252,3 @@
     sendStatusNotification
   };
 })();
-
