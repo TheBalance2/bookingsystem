@@ -10,6 +10,8 @@
 
   const LAYER = 'EmailService';
   const ALLOWED_HOSTS = new Set([
+    'sicreservations.com',
+    'www.sicreservations.com',
     'thebalance2.github.io',
     'localhost',
     '127.0.0.1',

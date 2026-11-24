@@ -995,7 +995,7 @@
   }
 
   function buildBookingPdfDownloadUrl(bookingData) {
-    let base = (typeof window !== 'undefined' && window.APP_PUBLIC_BASE_URL) || 'https://thebalance2.github.io/bookingsystem/';
+    let base = (typeof window !== 'undefined' && window.APP_PUBLIC_BASE_URL) || 'https://sicreservations.com/';
     if (typeof window !== 'undefined' && window.location) {
       const host = (window.location.hostname || '').toLowerCase();
       // If running on any live hosted domain (GitHub Pages, Firebase, Hostinger, etc.), use the active origin & path

@@ -72,9 +72,9 @@
     "semantic_hash": "ce2933c494de4b8a71669fc65f2c5ada"
   },
   "js/core/firebase-config.js": {
-    "mtime": 1795436585.4455998,
-    "seen": 1795436600.9117765,
-    "ast_hash": "95e6b8eeda453b49788c0e2e226ef3da",
+    "mtime": 1795523242.992619,
+    "seen": 1795523282.344182,
+    "ast_hash": "4e1e95297f6bb12622b4a2f820158037",
     "semantic_hash": ""
   },
   "js/core/idle-timeout.js": {
@@ -114,8 +114,8 @@
     "semantic_hash": "3bbc252001e19508f8aa64ff04479fd8"
   },
   "js/models/booking-model.js": {
-    "mtime": 1795438441.0480585,
-    "seen": 1795438482.592844,
+    "mtime": 1795438627.1896608,
+    "seen": 1795523282.3441985,
     "ast_hash": "098fd693c363d971da07bdbbcb886a35",
     "semantic_hash": ""
   },
@@ -168,9 +168,9 @@
     "semantic_hash": "5b4c8bad2c5cfaa2017fd19da7c50c5b"
   },
   "js/services/email-service.js": {
-    "mtime": 1795438443.6991348,
-    "seen": 1795438482.5928583,
-    "ast_hash": "573f83367f056ca5b3c8b40f11921669",
+    "mtime": 1795523244.1796002,
+    "seen": 1795523282.344218,
+    "ast_hash": "32feec669b0072ab4628f4c33d7792ff",
     "semantic_hash": ""
   },
   "js/services/notification-service.js": {
@@ -180,9 +180,9 @@
     "semantic_hash": "01db585ad54b0469c017089dc2bbe53c"
   },
   "js/services/pdf-service.js": {
-    "mtime": 1795438442.298608,
-    "seen": 1795438482.5928614,
-    "ast_hash": "1242494b31a852ad9d2cb9f250550b34",
+    "mtime": 1795523245.5193295,
+    "seen": 1795523282.3442223,
+    "ast_hash": "bf11141c3d167aafbd3d92ccaa335fc7",
     "semantic_hash": ""
   },
   "js/views/admin-crud-view.js": {
@@ -264,14 +264,14 @@
     "semantic_hash": "d54fb074e04f1fe6d54347f7b54149d1"
   },
   "booking.html": {
-    "mtime": 1795438445.04681,
-    "seen": 1795438482.5928822,
+    "mtime": 1795438627.068663,
+    "seen": 1795523282.3442469,
     "ast_hash": "5e5d1834e436a984cac7c5b9af2dd9e9",
     "semantic_hash": ""
   },
   "dashboard.html": {
-    "mtime": 1795438446.4528134,
-    "seen": 1795438482.5928833,
+    "mtime": 1795438627.127663,
+    "seen": 1795523282.3442485,
     "ast_hash": "a94210ab27c99d2e9772089972de27fa",
     "semantic_hash": ""
   },
