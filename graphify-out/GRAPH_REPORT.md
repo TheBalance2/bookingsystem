@@ -1,17 +1,17 @@
-# Graph Report - bookingsystem  (2026-11-24)
+# Graph Report - bookingsystem  (2026-11-25)
 
 ## Corpus Check
-- 44 files · ~65,698 words
+- 44 files · ~65,822 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: .css 7, (none) 1, .rules 1)
 
 ## Summary
-- 542 nodes · 803 edges · 53 communities (37 shown, 16 thin omitted)
+- 542 nodes · 802 edges · 53 communities (37 shown, 16 thin omitted)
 - Extraction: 80% EXTRACTED · 20% INFERRED · 0% AMBIGUOUS · INFERRED: 159 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `62d7b80c`
+- Built from commit: `f21159c5`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -70,11 +70,11 @@
 3. `init()` - 15 edges
 4. `Public Landing Page HTML` - 15 edges
 5. `FIC Operational Manual & System Overview` - 13 edges
-6. `notify()` - 10 edges
-7. `buildStandardBookingPdf()` - 10 edges
+6. `buildStandardBookingPdf()` - 10 edges
+7. `notify()` - 10 edges
 8. `Sidebar Navigation Component` - 10 edges
 9. `Staff Portal Login Page` - 10 edges
-10. `init()` - 9 edges
+10. `buildBookingPdfDoc()` - 9 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Zero Double-Bookings Automated Conflict Detection` --conceptually_related_to--> `hasScheduleConflict()`  [INFERRED]
@@ -114,8 +114,8 @@ Cohesion: 0.13
 Nodes (13): applyDateRangeMinConstraints(), applyPrefillFacilityIfNeeded(), checkConflictAndRender(), handleExtLoiFileChange(), hasPdfMagicBytes(), isAllowedDate(), isPdfFile(), linkDateRange() (+5 more)
 
 ### Community 5 - "PDF Generation Service"
-Cohesion: 0.14
-Nodes (27): applySignatoriesData(), buildBookingPdfDoc(), buildBookingPdfDownloadUrl(), buildStandardBookingPdf(), drawSection2Row(), drawSubLabelValueRow(), decodeBookingPdfLinkPayload(), downloadBookingPdf() (+19 more)
+Cohesion: 0.13
+Nodes (26): applySignatoriesData(), buildBookingPdfDoc(), buildBookingPdfDownloadUrl(), buildStandardBookingPdf(), drawSection2Row(), decodeBookingPdfLinkPayload(), downloadBookingPdf(), downloadLastExternalPDF() (+18 more)
 
 ### Community 6 - "Booking Firestore Data Model"
 Cohesion: 0.17
@@ -243,7 +243,7 @@ Nodes (3): reports-app.js Vue 3 Application, Reports Generation Section (Vue 3),
 
 ## Knowledge Gaps
 - **62 isolated node(s):** `activity-log-model.js Data Model`, `admin-crud-view.js View Module`, `auth-model.js Data Model`, `Reservations Search & Filter Controls`, `booking-model.js Data Model` (+57 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 210 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 211 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions

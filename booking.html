@@ -701,12 +701,11 @@
   <div class="modal-overlay" id="successModal">
     <div class="modal">
       <h2>Reservation Submitted!</h2>
-      <p>Your reservation request has been received. Please download and print the booking form, and route it to the respective offices for signatures.</p>
+      <p>Your reservation request has been submitted and a confirmation email has been sent to your inbox.</p>
       <div class="reference-id" id="bookingRefId">—</div>
       <p style="font-size:0.82rem;color:var(--gray-300);margin-bottom:var(--space-md);">Save this reference ID for your records.</p>
       <div class="ext-success-actions">
-        <button class="btn-download-pdf" id="downloadInternalPdfBtn">📥 Download Booking Form</button>
-        <p style="font-size:0.8rem; color:var(--gray-400); max-width:340px; text-align:center; line-height:1.5;">Please print and accomplish <strong>TWO (2) COPIES</strong> of this form (Requesting Person, Facility In-Charge) and secure the necessary approvals before the scheduled use.</p>
+        <p style="font-size:0.8rem; color:var(--gray-400); max-width:340px; text-align:center; line-height:1.5;">Your request is now pending review by the <strong>Facility-In-Charge</strong>. Once approved, you will receive another email with your downloadable <strong>Official Request Form (PDF)</strong>.</p>
         <a href="index.html" class="btn btn-primary" style="margin-top:var(--space-sm);">Back to Home</a>
       </div>
     </div>
@@ -780,25 +779,25 @@
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4.4.1/dist/email.min.js"></script>
 
   <!-- MVC Core -->
-  <script src="js/core/firebase-config.js?v=16"></script>
-  <script src="js/core/logger.js?v=16"></script>
-  <script src="js/core/utils.js?v=16"></script>
+  <script src="js/core/firebase-config.js?v=17"></script>
+  <script src="js/core/logger.js?v=17"></script>
+  <script src="js/core/utils.js?v=17"></script>
 
   <!-- MVC Models -->
-  <script src="js/models/facility-model.js?v=16"></script>
-  <script src="js/models/classroom-model.js?v=16"></script>
-  <script src="js/models/vehicle-model.js?v=16"></script>
-  <script src="js/models/department-model.js?v=16"></script>
-  <script src="js/models/settings-model.js?v=16"></script>
-  <script src="js/models/booking-model.js?v=16"></script>
+  <script src="js/models/facility-model.js?v=17"></script>
+  <script src="js/models/classroom-model.js?v=17"></script>
+  <script src="js/models/vehicle-model.js?v=17"></script>
+  <script src="js/models/department-model.js?v=17"></script>
+  <script src="js/models/settings-model.js?v=17"></script>
+  <script src="js/models/booking-model.js?v=17"></script>
 
   <!-- MVC Services -->
-  <script src="js/services/address-service.js?v=16"></script>
-  <script src="js/services/pdf-service.js?v=16"></script>
-  <script src="js/services/email-service.js?v=16"></script>
+  <script src="js/services/address-service.js?v=17"></script>
+  <script src="js/services/pdf-service.js?v=17"></script>
+  <script src="js/services/email-service.js?v=17"></script>
 
   <!-- MVC Views & Controllers -->
-  <script src="js/views/booking-form-view.js?v=16"></script>
-  <script src="js/controllers/booking-controller.js?v=16"></script>
+  <script src="js/views/booking-form-view.js?v=17"></script>
+  <script src="js/controllers/booking-controller.js?v=17"></script>
 </body>
 </html>

@@ -345,7 +345,7 @@
 
     const isGym       = normFac === 'gymnasium';
     const isStudCtr   = normFac === 'student center';
-    const isSmdc      = normFac === 'smdc conference room';
+    const isSmdc      = normFac === 'sdmc conference room' || normFac === 'smdc conference room';
     const isField     = normFac === 'field / oval' || normFac === 'field/oval';
     const isChapel    = normFac === 'chapel';
     const isBoardRoom = normFac === 'board room' || normFac === 'defense room';
@@ -365,7 +365,7 @@
 
     const facLeftItems = [
       { label: 'Gymnasium', checked: isGym },
-      { label: 'SMDC Conference Room', checked: isSmdc },
+      { label: 'SDMC Conference Room', checked: isSmdc },
       { label: 'Chapel', checked: isChapel },
       { label: 'Board Room', checked: isBoardRoom },
       { label: otherFacLabel, checked: isOtherFac }
@@ -454,9 +454,33 @@
       doc.setTextColor(...COLOR_BLACK);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      doc.text(subLabel, leftX + col1W + 2.2, y + 4.9);
+      doc.text(subLabel, leftX + col1W + 2.2, y + rowH / 2 + 1.15);
 
-      doc.text(fitSingleLineText(doc, value, col3W - 5), leftX + col1W + col2W + 2.5, y + 4.9);
+      const rawVal = String(value || '').replace(/\s+/g, ' ').trim();
+      if (rawVal) {
+        const maxW = col3W - 4.5;
+        let fontSize = 9;
+        doc.setFontSize(fontSize);
+        let lines = doc.splitTextToSize(rawVal, maxW);
+
+        if (lines.length > 1) {
+          fontSize = 7.8;
+          doc.setFontSize(fontSize);
+          lines = doc.splitTextToSize(rawVal, maxW);
+        }
+        if (lines.length > 2) {
+          fontSize = 6.8;
+          doc.setFontSize(fontSize);
+          lines = doc.splitTextToSize(rawVal, maxW).slice(0, 3);
+        }
+
+        const lineH = fontSize === 9 ? 3.6 : (fontSize === 7.8 ? 3.1 : 2.65);
+        const totalTextH = lines.length * lineH;
+        const startY = y + (rowH - totalTextH) / 2 + lineH - 0.55;
+        lines.forEach((line, idx) => {
+          doc.text(line, leftX + col1W + col2W + 2.5, startY + idx * lineH);
+        });
+      }
       y += rowH;
     }
 
@@ -483,17 +507,19 @@
     drawSubLabelValueRow('Date & Time of Use', dateTimeCombined, vehSubRowH);
     drawSubLabelValueRow('Number of Participants', String(data.numPersons || ''), vehSubRowH);
 
-    // D. Equipment Needed (2 rows of 7.5mm = 15.0mm)
-    const eqBlockH = vehSubRowH * 2;
+    // D. Equipment Needed (9.0mm for Equipment & Quantity + 7.5mm for Other Considerations = 16.5mm)
+    const eqRow1H = 9.0;
+    const eqRow2H = vehSubRowH;
+    const eqBlockH = eqRow1H + eqRow2H;
     doc.setFillColor(...COLOR_LABEL_GRAY);
     doc.rect(leftX, y, col1W, eqBlockH, 'FD');
     doc.setTextColor(...COLOR_BLACK);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.2);
-    doc.text('D.   Equipment Needed', leftX + 2.2, y + 8.5);
+    doc.text('D.   Equipment Needed', leftX + 2.2, y + eqBlockH / 2 + 1.1);
 
-    drawSubLabelValueRow('Equipment & Quantity', formatEquipmentSummary(data), vehSubRowH);
-    drawSubLabelValueRow('Other Considerations', data.considerations || '', vehSubRowH);
+    drawSubLabelValueRow('Equipment & Quantity', formatEquipmentSummary(data), eqRow1H);
+    drawSubLabelValueRow('Other Considerations', data.considerations || '', eqRow2H);
 
     // Donation for Maintenance (For External Users)
     const donH = 8.4;

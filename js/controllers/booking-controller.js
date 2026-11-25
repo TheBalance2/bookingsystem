@@ -764,7 +764,6 @@
           dateSubmitted:    filingDateStr
         };
 
-        PdfService.generateInternalBookingPDF(internalBookingData);
         EmailService.sendSubmissionConfirmation(internalBookingData);
 
         bookingRefId.textContent = refId;

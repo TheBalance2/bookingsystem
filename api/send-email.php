@@ -52,9 +52,16 @@ $SMTP_USER  = '';
 $SMTP_PASS  = '';
 
 // Optional server-only SMTP credentials file (ignored by Git)
-$credentialsFile = __DIR__ . '/smtp-credentials.php';
-if (is_file($credentialsFile)) {
-    include $credentialsFile;
+$candidateCredentialFiles = [
+    __DIR__ . '/smtp-credentials.php',
+    dirname(__DIR__) . '/smtp-credentials.php',
+    dirname(__DIR__, 2) . '/smtp-credentials.php'
+];
+foreach ($candidateCredentialFiles as $credPath) {
+    if (is_file($credPath)) {
+        include $credPath;
+        break;
+    }
 }
 
 // ---- Parse JSON Payload ----

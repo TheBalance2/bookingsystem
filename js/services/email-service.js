@@ -20,7 +20,7 @@
     'sic-booking-system.web.app',
     'sic-booking-system.firebaseapp.com'
   ]);
-  const SUBMISSION_COOLDOWN_MS = 15 * 1000; // 15s cooldown between duplicate clicks
+  const SUBMISSION_COOLDOWN_MS = 3 * 1000; // 3s cooldown between duplicate clicks
   const MAX_SESSION_SUBMISSION_EMAILS = 25;
   const SESSION_COUNT_KEY = 'sic_email_sub_count';
   const SESSION_LAST_TS_KEY = 'sic_email_last_ts';
