@@ -28,15 +28,8 @@
   const receiptUploadSection = document.getElementById('receiptUploadSection');
   const receiptForm          = document.getElementById('receiptUploadForm');
   const receiptSuccessModal  = document.getElementById('receiptSuccessModal');
-  const navToggle            = document.getElementById('navToggle');
-  const navLinks             = document.getElementById('navLinks');
 
-  // Mobile nav toggle
-  if (navToggle && navLinks) {
-    navToggle.addEventListener('click', () => {
-      navLinks.classList.toggle('open');
-    });
-  }
+  // Mobile nav toggle is handled centrally by js/core/navbar.js
 
   // Initialize services
   EmailService.init();
@@ -351,6 +344,56 @@
   linkDateRange('intStartDate', 'intEndDate');
   linkDateRange('extStartDate', 'extEndDate');
 
+  function linkTimeRange(prefix) {
+    const startDateEl = document.getElementById(prefix + 'StartDate');
+    const endDateEl   = document.getElementById(prefix + 'EndDate');
+    const startTimeEl = document.getElementById(prefix + 'StartTime');
+    const endTimeEl   = document.getElementById(prefix + 'EndTime');
+    if (!startDateEl || !endDateEl || !startTimeEl || !endTimeEl) return;
+
+    function enforceSameDayTimeOrder() {
+      const sDate = startDateEl.value;
+      const eDate = endDateEl.value;
+      const sTime = startTimeEl.value;
+      const eTime = endTimeEl.value;
+      const isSameDay = Boolean(sDate && eDate && sDate === eDate);
+
+      if (isSameDay && sTime) {
+        endTimeEl.min = sTime;
+        if (eTime && eTime <= sTime) {
+          endTimeEl.value = '';
+          BookingFormView.showError(
+            prefix + 'EndTimeError',
+            `For same-day bookings, end time must be after start time (after ${Utils.formatTime12(sTime)})`
+          );
+        } else if (eTime && eTime > sTime) {
+          BookingFormView.clearFieldError(prefix + 'EndTimeError');
+        }
+      } else {
+        endTimeEl.removeAttribute('min');
+        if (eTime) {
+          BookingFormView.clearFieldError(prefix + 'EndTimeError');
+        }
+      }
+    }
+
+    [startDateEl, endDateEl, startTimeEl, endTimeEl].forEach(el => {
+      el.addEventListener('change', enforceSameDayTimeOrder);
+      el.addEventListener('input', enforceSameDayTimeOrder);
+    });
+
+    if (startDateEl.form) {
+      startDateEl.form.addEventListener('reset', () => {
+        setTimeout(() => {
+          endTimeEl.removeAttribute('min');
+        }, 0);
+      });
+    }
+  }
+
+  linkTimeRange('int');
+  linkTimeRange('ext');
+
   async function checkConflictAndRender(facility, startDate, endDate, startTime, endTime, warningId, textId, classroom = '') {
     const hasConflict = await BookingModel.hasScheduleConflict(facility, startDate, endDate, startTime, endTime, classroom);
     const displayLabel = (Utils.isClassroomFacilityName(facility) && classroom)
@@ -547,6 +590,7 @@
     if (extLoiDropZone) {
       extLoiDropZone.classList.add('has-file');
     }
+    BookingFormView.clearFieldError('extLoiFileError');
   }
 
   if (extLoiFileInput) {
@@ -611,6 +655,134 @@
     });
   }
 
+  // ---- Live Error Clearing (removes red highlight as soon as user fixes a field) ----
+  function bindLiveFieldClear(elementIds, errorId, isValidFn) {
+    const ids = Array.isArray(elementIds) ? elementIds : [elementIds];
+    const check = () => {
+      const errEl = document.getElementById(errorId);
+      if (!errEl || !errEl.classList.contains('visible')) return;
+      if (isValidFn()) {
+        BookingFormView.clearFieldError(errorId);
+      }
+    };
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', check);
+      el.addEventListener('change', check);
+    });
+  }
+
+  // Internal form live error clearing
+  bindLiveFieldClear('intFirstName', 'intFirstNameError', () => Boolean(document.getElementById('intFirstName').value.trim()));
+  bindLiveFieldClear('intLastName', 'intLastNameError', () => Boolean(document.getElementById('intLastName').value.trim()));
+  bindLiveFieldClear('intMiddleInitial', 'intMiddleInitialError', () => Boolean(document.getElementById('intMiddleInitial').value.trim()));
+  bindLiveFieldClear('intDepartment', 'intDepartmentError', () => Boolean(document.getElementById('intDepartment').value));
+  bindLiveFieldClear(['intDepartment', 'intCollegeSchool'], 'intCollegeSchoolError', () => {
+    const hasOffices = intCollegeSchoolEl && intCollegeSchoolEl.dataset.hasOffices === '1';
+    return !hasOffices || Boolean(intCollegeSchoolEl && intCollegeSchoolEl.value);
+  });
+  bindLiveFieldClear('intPosition', 'intPositionError', () => Boolean(document.getElementById('intPosition').value.trim()));
+  bindLiveFieldClear('intContact', 'intContactError', () => Utils.isValidPhMobile(document.getElementById('intContact').value.trim()));
+  bindLiveFieldClear('intEmail', 'intEmailError', () => Utils.isAllowedInternalEmail(document.getElementById('intEmail').value.trim()));
+  bindLiveFieldClear('intFacility', 'intFacilityError', () => Boolean(document.getElementById('intFacility').value));
+  bindLiveFieldClear(['intFacility', 'intClassroom'], 'intClassroomError', () => {
+    const fac = document.getElementById('intFacility').value;
+    return !Utils.isClassroomFacilityName(fac) || Boolean(document.getElementById('intClassroom').value.trim());
+  });
+  bindLiveFieldClear('intDestination', 'intDestinationError', () => {
+    const fac = document.getElementById('intFacility').value;
+    return fac !== VEHICLE_OPTION || Boolean(document.getElementById('intDestination').value.trim());
+  });
+  bindLiveFieldClear('intPurpose', 'intPurposeError', () => Boolean(document.getElementById('intPurpose').value.trim()));
+  bindLiveFieldClear('intStartDate', 'intStartDateError', () => {
+    const v = document.getElementById('intStartDate').value;
+    return Boolean(v && isAllowedDate(v));
+  });
+  bindLiveFieldClear(['intStartDate', 'intEndDate'], 'intEndDateError', () => {
+    const s = document.getElementById('intStartDate').value;
+    const e = document.getElementById('intEndDate').value;
+    return Boolean(e && (!s || e >= s));
+  });
+  bindLiveFieldClear('intStartTime', 'intStartTimeError', () => Boolean(document.getElementById('intStartTime').value));
+  bindLiveFieldClear(['intStartDate', 'intEndDate', 'intStartTime', 'intEndTime'], 'intEndTimeError', () => {
+    const sDate = document.getElementById('intStartDate').value;
+    const eDate = document.getElementById('intEndDate').value;
+    const sTime = document.getElementById('intStartTime').value;
+    const eTime = document.getElementById('intEndTime').value;
+    if (!eTime) return false;
+    if (sDate && eDate && sDate === eDate && sTime && eTime <= sTime) return false;
+    return true;
+  });
+  bindLiveFieldClear('intNumPersons', 'intNumPersonsError', () => Utils.isValidPersonCount(document.getElementById('intNumPersons').value.trim()));
+
+  const vehicleOptionsContainer = document.getElementById('vehicleOptions');
+  if (vehicleOptionsContainer) {
+    vehicleOptionsContainer.addEventListener('change', () => {
+      if (getCheckedEquipment('vehicle').length > 0) {
+        BookingFormView.clearFieldError('intFacilityVehicleError');
+      }
+    });
+  }
+
+  // External form live error clearing
+  bindLiveFieldClear('extFirstName', 'extFirstNameError', () => Boolean(document.getElementById('extFirstName').value.trim()));
+  bindLiveFieldClear('extLastName', 'extLastNameError', () => Boolean(document.getElementById('extLastName').value.trim()));
+  bindLiveFieldClear('extMiddleInitial', 'extMiddleInitialError', () => Boolean(document.getElementById('extMiddleInitial').value.trim()));
+  bindLiveFieldClear('extAgencyType', 'extAgencyTypeError', () => Boolean(document.getElementById('extAgencyType').value));
+  bindLiveFieldClear(['extAgencyType', 'extAgencyTypeOther'], 'extAgencyTypeOtherError', () => {
+    const t = document.getElementById('extAgencyType').value;
+    return !t.startsWith('Other') || Boolean(document.getElementById('extAgencyTypeOther').value.trim());
+  });
+  bindLiveFieldClear('extAgencyName', 'extAgencyNameError', () => Boolean(document.getElementById('extAgencyName').value.trim()));
+  bindLiveFieldClear('extOfficeName', 'extOfficeNameError', () => Boolean(document.getElementById('extOfficeName').value.trim()));
+  bindLiveFieldClear('extPosition', 'extPositionError', () => Boolean(document.getElementById('extPosition').value.trim()));
+  bindLiveFieldClear('extContact', 'extContactError', () => Utils.isValidPhMobile(document.getElementById('extContact').value.trim()));
+  bindLiveFieldClear('extEmail', 'extEmailError', () => Utils.isValidEmail(document.getElementById('extEmail').value.trim()));
+  bindLiveFieldClear('extRegion', 'extRegionError', () => Boolean(document.getElementById('extRegion').value));
+  bindLiveFieldClear(['extRegion', 'extProvince'], 'extProvinceError', () => {
+    const pg = document.getElementById('extProvinceGroup');
+    return (pg && pg.style.display === 'none') || Boolean(document.getElementById('extProvince').value);
+  });
+  bindLiveFieldClear('extCity', 'extCityError', () => Boolean(document.getElementById('extCity').value));
+  bindLiveFieldClear(['extBarangay', 'extBarangayText'], 'extBarangayError', () => {
+    const bt = document.getElementById('extBarangayText');
+    const isText = bt && bt.style.display !== 'none';
+    return isText ? Boolean(bt.value.trim()) : Boolean(document.getElementById('extBarangay').value);
+  });
+  bindLiveFieldClear('extStreet', 'extStreetError', () => Boolean(document.getElementById('extStreet').value.trim()));
+  bindLiveFieldClear('extAddress', 'extAddressError', () => Boolean(document.getElementById('extAddress').value.trim()));
+  bindLiveFieldClear('extFacility', 'extFacilityError', () => Boolean(document.getElementById('extFacility').value));
+  bindLiveFieldClear(['extFacility', 'extClassroom'], 'extClassroomError', () => {
+    const fac = document.getElementById('extFacility').value;
+    return !Utils.isClassroomFacilityName(fac) || Boolean(document.getElementById('extClassroom').value.trim());
+  });
+  bindLiveFieldClear('extPurpose', 'extPurposeError', () => Boolean(document.getElementById('extPurpose').value.trim()));
+  bindLiveFieldClear('extStartDate', 'extStartDateError', () => {
+    const v = document.getElementById('extStartDate').value;
+    return Boolean(v && isAllowedDate(v));
+  });
+  bindLiveFieldClear(['extStartDate', 'extEndDate'], 'extEndDateError', () => {
+    const s = document.getElementById('extStartDate').value;
+    const e = document.getElementById('extEndDate').value;
+    return Boolean(e && (!s || e >= s));
+  });
+  bindLiveFieldClear('extStartTime', 'extStartTimeError', () => Boolean(document.getElementById('extStartTime').value));
+  bindLiveFieldClear(['extStartDate', 'extEndDate', 'extStartTime', 'extEndTime'], 'extEndTimeError', () => {
+    const sDate = document.getElementById('extStartDate').value;
+    const eDate = document.getElementById('extEndDate').value;
+    const sTime = document.getElementById('extStartTime').value;
+    const eTime = document.getElementById('extEndTime').value;
+    if (!eTime) return false;
+    if (sDate && eDate && sDate === eDate && sTime && eTime <= sTime) return false;
+    return true;
+  });
+  bindLiveFieldClear('extNumPersons', 'extNumPersonsError', () => Utils.isValidPersonCount(document.getElementById('extNumPersons').value.trim()));
+
+  // Receipt upload form live error clearing
+  bindLiveFieldClear('receiptRefId', 'receiptRefIdError', () => Boolean(document.getElementById('receiptRefId').value.trim()));
+  bindLiveFieldClear('receiptEmail', 'receiptEmailError', () => Utils.isValidEmail(document.getElementById('receiptEmail').value.trim()));
+
   // ---- Internal Form Submission ----
   if (intForm) {
     intForm.addEventListener('submit', async (e) => {
@@ -639,7 +811,7 @@
       const position       = (document.getElementById('intPosition') ? document.getElementById('intPosition').value : '').trim().toUpperCase();
       const contact        = (document.getElementById('intContact') ? document.getElementById('intContact').value : '').trim();
       const email          = document.getElementById('intEmail').value.trim();
-      const address        = 'San Isidro College Impalambong';
+      const address        = 'San Isidro College Impalambong Malaybalay City Bukidnon';
       const facilityChoice = document.getElementById('intFacility').value;
       const isVehicle      = facilityChoice === VEHICLE_OPTION;
       const facility       = isVehicle ? '' : facilityChoice;
@@ -676,9 +848,9 @@
         valid = false;
       }
       if (!position)                      { BookingFormView.showError('intPositionError');      valid = false; }
-      if (!contact)                       { BookingFormView.showError('intContactError');       valid = false; }
-      else if (!Utils.isDigitsOnly(contact)) { BookingFormView.showError('intContactError', 'Contact must be numbers only.'); valid = false; }
-      if (!email || !Utils.isValidEmail(email)) { BookingFormView.showError('intEmailError');     valid = false; }
+      if (!contact)                       { BookingFormView.showError('intContactError', 'Please enter your 11-digit contact number (e.g. 09171234567)'); valid = false; }
+      else if (!Utils.isValidPhMobile(contact)) { BookingFormView.showError('intContactError', 'Contact number must be 11 digits starting with 09 (e.g. 09171234567)'); valid = false; }
+      if (!email || !Utils.isAllowedInternalEmail(email)) { BookingFormView.showError('intEmailError', 'Please enter a valid @sic.edu.ph or @gmail.com email address'); valid = false; }
       if (!facilityChoice)                    { BookingFormView.showError('intFacilityError');   valid = false; }
       if (isClassroom && !classroom)          { BookingFormView.showError('intClassroomError');  valid = false; }
       if (!validateSchedule('int', startDate, endDate, startTime, endTime)) valid = false;
@@ -833,8 +1005,8 @@
       if (!agencyName)                    { BookingFormView.showError('extAgencyNameError');    valid = false; }
       if (!officeName)                    { BookingFormView.showError('extOfficeNameError');    valid = false; }
       if (!position)                      { BookingFormView.showError('extPositionError');      valid = false; }
-      if (!contact)                       { BookingFormView.showError('extContactError');       valid = false; }
-      else if (!Utils.isDigitsOnly(contact)) { BookingFormView.showError('extContactError', 'Contact must be numbers only.'); valid = false; }
+      if (!contact)                       { BookingFormView.showError('extContactError', 'Please enter your 11-digit contact number (e.g. 09171234567)'); valid = false; }
+      else if (!Utils.isValidPhMobile(contact)) { BookingFormView.showError('extContactError', 'Contact number must be 11 digits starting with 09 (e.g. 09171234567)'); valid = false; }
       const addressInfo = AddressService.collect(BookingFormView.showError);
       if (!addressInfo.valid)             { valid = false; }
       if (!email || !Utils.isValidEmail(email)) { BookingFormView.showError('extEmailError');    valid = false; }
@@ -1097,6 +1269,7 @@
           receiptFileName.style.display = 'block';
         }
         if (receiptDropZone) receiptDropZone.classList.add('has-file');
+        BookingFormView.clearFieldError('receiptFileError');
       }
     });
   }
@@ -1166,7 +1339,7 @@
           } else if (bookingData.status === 'Approved') {
             alert('This booking has already been approved.');
           } else {
-            alert('This booking cannot accept a receipt upload at this time. Current status: ' + bookingData.status);
+            alert('This booking cannot accept a receipt upload at this time. Current status: ' + Utils.formatStatusLabel(bookingData.status));
           }
           return;
         }

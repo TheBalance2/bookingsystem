@@ -32,22 +32,7 @@
   let allApprovedBookings = [];
   let lastDateClickTime   = 0;
 
-  // Navbar scroll & mobile toggle
-  const navbar    = document.getElementById('navbar');
-  const navToggle = document.getElementById('navToggle');
-  const navLinks  = document.getElementById('navLinks');
-
-  if (navbar) {
-    window.addEventListener('scroll', () => {
-      navbar.classList.toggle('scrolled', window.scrollY > 50);
-    });
-  }
-
-  if (navToggle && navLinks) {
-    navToggle.addEventListener('click', () => {
-      navLinks.classList.toggle('open');
-    });
-  }
+  // Navbar scroll & mobile toggle are handled centrally by js/core/navbar.js
 
   // Event & Date availability modal close helpers
   function closeEventModal() {

@@ -158,6 +158,18 @@
     }
   }
 
+  function clearFieldError(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('visible');
+
+    const group = el.closest('.form-group');
+    if (group) {
+      group.querySelectorAll('input, select, textarea, .equipment-grid, .receipt-file-upload')
+        .forEach(node => node.classList.remove('error'));
+    }
+  }
+
   function clearErrors(prefix) {
     document.querySelectorAll(`[id^="${prefix}"]`).forEach(el => {
       if (el.classList.contains('error-message')) el.classList.remove('visible');
@@ -194,7 +206,7 @@
 
     const effectiveEnd = endDate || startDate;
     if (hasConflict) {
-      textEl.textContent = `${facility} already has a booking that overlaps with ${Utils.formatDateRange(startDate, effectiveEnd)}, ${Utils.formatTimeRange12(startTime, endTime)}. Your request may be rejected.`;
+      textEl.textContent = `${facility} already has a booking that overlaps with ${Utils.formatDateRange(startDate, effectiveEnd)}, ${Utils.formatTimeRange12(startTime, endTime)}. Your request may be denied.`;
       warningEl.classList.add('visible');
     } else {
       warningEl.classList.remove('visible');
@@ -324,6 +336,7 @@
     setDepartmentsData,
     findVisibleField,
     showError,
+    clearFieldError,
     clearErrors,
     focusFirstError,
     renderConflictWarning,

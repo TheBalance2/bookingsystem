@@ -83,6 +83,7 @@ $status       = cleanHeaderValue($data['status'] ?? 'Notification');
 $referenceId  = cleanHeaderValue($data['reference_id'] ?? '—');
 $facility     = cleanHeaderValue($data['facility'] ?? '—');
 $vehicle      = cleanHeaderValue($data['vehicle'] ?? '—');
+$destination  = cleanHeaderValue($data['destination'] ?? '—');
 $driverName   = cleanHeaderValue($data['driver_name'] ?? '—');
 $driverPhone  = cleanHeaderValue($data['driver_phone'] ?? '—');
 $date         = cleanHeaderValue($data['date'] ?? '—');
@@ -100,17 +101,20 @@ if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
     exit;
 }
 
+$isVehicleReq  = ($vehicle !== '' && $vehicle !== '—' && strtolower($vehicle) !== 'none');
+$subjectTarget = $isVehicleReq ? "Vehicle Request ({$vehicle})" : $facility;
+
 // ---- Build Subject ----
 if ($status === 'Approved') {
-    $subject = "Reservation Update (Approved): {$facility} [{$referenceId}]";
+    $subject = "Reservation Update (Approved): {$subjectTarget} [{$referenceId}]";
     $badgeBg = '#166534';
     $badgeLabel = 'APPROVED';
-} elseif ($status === 'Rejected') {
-    $subject = "Reservation Update (Rejected): {$facility} [{$referenceId}]";
+} elseif ($status === 'Rejected' || $status === 'Denied') {
+    $subject = "Reservation Update (Denied): {$subjectTarget} [{$referenceId}]";
     $badgeBg = '#991b1b';
-    $badgeLabel = 'REJECTED';
+    $badgeLabel = 'DENIED';
 } else {
-    $subject = "Reservation Submitted: {$facility} [{$referenceId}]";
+    $subject = "Reservation Submitted: {$subjectTarget} [{$referenceId}]";
     $badgeBg = '#1e40af';
     $badgeLabel = 'BOOKING SUBMITTED';
 }
@@ -135,16 +139,24 @@ $esc = function ($s) {
 
 $timeRange = ($startTime !== '—' && $endTime !== '—') ? "{$startTime} to {$endTime}" : $startTime;
 
-$vehicleRowsHtml = '';
-$vehicleRowsText = '';
-if ($vehicle !== '' && $vehicle !== '—' && strtolower($vehicle) !== 'none') {
-    $vehicleRowsHtml .= '<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;font-weight:600;width:36%;">Vehicle(s)</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;">' . $esc($vehicle) . '</td></tr>';
-    $vehicleRowsText .= "Vehicle(s): {$vehicle}\n";
+$locationAndVehicleRowsHtml = '';
+$locationAndVehicleRowsText = '';
+if ($isVehicleReq) {
+    $locationAndVehicleRowsHtml .= '<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;font-weight:600;width:36%;">Request Type</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;">Vehicle Request</td></tr>';
+    $locationAndVehicleRowsHtml .= '<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;font-weight:600;width:36%;">Vehicle(s)</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;">' . $esc($vehicle) . '</td></tr>';
+    $locationAndVehicleRowsText .= "Request Type: Vehicle Request\nVehicle(s): {$vehicle}\n";
+    if ($destination !== '' && $destination !== '—') {
+        $locationAndVehicleRowsHtml .= '<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;font-weight:600;">Destination</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;">' . $esc($destination) . '</td></tr>';
+        $locationAndVehicleRowsText .= "Destination: {$destination}\n";
+    }
     if ($driverName !== '' && $driverName !== '—') {
         $driverDisplay = $driverName . (($driverPhone !== '' && $driverPhone !== '—') ? " ({$driverPhone})" : '');
-        $vehicleRowsHtml .= '<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;font-weight:600;">Assigned Driver</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;">' . $esc($driverDisplay) . '</td></tr>';
-        $vehicleRowsText .= "Assigned Driver: {$driverDisplay}\n";
+        $locationAndVehicleRowsHtml .= '<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;font-weight:600;">Assigned Driver</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;">' . $esc($driverDisplay) . '</td></tr>';
+        $locationAndVehicleRowsText .= "Assigned Driver: {$driverDisplay}\n";
     }
+} else {
+    $locationAndVehicleRowsHtml .= '<tr><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;font-weight:600;width:36%;">Facility / Location</td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;">' . $esc($facility) . '</td></tr>';
+    $locationAndVehicleRowsText .= "Facility / Location: {$facility}\n";
 }
 
 $pdfActionHtml = '';
@@ -193,11 +205,7 @@ $htmlBody = '<!DOCTYPE html>
             <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;font-weight:600;width:36%;">Reference ID</td>
             <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;font-weight:700;">' . $esc($referenceId) . '</td>
           </tr>
-          <tr>
-            <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;font-weight:600;">Facility / Location</td>
-            <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;">' . $esc($facility) . '</td>
-          </tr>
-          ' . $vehicleRowsHtml . '
+          ' . $locationAndVehicleRowsHtml . '
           <tr>
             <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;font-weight:600;">Date</td>
             <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#111827;">' . $esc($date) . '</td>
@@ -222,8 +230,7 @@ $plainBody = "Dear {$toName},\n\n"
     . "{$messageText}\n\n"
     . "Booking Details:\n"
     . "Reference ID: {$referenceId}\n"
-    . "Facility: {$facility}\n"
-    . $vehicleRowsText
+    . $locationAndVehicleRowsText
     . "Date: {$date}\n"
     . "Time: {$timeRange}\n"
     . "Purpose: {$purpose}\n\n"

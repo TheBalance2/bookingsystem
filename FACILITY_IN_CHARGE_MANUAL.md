@@ -17,7 +17,7 @@ This manual is specifically designed for the **Facility-In-Charge (FIC)** and au
    - 5.1 [Internal User Requests](#51-internal-user-requests)
    - 5.2 [External User Requests (LOI & Receipt Verification)](#52-external-user-requests-loi--receipt-verification)
    - 5.3 [Vehicle Reservations & Driver Assignment](#53-vehicle-reservations--driver-assignment)
-   - 5.4 [Approving and Rejecting Bookings](#54-approving-and-rejecting-bookings)
+   - 5.4 [Approving and Denying Bookings](#54-approving-and-denying-bookings)
 6. [Special Booking (Direct Expedited Reservation)](#6-special-booking-direct-expedited-reservation)
 7. [Resource Management](#7-resource-management)
    - 7.1 [Facilities & Photo Galleries](#71-facilities--photo-galleries)
@@ -56,7 +56,7 @@ The system implements clear role-based access control (RBAC):
 | Browse Facilities & Public Calendar | Yes | Yes | Yes |
 | Submit Online Booking (Internal / External) | Yes | Yes | Yes |
 | Upload Payment Receipt | Yes (External) | Yes | Yes |
-| **Approve / Reject Reservations** | No | **Full Access** | View Only |
+| **Approve / Deny Reservations** | No | **Full Access** | View Only |
 | **Assign Drivers to Vehicle Trips** | No | **Full Access** | View Only |
 | **Create Special Bookings** | No | **Full Access** | View Only |
 | **Manage Facilities, Classrooms, Vehicles** | No | **Full Access** | View Only |
@@ -92,12 +92,12 @@ Once logged in, the primary workspace is the **Dashboard**:
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │ [SIC Logo] San Isidro College Management Portal          Next ID: SIC-2026-001  [🔔] [Profile] │
 ├──────────────┬─────────────────────────────────────────────────────────────────────────┤
-│ RESERVATIONS │  [Pending: 4]     [Approved: 12]     [Rejected: 1]     [Total: 17]      │
+│ RESERVATIONS │  [Pending: 4]     [Approved: 12]     [Denied: 1]       [Total: 17]      │
 │ • Dashboard  ├─────────────────────────────────────────────────────────────────────────┤
-│ • Pending    │  [All] [Pending] [Payment Review] [Approved] [Rejected]   [+ Special Booking]│
+│ • Pending    │  [All] [Pending] [Payment Review] [Approved] [Denied]     [+ Special Booking]│
 │ • Review     ├─────────────────────────────────────────────────────────────────────────┤
 │ • Approved   │  🔍 Search: [ Reference, Requester, Email... ]                          │
-│ • Rejected   │  Filters: [Facility ▾] [Type ▾] [Dept ▾] [Date From - To] [Sort ▾]      │
+│ • Denied     │  Filters: [Facility ▾] [Type ▾] [Dept ▾] [Date From - To] [Sort ▾]      │
 │ RESOURCES    ├─────────────────────────────────────────────────────────────────────────┤
 │ • Facilities │  TABLE: Reference | Requester | Type | Facility | Schedule | Status | Action│
 │ • Vehicles   │  SIC-2026-001 | Juan Dela Cruz | Internal | Gymnasium | Nov 20 | Pending | [View]│
@@ -114,9 +114,9 @@ Once logged in, the primary workspace is the **Dashboard**:
    * **Notification Bell:** Displays unread booking submissions and payment receipt uploads. Allows muting or unmuting the audio chime.
    * **User Pill:** Displays your name, email, and `Facility-In-Charge` badge.
 2. **KPI Summary Cards:**
-   * Quick count cards for **Pending**, **Approved**, **Rejected**, and **Total** reservations.
+   * Quick count cards for **Pending**, **Approved**, **Denied**, and **Total** reservations.
 3. **Filter Tabs:**
-   * Switch between **All**, **Pending**, **Payment Review**, **Approved**, and **Rejected** with single clicks.
+   * Switch between **All**, **Pending**, **Payment Review**, **Approved**, and **Denied** with single clicks.
 4. **Search & Multi-Filter Bar:**
    * Search instantly by reference code (`SIC-2026-001`), requester name, organization, or activity purpose.
    * Filter specifically by facility, user category, department, and custom date ranges.
@@ -138,7 +138,7 @@ Once logged in, the primary workspace is the **Dashboard**:
    - Click **View Details** (or click the row).
    - Review requested date, time, classroom/equipment, and activity purpose.
    - Verify that the physical signed copy from their Dean/Department Head has been routed to your office.
-   - Click **Approve** or **Reject**.
+   - Click **Approve** or **Deny**.
 
 ---
 
@@ -153,7 +153,7 @@ flowchart TD
     D --> E["System Sets Status:<br>Payment Under Review<br>(FIC Alerted)"]
     E --> F{"FIC Reviews LOI PDF &<br>Payment Receipt"}
     F -->|"Receipt & LOI Valid"| G["Click APPROVE<br>(Automated Email Sent)"]
-    F -->|"Discrepancy / Unpaid"| H["Click REJECT<br>(Reason Sent via Email)"]
+    F -->|"Discrepancy / Unpaid"| H["Click DENY<br>(Reason Sent via Email)"]
 ```
 
 #### Detailed FIC Verification Steps:
@@ -186,17 +186,17 @@ The system strictly regulates San Isidro College vehicle fleets (Vans, Buses, Ut
 
 ---
 
-### 5.4 Approving and Rejecting Bookings
+### 5.4 Approving and Denying Bookings
 
 * **To Approve:**
   1. Open the reservation details.
   2. For vehicle bookings, select an assigned driver.
   3. Click **Approve**.
   4. Confirm the prompt. The booking status turns green (`Approved`), the time slot is officially locked on the public calendar, and the client receives an approval email.
-* **To Reject:**
+* **To Deny:**
   1. Open the reservation details.
-  2. Click **Reject**.
-  3. Confirm the action. The status changes to red (`Rejected`), liberating the requested schedule slot for other users, and an advisory notification is sent.
+  2. Click **Deny**.
+  3. Confirm the action. The status changes to red (`Denied`), liberating the requested schedule slot for other users, and an advisory notification is sent.
 
 ---
 
@@ -266,7 +266,7 @@ The system includes a reporting engine built specifically for administrative aud
 Dashboard > Reports Menu
    │
    ├── Filters:
-   │     • Booking Status: [ Approved Only | All Statuses | Pending | Rejected ]
+   │     • Booking Status: [ Approved Only | All Statuses | Pending | Denied ]
    │     • User Type:      [ All Types | Internal Users | External Users ]
    │     • Facility:       [ All Facilities | Specific Venue | All Vehicles ]
    │     • Month & Year:   [ Select Month / Year ]

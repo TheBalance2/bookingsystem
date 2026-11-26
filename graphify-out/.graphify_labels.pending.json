@@ -1,7 +1,10 @@
 {
-  "7": "Public Landing Page HTML",
+  "7": "Staff Portal Login Page",
   "16": "Reservation Booking Page",
   "20": "login-app.js",
   "29": "email-service.js",
-  "52": "send-email.php"
+  "52": "send-email.php",
+  "53": "Public Landing Page HTML",
+  "54": "MVC Architectural Rules",
+  "55": "navbar.js"
 }

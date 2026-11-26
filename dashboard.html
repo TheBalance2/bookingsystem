@@ -54,7 +54,7 @@
         </a>
         <a href="#" class="sidebar-link" data-filter="Rejected">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-          Rejected
+          Denied
         </a>
 
         <div class="sidebar-nav-group">
@@ -210,7 +210,7 @@
             </div>
             <div class="stat-info">
               <h3 id="statRejected">0</h3>
-              <p>Rejected</p>
+              <p>Denied</p>
             </div>
           </div>
         </div>
@@ -242,7 +242,7 @@
           Approved <span class="count" id="countApproved">0</span>
         </button>
         <button class="filter-tab" data-filter="Rejected">
-          Rejected <span class="count" id="countRejected">0</span>
+          Denied <span class="count" id="countRejected">0</span>
         </button>
       </div>
 
@@ -569,7 +569,7 @@
                 <option value="Approved">Approved Only</option>
                 <option value="all">All Statuses</option>
                 <option value="Pending">Pending &amp; Under Review</option>
-                <option value="Rejected">Rejected Only</option>
+                <option value="Rejected">Denied Only</option>
               </select>
             </div>
             <div class="report-filter-group">
@@ -656,7 +656,7 @@
                   <td>{{ formatDeptOrg(b) }}</td>
                   <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" :title="b.purpose || ''">{{ b.purpose || '—' }}</td>
                   <td style="font-variant-numeric:tabular-nums;">{{ b.numPersons || '—' }}</td>
-                  <td><span class="status-badge" :class="formatStatusClass(b.status)"><span class="status-dot"></span> {{ b.status || 'Approved' }}</span></td>
+                  <td><span class="status-badge" :class="formatStatusClass(b.status)"><span class="status-dot"></span> {{ formatStatusLabel(b.status) }}</span></td>
                 </tr>
               </tbody>
             </table>
@@ -1108,7 +1108,7 @@
               </div>
               <div class="stat-info">
                 <h3 id="logStatRejections">0</h3>
-                <p>Bookings Rejected</p>
+                <p>Bookings Denied</p>
               </div>
             </div>
           </div>
@@ -1422,7 +1422,7 @@
                   <select id="massDeleteStatusFilter">
                     <option value="all">All Statuses in Selected Month</option>
                     <option value="Approved">Approved Only</option>
-                    <option value="Rejected">Rejected Only</option>
+                    <option value="Rejected">Denied Only</option>
                     <option value="Pending">Pending Only</option>
                     <option value="Pending Payment">Pending Payment Only</option>
                     <option value="Payment Under Review">Payment Under Review Only</option>
@@ -1538,19 +1538,19 @@
           <!-- II.4 Contact Number -->
           <div class="form-group">
             <label for="sbContact">Contact Number <span class="required">*</span></label>
-            <input type="tel" id="sbContact" name="contactNumber" inputmode="numeric" pattern="[0-9]*" maxlength="15" placeholder="e.g. 09171234567" required>
+            <input type="tel" id="sbContact" name="contactNumber" inputmode="numeric" pattern="09\d{9}" maxlength="11" placeholder="e.g. 09171234567" required>
           </div>
 
           <!-- II.5 Email Address -->
           <div class="form-group">
             <label for="sbEmail">Email Address <span class="required">*</span></label>
-            <input type="email" id="sbEmail" name="email" placeholder="e.g. jdelacruz@sic.edu.ph" required>
+            <input type="email" id="sbEmail" name="email" placeholder="e.g. jdelacruz@sic.edu.ph or @gmail.com" required>
           </div>
 
           <!-- II.6 Office / Organization Address (Auto-filled for Internal) -->
           <div class="form-group">
             <label for="sbAddress">Office / Organization Address</label>
-            <input type="text" id="sbAddress" name="address" value="San Isidro College Impalambong" readonly style="background:var(--off-white); color:var(--gray-500); cursor:not-allowed;">
+            <input type="text" id="sbAddress" name="address" value="San Isidro College Impalambong Malaybalay City Bukidnon" readonly style="background:var(--off-white); color:var(--gray-500); cursor:not-allowed;">
           </div>
 
           <!-- III.1 & III.2 Facility / Vehicle Requested -->
@@ -1684,7 +1684,7 @@
       <div class="modal-details" id="detailsContent"></div>
       <div style="margin-top:var(--space-lg); display:flex; gap:var(--space-sm); justify-content:center; flex-wrap:wrap;">
         <button class="btn btn-success btn-sm" id="modalApproveBtn" style="display:none;">Approve</button>
-        <button class="btn btn-danger btn-sm" id="modalRejectBtn" style="display:none;">Reject</button>
+        <button class="btn btn-danger btn-sm" id="modalRejectBtn" style="display:none;">Deny</button>
         <button class="btn btn-outline btn-sm" onclick="closeDetailsModal()">Close</button>
         <button class="btn btn-danger btn-sm" id="modalDeleteBookingBtn" style="opacity:0.8;">Delete</button>
       </div>
@@ -2230,46 +2230,46 @@
   <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
 
   <!-- MVC Core -->
-  <script src="js/core/firebase-config.js?v=17"></script>
-  <script src="js/core/logger.js?v=17"></script>
-  <script src="js/core/utils.js?v=17"></script>
-  <script src="js/core/session.js?v=17"></script>
-  <script src="js/core/idle-timeout.js?v=17"></script>
+  <script src="js/core/firebase-config.js?v=18"></script>
+  <script src="js/core/logger.js?v=18"></script>
+  <script src="js/core/utils.js?v=18"></script>
+  <script src="js/core/session.js?v=18"></script>
+  <script src="js/core/idle-timeout.js?v=18"></script>
 
   <!-- MVC Models -->
-  <script src="js/models/auth-model.js?v=17"></script>
-  <script src="js/models/user-model.js?v=17"></script>
-  <script src="js/models/activity-log-model.js?v=17"></script>
-  <script src="js/models/facility-model.js?v=17"></script>
-  <script src="js/models/classroom-model.js?v=17"></script>
-  <script src="js/models/vehicle-model.js?v=17"></script>
-  <script src="js/models/driver-model.js?v=17"></script>
-  <script src="js/models/department-model.js?v=17"></script>
-  <script src="js/models/settings-model.js?v=17"></script>
-  <script src="js/models/booking-model.js?v=17"></script>
+  <script src="js/models/auth-model.js?v=18"></script>
+  <script src="js/models/user-model.js?v=18"></script>
+  <script src="js/models/activity-log-model.js?v=18"></script>
+  <script src="js/models/facility-model.js?v=18"></script>
+  <script src="js/models/classroom-model.js?v=18"></script>
+  <script src="js/models/vehicle-model.js?v=18"></script>
+  <script src="js/models/driver-model.js?v=18"></script>
+  <script src="js/models/department-model.js?v=18"></script>
+  <script src="js/models/settings-model.js?v=18"></script>
+  <script src="js/models/booking-model.js?v=18"></script>
 
   <!-- MVC Services -->
-  <script src="js/services/pdf-service.js?v=17"></script>
-  <script src="js/services/email-service.js?v=17"></script>
-  <script src="js/services/notification-service.js?v=17"></script>
+  <script src="js/services/pdf-service.js?v=18"></script>
+  <script src="js/services/email-service.js?v=18"></script>
+  <script src="js/services/notification-service.js?v=18"></script>
 
   <!-- MVC Views -->
-  <script src="js/views/ui-view.js?v=17"></script>
-  <script src="js/views/dashboard-view.js?v=17"></script>
-  <script src="js/views/admin-crud-view.js?v=17"></script>
+  <script src="js/views/ui-view.js?v=18"></script>
+  <script src="js/views/dashboard-view.js?v=18"></script>
+  <script src="js/views/admin-crud-view.js?v=18"></script>
 
   <!-- MVC Controllers -->
-  <script src="js/controllers/facility-controller.js?v=17"></script>
-  <script src="js/controllers/vehicle-controller.js?v=17"></script>
-  <script src="js/controllers/department-controller.js?v=17"></script>
-  <script src="js/controllers/special-booking-controller.js?v=17"></script>
-  <script src="js/controllers/settings-controller.js?v=17"></script>
-  <script src="js/controllers/account-controller.js?v=17"></script>
-  <script src="js/controllers/activity-log-controller.js?v=17"></script>
-  <script src="js/controllers/data-management-controller.js?v=17"></script>
-  <script src="js/controllers/dashboard-controller.js?v=17"></script>
+  <script src="js/controllers/facility-controller.js?v=18"></script>
+  <script src="js/controllers/vehicle-controller.js?v=18"></script>
+  <script src="js/controllers/department-controller.js?v=18"></script>
+  <script src="js/controllers/special-booking-controller.js?v=18"></script>
+  <script src="js/controllers/settings-controller.js?v=18"></script>
+  <script src="js/controllers/account-controller.js?v=18"></script>
+  <script src="js/controllers/activity-log-controller.js?v=18"></script>
+  <script src="js/controllers/data-management-controller.js?v=18"></script>
+  <script src="js/controllers/dashboard-controller.js?v=18"></script>
 
   <!-- Vue 3 Reports App -->
-  <script src="js/vue-apps/reports-app.js?v=17"></script>
+  <script src="js/vue-apps/reports-app.js?v=18"></script>
 </body>
 </html>

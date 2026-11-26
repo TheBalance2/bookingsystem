@@ -176,12 +176,19 @@
       ? 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully and is currently pending review. You will receive an email notification with your official Request Form (PDF) once your reservation is approved.'
       : 'Your reservation request (Ref: ' + data.referenceId + ') has been submitted successfully. Your Official Request for the Use of Facilities Form (PDF) is attached to this email so you can secure your Office Head\'s signature early. Please print FOUR (4) copies of the form, attach the original copy of your Letter of Intent, and present them to the Business Office of San Isidro College for payment assessment. After paying, return to the booking page and upload your receipt to confirm your reservation.' + extPdfLinkLine;
 
-    const cleanFacility = Utils.getBookingLocation(data, data.facility || '—').replace(/\s*\/\s*/g, ' - ');
+    const isVehicleReq = Utils.isVehicleBooking(data);
+    const cleanFacility = isVehicleReq
+      ? 'Vehicle Request'
+      : Utils.getBookingLocation(data, data.facility || '—').replace(/\s*\/\s*/g, ' - ');
+    const vehicleList = isVehicleReq ? (Utils.formatVehicleList(data.vehicle) || '—') : '—';
+    const destinationText = isVehicleReq ? (String(data.destination || '').trim() || '—') : '—';
+
     const payload = {
       to_email:          data.email,
       to_name:           recipientName,
       facility:          cleanFacility,
-      vehicle:           Utils.formatVehicleList(data.vehicle) || '—',
+      vehicle:           vehicleList,
+      destination:       destinationText,
       driver_name:       '—',
       driver_phone:      '—',
       date:              data.date,
@@ -226,7 +233,7 @@
       : ' Please download, print, and accomplish FOUR (4) copies of your official Request for the Use of Facilities Form (Requesting Person, School Guard, Facility In-Charge, Comptroller) and attach the original copy of your Letter of Intent.';
     const messageText = status === 'Approved'
       ? 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been APPROVED by the Facility-In-Charge.' + driverInfoText + copiesInstruction + pdfLinkLine
-      : 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been REJECTED by the Facility-In-Charge.';
+      : 'Your reservation request (Ref: ' + (bookingData.referenceId || '—') + ') has been DENIED by the Facility-In-Charge.';
 
     const formattedDate = (bookingData.startDate && bookingData.endDate && typeof Utils !== 'undefined' && typeof Utils.formatDateRange === 'function')
       ? Utils.formatDateRange(bookingData.startDate, bookingData.endDate)
@@ -248,12 +255,19 @@
       }
     }
 
-    const cleanFacility = Utils.getBookingLocation(bookingData).replace(/\s*\/\s*/g, ' - ');
+    const isVehicleReq = Utils.isVehicleBooking(bookingData);
+    const cleanFacility = isVehicleReq
+      ? 'Vehicle Request'
+      : Utils.getBookingLocation(bookingData).replace(/\s*\/\s*/g, ' - ');
+    const vehicleList = isVehicleReq ? (Utils.formatVehicleList(bookingData.vehicle) || '—') : '—';
+    const destinationText = isVehicleReq ? (String(bookingData.destination || '').trim() || '—') : '—';
+
     const payload = {
       to_email:         bookingData.email,
       to_name:          bookingData.name || bookingData.contactPerson || Utils.getBookingRequesterName(bookingData),
       facility:         cleanFacility,
-      vehicle:          Utils.formatVehicleList(bookingData.vehicle),
+      vehicle:          vehicleList,
+      destination:      destinationText,
       driver_name:      bookingData.assignedDriverName || '—',
       driver_phone:     bookingData.assignedDriverPhone || '—',
       date:             formattedDate,

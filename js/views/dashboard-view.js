@@ -356,7 +356,7 @@
       const name = Utils.escapeHtml(Utils.getBookingRequesterName(b));
       const userType = Utils.escapeHtml(b.userType || '—');
       const purpose = Utils.escapeHtml(b.purpose || '—');
-      const statusText = Utils.escapeHtml(b.status || '—');
+      const statusText = Utils.escapeHtml(Utils.formatStatusLabel(b.status));
       const safeId = Utils.escapeHtml(b.id);
       const isAdminRole = Boolean(window.Session && Session.isAdmin());
       const isFicRole   = Boolean(window.Session && Session.isFacilityInCharge());
@@ -374,7 +374,7 @@
           <div class="table-actions">
             <button class="action-btn facility-edit" onclick="viewBookingDetails('${safeId}')">View</button>
             <button class="action-btn approve" onclick="approveBooking('${safeId}')">Approve</button>
-            <button class="action-btn reject" onclick="rejectBooking('${safeId}')">Reject</button>
+            <button class="action-btn reject" onclick="rejectBooking('${safeId}')">Deny</button>
           </div>
         `;
       } else {
@@ -467,7 +467,7 @@
       if (booking.employeeId) {
         rows.push(['Employee ID', booking.employeeId]);
       }
-      rows.push(['Address', booking.address || 'San Isidro College Impalambong']);
+      rows.push(['Address', booking.address || 'San Isidro College Impalambong Malaybalay City Bukidnon']);
     }
 
     if (booking.userType === 'External') {
@@ -521,7 +521,7 @@
     if (booking.otherEquipment) rows.push(['Other Equip.', booking.otherEquipment]);
     if (booking.considerations) rows.push(['Considerations', booking.considerations]);
 
-    rows.push(['Status', booking.status || '—']);
+    rows.push(['Status', Utils.formatStatusLabel(booking.status)]);
 
     let html = rows.map(([label, value]) =>
       `<div class="detail-row"><span class="detail-label">${Utils.escapeHtml(label)}</span><span class="detail-value">${Utils.escapeHtml(value)}</span></div>`

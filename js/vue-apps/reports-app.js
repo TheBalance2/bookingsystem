@@ -165,7 +165,7 @@
       return {
         'No.':                         idx + 1,
         'Reference ID':                b.referenceId || b.id || '—',
-        'Status':                      st,
+        'Status':                      Utils.formatStatusLabel(st),
         'User Type':                   uType,
         'Booking Category':            getBookingCategoryLabel(b),
         'Facility / Vehicle Reserved': primaryLocation,
@@ -290,7 +290,7 @@
       ['1. RESERVATION BREAKDOWN BY STATUS'],
       ['Status', 'Count', 'Share (%)'],
       ...Object.entries(statusCounts).map(([stName, cnt]) => [
-        stName,
+        Utils.formatStatusLabel(stName),
         cnt,
         bookings.length > 0 ? `${((cnt / bookings.length) * 100).toFixed(1)}%` : '0.0%'
       ]),
@@ -470,7 +470,7 @@
       },
 
       previewTitle() {
-        const statusLabel = this.selectedStatus === 'all' ? 'All Statuses' : this.selectedStatus;
+        const statusLabel = this.selectedStatus === 'all' ? 'All Statuses' : Utils.formatStatusLabel(this.selectedStatus);
         const typeLabel   = this.selectedUserType === 'all' ? 'All Users' : `${this.selectedUserType} Users`;
         return `${statusLabel} • ${typeLabel} • ${this.facilityFilterDisplayLabel} — ${this.periodDisplayLabel}`;
       },
@@ -548,6 +548,10 @@
         return String(status || 'Approved').toLowerCase().replace(/\s+/g, '-');
       },
 
+      formatStatusLabel(status) {
+        return Utils.formatStatusLabel(status || 'Approved');
+      },
+
       exportToExcel() {
         const filtered = this.filteredBookings;
         if (filtered.length === 0) {
@@ -557,7 +561,7 @@
           return;
         }
 
-        const statusLabel   = this.selectedStatus === 'all' ? 'All Statuses' : this.selectedStatus;
+        const statusLabel   = this.selectedStatus === 'all' ? 'All Statuses' : Utils.formatStatusLabel(this.selectedStatus);
         const userTypeLabel = this.selectedUserType === 'all' ? 'All Users' : `${this.selectedUserType} Users`;
         const facilityLabel = this.facilityFilterDisplayLabel;
         const periodLabel   = this.periodDisplayLabel;

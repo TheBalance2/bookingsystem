@@ -582,10 +582,11 @@
         const driverNote = (newStatus === 'Approved' && data.assignedDriverName)
           ? ` (Driver: ${data.assignedDriverName})`
           : '';
+        const statusLabel = Utils.formatStatusLabel(newStatus);
         UiView.showToast(
           newStatus === 'Approved' ? 'success' : 'warning',
-          `Reservation ${newStatus}`,
-          `${data.name}'s booking for ${Utils.getBookingLocation(data)} has been ${newStatus.toLowerCase()}${driverNote}.`
+          `Reservation ${statusLabel}`,
+          `${data.name}'s booking for ${Utils.getBookingLocation(data)} has been ${statusLabel.toLowerCase()}${driverNote}.`
         );
       }
     } catch (err) {
@@ -612,8 +613,8 @@
   };
 
   window.rejectBooking = async function (docId) {
-    if (window.Session && !Session.requireFic('reject reservations')) return;
-    if (!confirm('Reject this reservation?')) return;
+    if (window.Session && !Session.requireFic('deny reservations')) return;
+    if (!confirm('Deny this reservation?')) return;
     await updateBookingStatus(docId, 'Rejected');
   };
 

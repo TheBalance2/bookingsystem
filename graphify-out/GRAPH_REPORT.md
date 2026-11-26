@@ -1,17 +1,17 @@
-# Graph Report - bookingsystem  (2026-11-25)
+# Graph Report - bookingsystem  (2026-11-26)
 
 ## Corpus Check
-- 44 files · ~65,822 words
+- 45 files · ~66,885 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: .css 7, (none) 1, .rules 1)
 
 ## Summary
-- 542 nodes · 802 edges · 53 communities (37 shown, 16 thin omitted)
-- Extraction: 80% EXTRACTED · 20% INFERRED · 0% AMBIGUOUS · INFERRED: 159 edges (avg confidence: 0.87)
+- 552 nodes · 811 edges · 56 communities (39 shown, 17 thin omitted)
+- Extraction: 80% EXTRACTED · 20% INFERRED · 0% AMBIGUOUS · INFERRED: 165 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f21159c5`
+- Built from commit: `7ec042fa`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -23,7 +23,7 @@
 - Public Booking Form Controller
 - PDF Generation Service
 - Booking Firestore Data Model
-- Public Landing Page HTML
+- Staff Portal Login Page
 - Admin Dashboard Controller Logic
 - Booking Form Input View
 - Data Management & Export Controller
@@ -63,6 +63,8 @@
 - Excel Export Dependencies
 - Web Interface Guidelines
 - Branding Assets & Logo
+- Public Landing Page HTML
+- MVC Architectural Rules
 
 ## God Nodes (most connected - your core abstractions)
 1. `Dashboard Management Portal Page` - 75 edges
@@ -81,24 +83,24 @@
   FACILITY_IN_CHARGE_MANUAL.md → js/models/booking-model.js
 - `Reservation Booking Page` --references--> `San Isidro College Logo`  [EXTRACTED]
   booking.html → images/logo.jpg
+- `Public Landing Page HTML` --references--> `San Isidro College Logo`  [EXTRACTED]
+  index.html → images/logo.jpg
 - `Staff Portal Login Page` --references--> `San Isidro College Logo`  [EXTRACTED]
   admin.html → images/logo.jpg
 - `Landing Hero Section (#hero)` --references--> `San Isidro College Campus Background Image`  [EXTRACTED]
   index.html → images/campus-bg.jpg
-- `Public Landing Page HTML` --references--> `San Isidro College Logo`  [EXTRACTED]
-  index.html → images/logo.jpg
 
 ## Import Cycles
 - None detected.
 
-## Communities (53 total, 16 thin omitted)
+## Communities (56 total, 17 thin omitted)
 
 ### Community 0 - "Dashboard Page & Core Integrations"
 Cohesion: 0.05
 Nodes (40): Dashboard Management Portal Page, activity-log-model.js Data Model, admin-crud-view.js View Module, auth-model.js Data Model, Reservations Search & Filter Controls, booking-model.js Data Model, classroom-model.js Data Model, admin.css Stylesheet (+32 more)
 
 ### Community 1 - "Excel Reports Vue Application"
-Cohesion: 0.08
+Cohesion: 0.07
 Nodes (12): buildAndDownloadExcelWorkbook(), exportToExcel(), filteredBookings(), formatEquipmentCell(), formatFacilityCell(), getBookingCategoryLabel(), getBookingFacilityColumnValue(), getBookingIsoDateStr() (+4 more)
 
 ### Community 2 - "Notification Service & Dropdown"
@@ -106,12 +108,12 @@ Cohesion: 0.19
 Nodes (28): buildNotificationPayload(), clearHistory(), closeDropdown(), ensureAudioContext(), getBookingDateLabel(), getPermissionState(), getUnreadCount(), init() (+20 more)
 
 ### Community 3 - "Shared Utilities & Helpers"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (10): formatFacilityVisibilityLabel(), formatFilingDate(), formatTime12(), formatTimeRange12(), formatVehicleList(), getBookingLocation(), getBookingVehicleArray(), getFilingDate() (+2 more)
 
 ### Community 4 - "Public Booking Form Controller"
-Cohesion: 0.13
-Nodes (13): applyDateRangeMinConstraints(), applyPrefillFacilityIfNeeded(), checkConflictAndRender(), handleExtLoiFileChange(), hasPdfMagicBytes(), isAllowedDate(), isPdfFile(), linkDateRange() (+5 more)
+Cohesion: 0.11
+Nodes (14): applyDateRangeMinConstraints(), applyPrefillFacilityIfNeeded(), checkConflictAndRender(), handleExtLoiFileChange(), hasPdfMagicBytes(), isAllowedDate(), isPdfFile(), linkDateRange() (+6 more)
 
 ### Community 5 - "PDF Generation Service"
 Cohesion: 0.13
@@ -121,16 +123,16 @@ Nodes (26): applySignatoriesData(), buildBookingPdfDoc(), buildBookingPdfDownloa
 Cohesion: 0.17
 Nodes (12): bulkRemove(), computeLookupKey(), create(), fallbackSha256Hex(), findByReferenceAndEmail(), findForReceipt(), listenApprovedAndPending(), restoreMany() (+4 more)
 
-### Community 7 - "Public Landing Page HTML"
-Cohesion: 0.14
-Nodes (14): Staff Portal Login Page, Staff Login Form (#loginForm), Vue 3 Login App Container (#loginApp), San Isidro College Campus Background Image, San Isidro College Logo, Availability Calendar Section (#calendar-section), Date Availability Modal (#dateAvailModal), Calendar Event Details Modal (#eventModal) (+6 more)
+### Community 7 - "Staff Portal Login Page"
+Cohesion: 0.25
+Nodes (6): Staff Portal Login Page, Staff Login Form (#loginForm), Vue 3 Login App Container (#loginApp), San Isidro College Logo, db, firebaseConfig
 
 ### Community 8 - "Admin Dashboard Controller Logic"
 Cohesion: 0.18
 Nodes (12): dataUrlToPdfBlobUrl(), downloadLetterOfIntentPdf(), getBookingDateBounds(), getCreatedAtMs(), getFilteredBookings(), getStatusFilteredBookings(), hasActiveSearchOrFilter(), listenBookings() (+4 more)
 
 ### Community 9 - "Booking Form Input View"
-Cohesion: 0.17
+Cohesion: 0.16
 Nodes (7): appendVehicleOption(), findVisibleField(), focusFirstError(), populateFacilitySelects(), setDepartmentsData(), showError(), updateIntDepartmentSchoolVisibility()
 
 ### Community 10 - "Data Management & Export Controller"
@@ -194,8 +196,8 @@ Cohesion: 0.38
 Nodes (3): getActive(), getActiveByCategory(), getAll()
 
 ### Community 29 - "email-service.js"
-Cohesion: 0.28
-Nodes (12): canSendPublicSubmissionEmail(), getHostingerEmailEndpoint(), init(), isAllowedOrigin(), sendStatusNotification(), sendSubmissionConfirmation(), sendViaEmailJsFallback(), sendViaHostingerPhp() (+4 more)
+Cohesion: 0.50
+Nodes (8): canSendPublicSubmissionEmail(), getHostingerEmailEndpoint(), init(), isAllowedOrigin(), sendStatusNotification(), sendSubmissionConfirmation(), sendViaEmailJsFallback(), sendViaHostingerPhp()
 
 ### Community 31 - "Data Cleanup & Backup Modals"
 Cohesion: 0.33
@@ -241,25 +243,33 @@ Nodes (3): department-controller.js Controller, Add/Edit Office/School Modal, Ma
 Cohesion: 0.67
 Nodes (3): reports-app.js Vue 3 Application, Reports Generation Section (Vue 3), SheetJS XLSX Library 0.20.3
 
+### Community 53 - "Public Landing Page HTML"
+Cohesion: 0.25
+Nodes (8): San Isidro College Campus Background Image, Availability Calendar Section (#calendar-section), Date Availability Modal (#dateAvailModal), Calendar Event Details Modal (#eventModal), Vue 3 Facilities Showcase Container (#facilitiesApp), Facility Detail Gallery Modal (#facilityDetailModal), Landing Hero Section (#hero), Public Landing Page HTML
+
+### Community 54 - "MVC Architectural Rules"
+Cohesion: 0.40
+Nodes (4): Debugging Guide (Symptom to File), Project Folder Structure, System Overview, Technology Stack & Frameworks
+
 ## Knowledge Gaps
 - **62 isolated node(s):** `activity-log-model.js Data Model`, `admin-crud-view.js View Module`, `auth-model.js Data Model`, `Reservations Search & Filter Controls`, `booking-model.js Data Model` (+57 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 211 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **16 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 220 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **17 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Reservation Booking Page` connect `Reservation Booking Page` to `Public Booking Form Controller`, `PDF Generation Service`, `Booking Firestore Data Model`, `Public Landing Page HTML`, `Reservation Business Rules & Workflow`, `Philippine Address Geolocation Service`, `Facility Firestore Data Model`, `email-service.js`?**
+- **Why does `Reservation Booking Page` connect `Reservation Booking Page` to `Public Booking Form Controller`, `PDF Generation Service`, `Booking Firestore Data Model`, `Staff Portal Login Page`, `Reservation Business Rules & Workflow`, `Philippine Address Geolocation Service`, `Public Landing Page HTML`, `MVC Architectural Rules`, `Facility Firestore Data Model`, `email-service.js`?**
   _High betweenness centrality (0.080) - this node is a cross-community bridge._
 - **What connects `activity-log-model.js Data Model`, `admin-crud-view.js View Module`, `auth-model.js Data Model` to the rest of the system?**
   _62 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Dashboard Page & Core Integrations` be split into smaller, more focused modules?**
   _Cohesion score 0.05128205128205128 - nodes in this community are weakly interconnected._
-- **Why does `MVC Architectural Rules` connect `Public Landing Page HTML` to `Excel Reports Vue Application`, `Public Booking Form Controller`, `Booking Firestore Data Model`, `Facilities Showcase Vue Application`, `Reservation Booking Page`, `login-app.js`, `email-service.js`?**
+- **Why does `MVC Architectural Rules` connect `MVC Architectural Rules` to `Excel Reports Vue Application`, `Public Booking Form Controller`, `Booking Firestore Data Model`, `Staff Portal Login Page`, `Facilities Showcase Vue Application`, `Reservation Booking Page`, `login-app.js`, `Public Landing Page HTML`?**
   _High betweenness centrality (0.056) - this node is a cross-community bridge._
 - **Should `Excel Reports Vue Application` be split into smaller, more focused modules?**
-  _Cohesion score 0.0766488413547237 - nodes in this community are weakly interconnected._
-- **Why does `Public Landing Page HTML` connect `Public Landing Page HTML` to `Booking Firestore Data Model`, `Reservation Business Rules & Workflow`, `Facilities Showcase Vue Application`, `Reservation Booking Page`, `Calendar View Controller Logic`, `Facility Firestore Data Model`?**
-  _High betweenness centrality (0.029) - this node is a cross-community bridge._
+  _Cohesion score 0.07394957983193277 - nodes in this community are weakly interconnected._
+- **Why does `Public Landing Page HTML` connect `Public Landing Page HTML` to `Booking Firestore Data Model`, `Staff Portal Login Page`, `Reservation Business Rules & Workflow`, `Facilities Showcase Vue Application`, `Reservation Booking Page`, `MVC Architectural Rules`, `Calendar View Controller Logic`, `Facility Firestore Data Model`?**
+  _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **Should `Shared Utilities & Helpers` be split into smaller, more focused modules?**
-  _Cohesion score 0.08831908831908832 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07816091954022988 - nodes in this community are weakly interconnected._

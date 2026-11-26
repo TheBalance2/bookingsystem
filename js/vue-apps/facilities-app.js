@@ -12,21 +12,7 @@
     '#e74c3c', '#1abc9c', '#f39c12', '#2c3e50'
   ];
 
-  // --- Navbar scroll & mobile toggle setup for index.html ---
-  const navbar = document.getElementById('navbar');
-  if (navbar) {
-    window.addEventListener('scroll', () => {
-      navbar.classList.toggle('scrolled', window.scrollY > 50);
-    });
-  }
-
-  const navToggle = document.getElementById('navToggle');
-  const navLinks = document.getElementById('navLinks');
-  if (navToggle && navLinks) {
-    navToggle.addEventListener('click', () => {
-      navLinks.classList.toggle('open');
-    });
-  }
+  // --- Navbar scroll & mobile toggle are handled centrally by js/core/navbar.js ---
 
   const facilitiesApp = createApp({
     data() {

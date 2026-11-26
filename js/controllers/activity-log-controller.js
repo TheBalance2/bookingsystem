@@ -47,7 +47,7 @@
     AUTH_LOGIN:                 { label: 'Signed In',                 badge: 'approved' },
     AUTH_LOGOUT:                { label: 'Signed Out',                badge: 'pending' },
     BOOKING_APPROVE:            { label: 'Approved Booking',          badge: 'approved' },
-    BOOKING_REJECT:             { label: 'Rejected Booking',          badge: 'rejected' },
+    BOOKING_REJECT:             { label: 'Denied Booking',            badge: 'rejected' },
     BOOKING_SPECIAL_CREATE:     { label: 'Created Special Booking',   badge: 'approved' },
     BOOKING_DELETE:             { label: 'Deleted Booking',           badge: 'rejected' },
     BOOKING_BULK_DELETE:        { label: 'Mass Deleted Bookings',     badge: 'rejected' },
@@ -103,8 +103,8 @@
     if (d.capacity)       parts.push(`Capacity: ${d.capacity}`);
     if (d.visibility)     parts.push(`Visibility: ${d.visibility}`);
     if (d.headName)       parts.push(`Head/Dean: ${d.headName}`);
-    if (d.status)         parts.push(`Status: ${d.status}`);
-    if (d.newStatus)      parts.push(`New Status: ${d.newStatus}`);
+    if (d.status)         parts.push(`Status: ${Utils.formatStatusLabel(d.status)}`);
+    if (d.newStatus)      parts.push(`New Status: ${Utils.formatStatusLabel(d.newStatus)}`);
     if (d.count !== undefined) parts.push(`Count: ${d.count}`);
     if (d.restoredCount !== undefined) parts.push(`Restored: ${d.restoredCount} (Skipped: ${d.skippedCount || 0})`);
     if (d.scope)          parts.push(`Scope: ${d.scope}`);

@@ -112,7 +112,7 @@
       <div class="dm-kpi-chips">
         <span class="dm-kpi-chip dm-kpi-approved">Approved: <strong>${approved}</strong></span>
         <span class="dm-kpi-chip dm-kpi-pending">Pending / Review: <strong>${pending}</strong></span>
-        <span class="dm-kpi-chip dm-kpi-rejected">Rejected: <strong>${rejected}</strong></span>
+        <span class="dm-kpi-chip dm-kpi-rejected">Denied: <strong>${rejected}</strong></span>
       </div>
     `;
   }
@@ -444,7 +444,7 @@
       const name = Utils.escapeHtml(Utils.getBookingRequesterName(b));
       const loc  = Utils.escapeHtml(Utils.getBookingLocation(b));
       const date = Utils.escapeHtml(getBookingReservationDate(b));
-      const st   = Utils.escapeHtml(b.status || '—');
+      const st   = Utils.escapeHtml(Utils.formatStatusLabel(b.status));
       return `
         <tr>
           <td><strong style="color:var(--navy);">${ref}</strong></td>

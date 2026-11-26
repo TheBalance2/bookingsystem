@@ -296,7 +296,7 @@
     const contactStr  = data.contactNumber || data.contact || '';
     const emailStr    = data.email || '';
     const addressStr  = isInternal
-      ? 'San Isidro College Impalambong'
+      ? 'San Isidro College Impalambong Malaybalay City Bukidnon'
       : resolveExternalShortAddress(data);
 
     function drawSection2Row(label, value) {

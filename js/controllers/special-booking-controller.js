@@ -246,7 +246,7 @@
       const position       = (sbPositionInput ? sbPositionInput.value : '').trim().toUpperCase();
       const contact        = (document.getElementById('sbContact') ? document.getElementById('sbContact').value : '').trim();
       const email          = document.getElementById('sbEmail').value.trim();
-      const address        = 'San Isidro College Impalambong';
+      const address        = 'San Isidro College Impalambong Malaybalay City Bukidnon';
       const facilityChoice = document.getElementById('sbFacility').value;
       const isVehicle      = facilityChoice === 'Vehicle';
       const facility       = isVehicle ? '' : facilityChoice;
@@ -290,8 +290,8 @@
       }
       if (!position)       { alert('Please enter position or designation.'); return; }
       if (!contact)        { alert('Please enter contact number.'); return; }
-      if (!Utils.isDigitsOnly(contact)) { alert('Contact number must be numbers only.'); return; }
-      if (!email || !Utils.isValidEmail(email)) { alert('Please enter a valid email address.'); return; }
+      if (!Utils.isValidPhMobile(contact)) { alert('Contact number must be 11 digits starting with 09 (e.g. 09171234567).'); return; }
+      if (!email || !Utils.isAllowedInternalEmail(email)) { alert('Please enter a valid @sic.edu.ph or @gmail.com email address.'); return; }
       if (!facilityChoice) { alert('Please select a facility or Vehicle.'); return; }
       if (isClassroom && !classroom) {
         alert('Please select a classroom.');

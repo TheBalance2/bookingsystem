@@ -214,11 +214,26 @@
   }
 
   function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+  }
+
+  function isAllowedInternalEmail(email) {
+    return /^[^\s@]+@(sic\.edu\.ph|gmail\.com)$/i.test(String(email || '').trim());
   }
 
   function isDigitsOnly(str) {
     return /^\d+$/.test(String(str).trim());
+  }
+
+  function isValidPhMobile(str) {
+    return /^09\d{9}$/.test(String(str || '').trim());
+  }
+
+  function formatStatusLabel(status, fallback = '—') {
+    const s = String(status || '').trim();
+    if (!s) return fallback;
+    if (s === 'Rejected') return 'Denied';
+    return s;
   }
 
   function isValidPersonCount(value) {
@@ -270,7 +285,10 @@
     formatSequentialBookingId,
     sanitizeIdSegment,
     isValidEmail,
+    isAllowedInternalEmail,
     isDigitsOnly,
+    isValidPhMobile,
+    formatStatusLabel,
     isValidPersonCount,
     stripNonDigitsInput,
     formatRelativeTime
